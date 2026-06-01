@@ -14,6 +14,8 @@ import com.voyageviet.backend.review.repository.ReviewRepository;
 import com.voyageviet.backend.review.repository.projection.TourReviewSummaryProjection;
 import com.voyageviet.backend.tour.dto.*;
 import com.voyageviet.backend.tour.entity.Tour;
+import com.voyageviet.backend.tour.entity.TourSchedule;
+import com.voyageviet.backend.tour.entity.TourScheduleStatus;
 import com.voyageviet.backend.tour.entity.TourStatus;
 import com.voyageviet.backend.tour.repository.TourImageRepository;
 import com.voyageviet.backend.tour.repository.TourItineraryRepository;
@@ -29,6 +31,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -396,7 +399,7 @@ public class TourService {
                 tour.getDurationDays(),
                 tour.getDurationNights(),
                 tour.getDepartureLocation(),
-                tour.getAvailableSeats(),
+                resolveAvailableSeats(tour),
                 tour.getFeatured(),
                 tour.getStatus(),
                 tour.getCategory().getName(),
@@ -586,6 +589,23 @@ public class TourService {
                 tourId,
                 ReviewStatus.ACTIVE
         );
+    }
+
+    private Integer resolveAvailableSeats(Tour tour) {
+        List<TourSchedule> openSchedules = tourScheduleRepository.findByTourSlugAndStatusAndDepartureDateGreaterThanEqual(
+                tour.getSlug(),
+                TourScheduleStatus.OPEN,
+                LocalDate.now(),
+                Sort.by(Sort.Direction.ASC, "departureDate", "id")
+        );
+
+        if (openSchedules.isEmpty()) {
+            return tour.getAvailableSeats();
+        }
+
+        return openSchedules.stream()
+                .mapToInt(schedule -> Math.max(schedule.getMaxSeats() - (schedule.getBookedSeats() == null ? 0 : schedule.getBookedSeats()), 0))
+                .sum();
     }
 
     private TourCardResponse toCardResponse(Tour tour) {

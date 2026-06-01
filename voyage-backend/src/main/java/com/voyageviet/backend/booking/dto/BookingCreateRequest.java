@@ -6,7 +6,8 @@ import java.time.LocalDate;
 
 public record BookingCreateRequest(
 
-        @NotNull(message = "Tour ID is required")
+        Long scheduleId,
+
         Long tourId,
 
         @NotBlank(message = "Contact name is required")
@@ -24,9 +25,17 @@ public record BookingCreateRequest(
 
         LocalDate startDate,
 
-        @NotNull(message = "Number of people is required")
         @Min(value = 1, message = "Number of people must be greater than or equal to 1")
         Integer numberOfPeople,
+
+        @Min(value = 1, message = "Adult count must be greater than or equal to 1")
+        Integer adultCount,
+
+        @Min(value = 0, message = "Child count must be greater than or equal to 0")
+        Integer childCount,
+
+        @Min(value = 0, message = "Infant count must be greater than or equal to 0")
+        Integer infantCount,
 
         @Size(max = 1000, message = "Note must not exceed 1000 characters")
         String note

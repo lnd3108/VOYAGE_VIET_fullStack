@@ -14,24 +14,30 @@ import com.voyageviet.backend.common.paging.PageResponse;
 import com.voyageviet.backend.feature.entity.FeatureCode;
 import com.voyageviet.backend.feature.service.FeatureGuardService;
 import com.voyageviet.backend.tour.entity.Tour;
+import com.voyageviet.backend.tour.entity.TourSchedule;
+import com.voyageviet.backend.tour.entity.TourScheduleStatus;
 import com.voyageviet.backend.tour.entity.TourStatus;
 import com.voyageviet.backend.tour.repository.TourRepository;
+import com.voyageviet.backend.tour.repository.TourScheduleRepository;
 import com.voyageviet.backend.user.entity.User;
 import com.voyageviet.backend.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
-import com.voyageviet.backend.common.paging.PageResponse;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 
 
 import org.springframework.data.domain.Sort;
+import org.springframework.orm.ObjectOptimisticLockingFailureException;
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
 import java.util.List;
+import java.util.Random;
 import java.util.Set;
 
 @Service
@@ -41,6 +47,7 @@ public class BookingService {
 
     private final BookingRepository bookingRepository;
     private final TourRepository tourRepository;
+    private final TourScheduleRepository scheduleRepository;
     private final UserRepository userRepository;
     private final FeatureGuardService featureGuardService;
     private final AuditLogService auditLogService;
@@ -54,51 +61,85 @@ public class BookingService {
 
         User user = getCurrentUser(authentication);
 
-        Tour tour = tourRepository.findWithLockById(request.tourId())
+        if (request.scheduleId() == null) {
+            throw new BusinessException(ErrorCode.INVALID_REQUEST, "Vui lòng chọn lịch khởi hành.");
+        }
+
+        TourSchedule schedule = scheduleRepository.findById(request.scheduleId())
                 .orElseThrow(() -> new BusinessException(
-                        ErrorCode.TOUR_NOT_FOUND,
-                        "Tour not found"
+                        ErrorCode.TOUR_SCHEDULE_NOT_FOUND,
+                        "Lịch khởi hành không tồn tại."
                 ));
 
+        Tour tour = schedule.getTour();
         if (tour.getStatus() != TourStatus.PUBLISHED) {
             throw new BusinessException(
-                    ErrorCode.INVALID_REQUEST,
-                    "Only published tours can be booked"
+                ErrorCode.INVALID_REQUEST,
+                    "Tour chưa được publish."
             );
         }
 
-        if (tour.getAvailableSeats() < request.numberOfPeople()) {
-            throw new BusinessException(
-                    ErrorCode.BOOKING_NOT_ENOUGH_SEATS,
-                    "Not enough seats available"
-            );
+        validateScheduleForBooking(schedule);
+
+        int adultCount = request.adultCount() == null ? 1 : request.adultCount();
+        int childCount = request.childCount() == null ? 0 : request.childCount();
+        int infantCount = request.infantCount() == null ? 0 : request.infantCount();
+        int totalPeople = adultCount + childCount + infantCount;
+
+        if (totalPeople <= 0) {
+            throw new BusinessException(ErrorCode.INVALID_REQUEST, "Total people must be greater than 0");
         }
 
-        BigDecimal unitPrice = tour.getSalePrice() != null
-                ? tour.getSalePrice()
-                : tour.getOriginalPrice();
+        int currentBookedSeats = schedule.getBookedSeats() == null ? 0 : schedule.getBookedSeats();
+        int remainingSeats = schedule.getMaxSeats() - currentBookedSeats;
+        if (totalPeople > remainingSeats) {
+            throw new BusinessException(ErrorCode.BOOKING_NOT_ENOUGH_SEATS, "Số khách vượt quá số chỗ còn lại.");
+        }
 
-        BigDecimal totalAmount = unitPrice.multiply(BigDecimal.valueOf(request.numberOfPeople()));
+        BigDecimal priceAdult = defaultMoney(schedule.getPriceAdult());
+        BigDecimal priceChild = defaultMoney(schedule.getPriceChild());
+        BigDecimal priceInfant = defaultMoney(schedule.getPriceInfant());
+        BigDecimal singleSupplement = defaultMoney(schedule.getSingleSupplement());
+        BigDecimal totalAmount = priceAdult.multiply(BigDecimal.valueOf(adultCount))
+                .add(priceChild.multiply(BigDecimal.valueOf(childCount)))
+                .add(priceInfant.multiply(BigDecimal.valueOf(infantCount)));
 
-        tour.setAvailableSeats(tour.getAvailableSeats() - request.numberOfPeople());
+        schedule.setBookedSeats(currentBookedSeats + totalPeople);
+        if (schedule.getBookedSeats() >= schedule.getMaxSeats()) {
+            schedule.setStatus(TourScheduleStatus.FULL);
+        }
 
         Booking booking = Booking.builder()
                 .user(user)
                 .tour(tour)
+                .schedule(schedule)
+                .bookingCode(generateBookingCode())
                 .contactName(request.contactName().trim())
                 .contactEmail(request.contactEmail().trim().toLowerCase())
                 .contactPhone(request.contactPhone().trim())
-                .startDate(request.startDate())
-                .numberOfPeople(request.numberOfPeople())
-                .unitPrice(unitPrice)
+                .startDate(schedule.getDepartureDate())
+                .numberOfPeople(totalPeople)
+                .adultCount(adultCount)
+                .childCount(childCount)
+                .infantCount(infantCount)
+                .totalPeople(totalPeople)
+                .unitPrice(priceAdult)
+                .priceAdultSnapshot(priceAdult)
+                .priceChildSnapshot(priceChild)
+                .priceInfantSnapshot(priceInfant)
+                .singleSupplementSnapshot(singleSupplement)
                 .totalAmount(totalAmount)
                 .status(BookingStatus.PENDING)
                 .note(trimToNull(request.note()))
                 .build();
 
-        Booking savedBooking = bookingRepository.save(booking);
-
-        return toResponse(savedBooking);
+        try {
+            scheduleRepository.saveAndFlush(schedule);
+            Booking savedBooking = bookingRepository.save(booking);
+            return toResponse(savedBooking);
+        } catch (ObjectOptimisticLockingFailureException ex) {
+            throw new BusinessException(ErrorCode.CONFLICT, "Có người vừa đặt lịch này, vui lòng thử lại.");
+        }
     }
 
     public PageResponse<BookingResponse> getMyBookings(
@@ -157,7 +198,7 @@ public class BookingService {
         validateStatusTransition(currentStatus, newStatus);
 
         if (newStatus == BookingStatus.CANCELLED) {
-            restoreSeats(booking);
+            releaseScheduleSeats(booking);
         }
 
         booking.setStatus(newStatus);
@@ -196,18 +237,18 @@ public class BookingService {
         if (booking.getStatus() == BookingStatus.CANCELLED) {
             throw new BusinessException(
                     ErrorCode.BOOKING_INVALID_STATUS,
-                    "Booking has already been cancelled"
+                    "Booking đã bị hủy trước đó."
             );
         }
 
         if (booking.getStatus() == BookingStatus.COMPLETED) {
             throw new BusinessException(
                     ErrorCode.BOOKING_INVALID_STATUS,
-                    "Completed booking cannot be cancelled"
+                    "Không thể hủy booking đã hoàn thành."
             );
         }
 
-        restoreSeats(booking);
+        releaseScheduleSeats(booking);
 
         booking.setStatus(BookingStatus.CANCELLED);
 
@@ -235,6 +276,8 @@ public class BookingService {
     private BookingResponse toResponse(Booking booking) {
         return new BookingResponse(
                 booking.getId(),
+                booking.getId(),
+                booking.getBookingCode(),
 
                 booking.getUser().getId(),
                 booking.getUser().getEmail(),
@@ -242,6 +285,11 @@ public class BookingService {
                 booking.getTour().getId(),
                 booking.getTour().getTitle(),
                 booking.getTour().getSlug(),
+                booking.getTour().getThumbnailUrl(),
+
+                booking.getSchedule() == null ? null : booking.getSchedule().getId(),
+                booking.getSchedule() == null ? booking.getStartDate() : booking.getSchedule().getDepartureDate(),
+                booking.getSchedule() == null ? null : booking.getSchedule().getReturnDate(),
 
                 booking.getContactName(),
                 booking.getContactEmail(),
@@ -250,9 +298,18 @@ public class BookingService {
                 booking.getStartDate(),
                 booking.getNumberOfPeople(),
                 booking.getUnitPrice(),
+                booking.getAdultCount(),
+                booking.getChildCount(),
+                booking.getInfantCount(),
+                booking.getTotalPeople() == null ? booking.getNumberOfPeople() : booking.getTotalPeople(),
+                booking.getPriceAdultSnapshot(),
+                booking.getPriceChildSnapshot(),
+                booking.getPriceInfantSnapshot(),
+                booking.getSingleSupplementSnapshot(),
                 booking.getTotalAmount(),
                 booking.getStatus(),
                 booking.getNote(),
+                null,
 
                 booking.getCreatedAt(),
                 booking.getUpdatedAt()
@@ -263,14 +320,14 @@ public class BookingService {
         if (currentStatus == BookingStatus.CANCELLED) {
             throw new BusinessException(
                     ErrorCode.BOOKING_INVALID_STATUS,
-                    "Cancelled booking cannot be changed"
+                    "Không cho chuyển booking đã hủy sang trạng thái khác trong phase này"
             );
         }
 
         if (currentStatus == BookingStatus.COMPLETED) {
             throw new BusinessException(
                     ErrorCode.BOOKING_INVALID_STATUS,
-                    "Completed booking cannot be changed"
+                    "Không thể cập nhật booking đã hoàn thành"
             );
         }
 
@@ -292,12 +349,48 @@ public class BookingService {
         );
     }
 
-    private void restoreSeats(Booking booking) {
-        Tour tour = booking.getTour();
+    private void releaseScheduleSeats(Booking booking) {
+        TourSchedule schedule = booking.getSchedule();
+        if (schedule == null) {
+            return;
+        }
 
-        tour.setAvailableSeats(
-                tour.getAvailableSeats() + booking.getNumberOfPeople()
-        );
+        int totalPeople = booking.getTotalPeople() == null ? booking.getNumberOfPeople() : booking.getTotalPeople();
+        int currentBookedSeats = schedule.getBookedSeats() == null ? 0 : schedule.getBookedSeats();
+        schedule.setBookedSeats(Math.max(currentBookedSeats - totalPeople, 0));
+        if (schedule.getStatus() == TourScheduleStatus.FULL && schedule.getBookedSeats() < schedule.getMaxSeats()) {
+            schedule.setStatus(TourScheduleStatus.OPEN);
+        }
+        scheduleRepository.save(schedule);
+    }
+
+    private void validateScheduleForBooking(TourSchedule schedule) {
+        if (schedule.getStatus() == TourScheduleStatus.CLOSED || schedule.getStatus() == TourScheduleStatus.CANCELLED) {
+            throw new BusinessException(ErrorCode.BOOKING_INVALID_STATUS, "Lịch khởi hành đã đóng.");
+        }
+        int currentBookedSeats = schedule.getBookedSeats() == null ? 0 : schedule.getBookedSeats();
+        if (schedule.getStatus() == TourScheduleStatus.FULL || currentBookedSeats >= schedule.getMaxSeats()) {
+            throw new BusinessException(ErrorCode.BOOKING_NOT_ENOUGH_SEATS, "Lịch khởi hành đã hết chỗ.");
+        }
+        if (schedule.getDepartureDate().isBefore(LocalDate.now())) {
+            throw new BusinessException(ErrorCode.INVALID_REQUEST, "Lịch khởi hành đã đóng.");
+        }
+    }
+
+    private BigDecimal defaultMoney(BigDecimal value) {
+        return value == null ? BigDecimal.ZERO : value;
+    }
+
+    private String generateBookingCode() {
+        String prefix = "VV" + LocalDate.now().format(DateTimeFormatter.BASIC_ISO_DATE);
+        Random random = new Random();
+        for (int i = 0; i < 10; i++) {
+            String code = prefix + String.format("%06d", random.nextInt(1_000_000));
+            if (!bookingRepository.existsByBookingCode(code)) {
+                return code;
+            }
+        }
+        return prefix + System.nanoTime();
     }
 
     private Pageable buildPageable(int page, int size, String sortBy, String sortDir) {
@@ -340,8 +433,10 @@ public class BookingService {
                 "id",
                 "status",
                 "totalAmount",
+                "totalPeople",
                 "numberOfPeople",
-                "startDate"
+                "startDate",
+                "bookingCode"
         );
 
         if (sortBy == null || sortBy.isBlank()) {

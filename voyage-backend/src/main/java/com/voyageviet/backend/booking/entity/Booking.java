@@ -2,6 +2,7 @@ package com.voyageviet.backend.booking.entity;
 
 import com.voyageviet.backend.common.entity.BaseEntity;
 import com.voyageviet.backend.tour.entity.Tour;
+import com.voyageviet.backend.tour.entity.TourSchedule;
 import com.voyageviet.backend.user.entity.User;
 import jakarta.persistence.*;
 import lombok.*;
@@ -20,7 +21,12 @@ import java.time.LocalDate;
         indexes = {
                 @Index(name = "IDX_BOOKINGS_USER_ID", columnList = "USER_ID"),
                 @Index(name = "IDX_BOOKINGS_TOUR_ID", columnList = "TOUR_ID"),
+                @Index(name = "IDX_BOOKINGS_SCHEDULE_ID", columnList = "SCHEDULE_ID"),
+                @Index(name = "IDX_BOOKINGS_CODE", columnList = "BOOKING_CODE"),
                 @Index(name = "IDX_BOOKINGS_STATUS", columnList = "STATUS")
+        },
+        uniqueConstraints = {
+                @UniqueConstraint(name = "UK_BOOKINGS_CODE", columnNames = "BOOKING_CODE")
         }
 )
 public class Booking extends BaseEntity {
@@ -38,6 +44,13 @@ public class Booking extends BaseEntity {
     @JoinColumn(name = "TOUR_ID", nullable = false)
     private Tour tour;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "SCHEDULE_ID")
+    private TourSchedule schedule;
+
+    @Column(name = "BOOKING_CODE", length = 30)
+    private String bookingCode;
+
     @Column(name = "CONTACT_NAME", nullable = false, length = 150)
     private String contactName;
 
@@ -53,8 +66,35 @@ public class Booking extends BaseEntity {
     @Column(name = "NUMBER_OF_PEOPLE", nullable = false)
     private Integer numberOfPeople;
 
+    @Builder.Default
+    @Column(name = "ADULT_COUNT", nullable = false)
+    private Integer adultCount = 1;
+
+    @Builder.Default
+    @Column(name = "CHILD_COUNT", nullable = false)
+    private Integer childCount = 0;
+
+    @Builder.Default
+    @Column(name = "INFANT_COUNT", nullable = false)
+    private Integer infantCount = 0;
+
+    @Column(name = "TOTAL_PEOPLE")
+    private Integer totalPeople;
+
     @Column(name = "UNIT_PRICE", nullable = false, precision = 15, scale = 2)
     private BigDecimal unitPrice;
+
+    @Column(name = "PRICE_ADULT_SNAPSHOT", precision = 15, scale = 2)
+    private BigDecimal priceAdultSnapshot;
+
+    @Column(name = "PRICE_CHILD_SNAPSHOT", precision = 15, scale = 2)
+    private BigDecimal priceChildSnapshot;
+
+    @Column(name = "PRICE_INFANT_SNAPSHOT", precision = 15, scale = 2)
+    private BigDecimal priceInfantSnapshot;
+
+    @Column(name = "SINGLE_SUPPLEMENT_SNAPSHOT", precision = 15, scale = 2)
+    private BigDecimal singleSupplementSnapshot;
 
     @Column(name = "TOTAL_AMOUNT", nullable = false, precision = 15, scale = 2)
     private BigDecimal totalAmount;

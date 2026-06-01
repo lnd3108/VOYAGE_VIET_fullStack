@@ -1,5 +1,6 @@
 package com.voyageviet.backend.tour.service;
 
+import com.voyageviet.backend.booking.repository.BookingRepository;
 import com.voyageviet.backend.common.exception.BusinessException;
 import com.voyageviet.backend.common.exception.ErrorCode;
 import com.voyageviet.backend.common.paging.PageResponse;
@@ -27,6 +28,7 @@ public class TourScheduleService {
 
     private final TourRepository tourRepository;
     private final TourScheduleRepository scheduleRepository;
+    private final BookingRepository bookingRepository;
 
     @Transactional
     public TourScheduleResponse createSchedule(Long tourId, TourScheduleCreateRequest request) {
@@ -66,7 +68,7 @@ public class TourScheduleService {
     @Transactional
     public TourScheduleResponse updateSchedule(Long tourId, Long scheduleId, TourScheduleUpdateRequest request) {
         TourSchedule schedule = findSchedule(tourId, scheduleId);
-        assertNoBlockingBooking(scheduleId, "Không thể cập nhật lịch đã có booking confirmed");
+        assertNoBooking(scheduleId, "Không thể cập nhật lịch khởi hành đã có booking.");
         validateSchedule(request.departureDate(), request.returnDate(), request.priceAdult(), request.maxSeats(), request.bookedSeats(), false);
 
         schedule.setDepartureDate(request.departureDate());
@@ -87,7 +89,7 @@ public class TourScheduleService {
     @Transactional
     public void deleteSchedule(Long tourId, Long scheduleId) {
         TourSchedule schedule = findSchedule(tourId, scheduleId);
-        assertNoBlockingBooking(scheduleId, "Không thể xóa lịch đã có booking");
+        assertNoBooking(scheduleId, "Không thể xóa lịch đã có booking.");
         scheduleRepository.delete(schedule);
     }
 
@@ -96,6 +98,12 @@ public class TourScheduleService {
         TourSchedule schedule = findSchedule(tourId, scheduleId);
         if (status == TourScheduleStatus.FULL) {
             throw new BusinessException(ErrorCode.TOUR_SCHEDULE_INVALID, "FULL status is set automatically when booked seats reach max seats");
+        }
+        if (schedule.getStatus() == TourScheduleStatus.FULL && status == TourScheduleStatus.CLOSED) {
+            throw new BusinessException(ErrorCode.TOUR_SCHEDULE_INVALID, "Không thể set schedule CLOSED khi đã FULL");
+        }
+        if (status == TourScheduleStatus.OPEN && schedule.getDepartureDate().isBefore(LocalDate.now())) {
+            throw new BusinessException(ErrorCode.TOUR_SCHEDULE_INVALID, "Không thể OPEN lịch khởi hành trong quá khứ");
         }
         schedule.setStatus(status);
         normalizeStatus(schedule);
@@ -139,6 +147,29 @@ public class TourScheduleService {
                 .toList();
     }
 
+    public List<PublicTourScheduleResponse> getPublicScheduleSummariesByTourSlug(String slug) {
+        return scheduleRepository.findByTourSlugAndStatusAndDepartureDateGreaterThanEqual(
+                        slug,
+                        TourScheduleStatus.OPEN,
+                        LocalDate.now(),
+                        Sort.by(Sort.Direction.ASC, "departureDate", "id")
+                )
+                .stream()
+                .map(schedule -> new PublicTourScheduleResponse(
+                        schedule.getId(),
+                        schedule.getDepartureDate(),
+                        schedule.getReturnDate(),
+                        schedule.getPriceAdult(),
+                        schedule.getPriceChild(),
+                        schedule.getPriceInfant(),
+                        schedule.getSingleSupplement(),
+                        schedule.getMaxSeats(),
+                        Math.max(schedule.getMaxSeats() - (schedule.getBookedSeats() == null ? 0 : schedule.getBookedSeats()), 0),
+                        schedule.getStatus()
+                ))
+                .toList();
+    }
+
     private void validateSchedule(LocalDate departureDate, LocalDate returnDate, BigDecimal priceAdult, Integer maxSeats, Integer bookedSeats, boolean creating) {
         if (creating && departureDate.isBefore(LocalDate.now())) {
             throw new BusinessException(ErrorCode.TOUR_SCHEDULE_INVALID, "Ngày khởi hành không được trong quá khứ");
@@ -164,8 +195,10 @@ public class TourScheduleService {
         }
     }
 
-    private void assertNoBlockingBooking(Long scheduleId, String message) {
-        // TODO Phase booking: Booking entity currently has no scheduleId/tourSchedule relation, so schedule-level booking checks cannot be enforced yet.
+    private void assertNoBooking(Long scheduleId, String message) {
+        if (bookingRepository.existsByScheduleId(scheduleId)) {
+            throw new BusinessException(ErrorCode.TOUR_SCHEDULE_INVALID, message);
+        }
     }
 
     private Tour findTour(Long tourId) {

@@ -8,6 +8,8 @@ import java.time.LocalDateTime;
 
 public record BookingResponse(
         Long id,
+        Long bookingId,
+        String bookingCode,
 
         Long userId,
         String userEmail,
@@ -15,6 +17,11 @@ public record BookingResponse(
         Long tourId,
         String tourTitle,
         String tourSlug,
+        String thumbnailUrl,
+
+        Long scheduleId,
+        LocalDate departureDate,
+        LocalDate returnDate,
 
         String contactName,
         String contactEmail,
@@ -23,9 +30,18 @@ public record BookingResponse(
         LocalDate startDate,
         Integer numberOfPeople,
         BigDecimal unitPrice,
+        Integer adultCount,
+        Integer childCount,
+        Integer infantCount,
+        Integer totalPeople,
+        BigDecimal priceAdultSnapshot,
+        BigDecimal priceChildSnapshot,
+        BigDecimal priceInfantSnapshot,
+        BigDecimal singleSupplementSnapshot,
         BigDecimal totalAmount,
         BookingStatus status,
         String note,
+        String paymentStatus,
 
         LocalDateTime createdAt,
         LocalDateTime updatedAt

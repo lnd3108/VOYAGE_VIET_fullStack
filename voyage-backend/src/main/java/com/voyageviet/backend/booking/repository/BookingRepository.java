@@ -16,28 +16,29 @@ import org.springframework.data.repository.query.Param;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 
 public interface BookingRepository extends JpaRepository<Booking, Long> {
 
-    @EntityGraph(attributePaths = {"user", "tour"})
+    @EntityGraph(attributePaths = {"user", "tour", "schedule"})
     List<Booking> findByUserId(Long userId, Sort sort);
 
-    @EntityGraph(attributePaths = {"user", "tour"})
+    @EntityGraph(attributePaths = {"user", "tour", "schedule"})
     Page<Booking> findByUserId(Long userId, Pageable pageable);
 
-    @EntityGraph(attributePaths = {"user", "tour"})
+    @EntityGraph(attributePaths = {"user", "tour", "schedule"})
     Page<Booking> findByUserIdAndStatus(Long userId, BookingStatus status, Pageable pageable);
 
-    @EntityGraph(attributePaths = {"user", "tour"})
+    @EntityGraph(attributePaths = {"user", "tour", "schedule"})
     List<Booking> findAll(Sort sort);
 
     @Override
-    @EntityGraph(attributePaths = {"user", "tour"})
+    @EntityGraph(attributePaths = {"user", "tour", "schedule"})
     Page<Booking> findAll(Pageable pageable);
 
-    @EntityGraph(attributePaths = {"user", "tour"})
+    @EntityGraph(attributePaths = {"user", "tour", "schedule"})
     Page<Booking> findByStatus(BookingStatus status, Pageable pageable);
 
     @Lock(LockModeType.PESSIMISTIC_WRITE)
@@ -46,9 +47,13 @@ public interface BookingRepository extends JpaRepository<Booking, Long> {
             FROM Booking b
             JOIN FETCH b.user
             JOIN FETCH b.tour
+            LEFT JOIN FETCH b.schedule
             WHERE b.id = :id
             """)
     Optional<Booking> findByIdForUpdate(@Param("id") Long id);
+
+    @EntityGraph(attributePaths = {"user", "tour", "schedule"})
+    Optional<Booking> findByIdAndUserId(Long id, Long userId);
 
     long countByStatus(BookingStatus status);
 
@@ -87,4 +92,15 @@ public interface BookingRepository extends JpaRepository<Booking, Long> {
     );
 
     boolean existsByUserIdAndTourIdAndStatus(Long userId, Long tourId, BookingStatus status);
+
+    boolean existsByScheduleId(Long scheduleId);
+
+    boolean existsByScheduleIdAndStatusIn(Long scheduleId, Collection<BookingStatus> statuses);
+
+    long countByScheduleIdAndStatusIn(Long scheduleId, Collection<BookingStatus> statuses);
+
+    @EntityGraph(attributePaths = {"user", "tour", "schedule"})
+    List<Booking> findByScheduleId(Long scheduleId);
+
+    boolean existsByBookingCode(String bookingCode);
 }
