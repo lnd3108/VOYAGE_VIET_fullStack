@@ -126,6 +126,27 @@ public class MediaService {
         }
     }
 
+    public void deleteImageByPublicId(String publicId) {
+        if (publicId == null || publicId.isBlank()) {
+            throw new BusinessException(
+                    ErrorCode.MEDIA_INVALID_FILE,
+                    "Media public ID is required"
+            );
+        }
+
+        try {
+            cloudinary.uploader().destroy(
+                    publicId,
+                    ObjectUtils.asMap("resource_type", "image")
+            );
+        } catch (Exception ex) {
+            throw new BusinessException(
+                    ErrorCode.MEDIA_UPLOAD_FAILED,
+                    "Delete image failed: " + ex.getMessage()
+            );
+        }
+    }
+
     private Pageable buildPageable(int page, int size, String sortBy, String sortDir) {
         if (page < 0) {
             throw new BusinessException(

@@ -2,6 +2,7 @@ package com.voyageviet.backend.tour.controller;
 
 import com.voyageviet.backend.common.response.ApiResponse;
 import com.voyageviet.backend.media.dto.ImageUrlUpdateRequest;
+import com.voyageviet.backend.tour.dto.AdminTourDetailResponse;
 import com.voyageviet.backend.tour.dto.TourCardResponse;
 import com.voyageviet.backend.tour.dto.TourCreateRequest;
 import com.voyageviet.backend.tour.dto.TourStatusUpdateRequest;
@@ -25,6 +26,14 @@ public class AdminTourController {
         return ApiResponse.success(
                 "Get admin tours successfully",
                 tourService.getAllToursForAdmin()
+        );
+    }
+
+    @GetMapping("/{id}")
+    public ApiResponse<AdminTourDetailResponse> getTourDetail(@PathVariable Long id) {
+        return ApiResponse.success(
+                "Get admin tour detail successfully",
+                tourService.getAdminTourDetail(id)
         );
     }
 

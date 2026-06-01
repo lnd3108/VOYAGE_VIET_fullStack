@@ -28,6 +28,12 @@ public enum ErrorCode {
     TOUR_ALREADY_EXISTS("TOUR_409", "Tour already exists", HttpStatus.CONFLICT),
 
     TOUR_INVALID_PRICE("TOUR_422", "Tour price is invalid", HttpStatus.UNPROCESSABLE_ENTITY),
+    TOUR_SCHEDULE_NOT_FOUND("TOUR_SCHEDULE_404", "Tour schedule not found", HttpStatus.NOT_FOUND),
+    TOUR_SCHEDULE_INVALID("TOUR_SCHEDULE_422", "Tour schedule is invalid", HttpStatus.UNPROCESSABLE_ENTITY),
+    TOUR_ITINERARY_INVALID("TOUR_ITINERARY_422", "Tour itinerary is invalid", HttpStatus.UNPROCESSABLE_ENTITY),
+    TOUR_IMAGE_NOT_FOUND("TOUR_IMAGE_404", "Tour image not found", HttpStatus.NOT_FOUND),
+    TOUR_IMAGE_INVALID("TOUR_IMAGE_422", "Tour image is invalid", HttpStatus.UNPROCESSABLE_ENTITY),
+    TOUR_PUBLISH_INVALID("TOUR_PUBLISH_422", "Tour cannot be published", HttpStatus.UNPROCESSABLE_ENTITY),
 
     CATEGORY_NOT_FOUND("CATEGORY_404", "Category not found", HttpStatus.NOT_FOUND),
     CATEGORY_ALREADY_EXISTS("CATEGORY_409", "Category already exists", HttpStatus.CONFLICT),

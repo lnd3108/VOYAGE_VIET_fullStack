@@ -15,7 +15,10 @@ import com.voyageviet.backend.review.repository.projection.TourReviewSummaryProj
 import com.voyageviet.backend.tour.dto.*;
 import com.voyageviet.backend.tour.entity.Tour;
 import com.voyageviet.backend.tour.entity.TourStatus;
+import com.voyageviet.backend.tour.repository.TourImageRepository;
+import com.voyageviet.backend.tour.repository.TourItineraryRepository;
 import com.voyageviet.backend.tour.repository.TourRepository;
+import com.voyageviet.backend.tour.repository.TourScheduleRepository;
 import com.voyageviet.backend.tour.repository.specification.TourSpecification;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -41,6 +44,10 @@ public class TourService {
     private final DestinationRepository destinationRepository;
 
     private final ReviewRepository reviewRepository;
+    private final TourScheduleRepository tourScheduleRepository;
+    private final TourItineraryRepository tourItineraryRepository;
+    private final TourImageRepository tourImageRepository;
+    private final TourPublishService tourPublishService;
 
     public List<TourCardResponse> getFeaturedTours() {
         List<Tour> tours = tourRepository.findTop6ByFeaturedTrueAndStatusOrderByCreatedAtDesc(TourStatus.PUBLISHED);
@@ -58,6 +65,18 @@ public class TourService {
         return tours.stream()
                 .map(tour -> toCardResponse(tour, reviewSummaryMap))
                 .toList();
+    }
+
+    public AdminTourDetailResponse getAdminTourDetail(Long id) {
+        Tour tour = findTourById(id);
+
+        return new AdminTourDetailResponse(
+                toDetailResponse(tour),
+                tourScheduleRepository.countByTourId(id),
+                tourImageRepository.countByTourId(id),
+                tourItineraryRepository.countByTourId(id),
+                tourPublishService.getPublishChecklist(id)
+        );
     }
 
     @Transactional
