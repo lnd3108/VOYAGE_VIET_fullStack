@@ -1,0 +1,38 @@
+:host {
+  pointer-events: none;
+}
+
+.home-floating-social {
+  width: 46px;
+  padding: 10px 0;
+  border-radius: 14px;
+  background: var(--vv-gradient);
+  box-shadow: 0 10px 24px rgba(15, 23, 42, 0.22);
+  display: grid;
+  gap: 8px;
+  pointer-events: auto;
+
+  &__link {
+    width: 46px;
+    height: 38px;
+    display: grid;
+    place-items: center;
+    text-decoration: none;
+    transition:
+      background 0.16s ease,
+      transform 0.16s ease;
+
+    &:hover {
+      background: rgba(255, 255, 255, 0.14);
+      transform: translateY(-1px);
+    }
+  }
+
+  &__icon {
+    width: 22px;
+    height: 22px;
+    object-fit: contain;
+    display: block;
+    filter: brightness(0) invert(1);
+  }
+}

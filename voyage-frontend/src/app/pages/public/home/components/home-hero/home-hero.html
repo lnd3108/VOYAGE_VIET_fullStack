@@ -1,1 +1,201 @@
-<p>home-hero works!</p>
+<section class="home">
+  <section class="home-hero">
+    <div class="home-hero__background"></div>
+
+    <div class="vv-container home-hero__container">
+      <div class="home-hero__nav" (mouseleave)="setActiveSidebarMenu(null)">
+        <aside class="home-hero__sidebar">
+          <button
+            *ngFor="let item of sidebarItems"
+            class="home-hero__sidebar-item"
+            [class.home-hero__sidebar-item--active]="activeSidebarMenu() === item.id"
+            [class.home-hero__sidebar-item--built-in-label]="item.hasBuiltInLabel"
+            type="button"
+            (mouseenter)="setActiveSidebarMenu(item.id)"
+            (focus)="setActiveSidebarMenu(item.id)"
+          >
+            <img class="home-hero__sidebar-icon" [src]="item.iconUrl" [alt]="item.label" />
+
+            <span class="home-hero__sidebar-label" *ngIf="!item.hasBuiltInLabel">
+              {{ item.label }}
+            </span>
+          </button>
+        </aside>
+
+        <div
+          class="home-hero__mega"
+          [ngClass]="'home-hero__mega--' + activeMenu"
+          *ngIf="activeSidebarMenu() as activeMenu"
+        >
+          <div class="home-hero__mega-grid" [ngClass]="'home-hero__mega-grid--' + activeMenu">
+            <section *ngFor="let column of megaMenus[activeMenu]" class="home-hero__mega-column">
+              <h3 class="home-hero__mega-title">
+                {{ column.title }}
+              </h3>
+
+              <a *ngFor="let link of column.links" class="home-hero__mega-link" routerLink="/tours">
+                {{ link }}
+              </a>
+            </section>
+          </div>
+        </div>
+      </div>
+
+      <div class="home-hero__content">
+        <h1 class="home-hero__title">Du lịch Châu Á - Khám phá Mỹ, Úc, Âu. Đi nơi đâu bạn muốn</h1>
+
+        <p class="home-hero__description">
+          Khám phá các hành trình trong nước và quốc tế với ưu đãi tốt nhất từ VoyageViet.
+        </p>
+
+        <div class="home-search">
+          <div class="home-search__row home-search__row--top">
+            <ng-template #destinationContent let-item>
+              <div class="home-search__destination-option">
+                <img [src]="item.imageUrl" [alt]="item.name" />
+
+                <span>
+                  <strong>{{ item.name }}</strong>
+                  <small>{{ item.tourCount }} tours</small>
+                </span>
+              </div>
+            </ng-template>
+
+            <div class="home-search__control home-search__control--destination">
+              <tui-icon class="home-search__control-icon" icon="@tui.map-pin" />
+
+              <tui-textfield
+                tuiChevron
+                size="l"
+                class="home-search__taiga-field home-search__taiga-field--destination"
+                [stringify]="stringifyDestination"
+              >
+                <input tuiSelect [(ngModel)]="selectedDestination" placeholder="Bạn muốn đi đâu?" />
+
+                <tui-data-list-wrapper
+                  *tuiDropdown
+                  class="home-search__destination-list"
+                  [items]="hotDestinations"
+                  [itemContent]="destinationContent"
+                />
+              </tui-textfield>
+            </div>
+          </div>
+
+          <div class="home-search__row home-search__row--bottom">
+            <div class="home-search__field-wrap">
+              <button
+                tuiButton
+                appearance="flat"
+                size="l"
+                class="home-search__guest-trigger"
+                type="button"
+                [tuiDropdown]="guestDropdown"
+                [(tuiDropdownOpen)]="guestDropdownOpen"
+              >
+                <tui-icon class="home-search__control-icon" icon="@tui.user" />
+
+                <span class="home-search__field-text">
+                  {{ guestLabel }}
+                </span>
+
+                <tui-icon
+                  class="home-search__chevron"
+                  [icon]="guestDropdownOpen ? '@tui.chevron-up' : '@tui.chevron-down'"
+                />
+              </button>
+
+              <ng-template #guestDropdown>
+                <div class="home-search__guest-panel">
+                  <div class="home-search__guest-row">
+                    <span class="home-search__guest-label">Người lớn</span>
+
+                    <div class="home-search__guest-actions">
+                      <button
+                        tuiButton
+                        appearance="outline"
+                        size="xs"
+                        type="button"
+                        [disabled]="adultCount <= 1"
+                        (click)="decreaseAdult()"
+                      >
+                        -
+                      </button>
+
+                      <strong>{{ adultCount }}</strong>
+
+                      <button
+                        tuiButton
+                        appearance="outline"
+                        size="xs"
+                        type="button"
+                        (click)="increaseAdult()"
+                      >
+                        +
+                      </button>
+                    </div>
+                  </div>
+
+                  <div class="home-search__guest-row">
+                    <span class="home-search__guest-label">Trẻ em</span>
+
+                    <div class="home-search__guest-actions">
+                      <button
+                        tuiButton
+                        appearance="outline"
+                        size="xs"
+                        type="button"
+                        [disabled]="childCount <= 0"
+                        (click)="decreaseChild()"
+                      >
+                        -
+                      </button>
+
+                      <strong>{{ childCount }}</strong>
+
+                      <button
+                        tuiButton
+                        appearance="outline"
+                        size="xs"
+                        type="button"
+                        (click)="increaseChild()"
+                      >
+                        +
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </ng-template>
+            </div>
+
+            <div class="home-search__control home-search__control--date">
+              <tui-icon class="home-search__control-icon" icon="@tui.calendar" />
+
+              <span class="home-search__date-caption">Ngày đi:</span>
+
+              <tui-textfield
+                size="l"
+                class="home-search__taiga-field home-search__taiga-field--date"
+              >
+                <input tuiInputDate [(ngModel)]="departureDate" />
+
+                <tui-calendar *tuiDropdown />
+              </tui-textfield>
+            </div>
+
+            <button
+              tuiButton
+              appearance="primary"
+              size="l"
+              class="home-search__submit"
+              type="button"
+            >
+              <tui-icon class="home-search__submit-icon" icon="@tui.search" />
+              <span>Tìm kiếm</span>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+</section>

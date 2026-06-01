@@ -1,0 +1,17 @@
+<nav class="home-floating-social" aria-label="Liên kết mạng xã hội">
+  <a
+    *ngFor="let item of socialItems"
+    class="home-floating-social__link"
+    [href]="item.link"
+    target="_blank"
+    rel="noopener noreferrer"
+    [attr.aria-label]="item.label"
+    [title]="item.label"
+  >
+    <img
+      class="home-floating-social__icon"
+      [src]="item.iconUrl"
+      [alt]="item.label"
+    />
+  </a>
+</nav>
