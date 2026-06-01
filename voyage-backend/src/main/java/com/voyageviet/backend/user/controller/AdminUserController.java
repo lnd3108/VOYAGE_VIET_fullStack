@@ -2,6 +2,7 @@ package com.voyageviet.backend.user.controller;
 
 import com.voyageviet.backend.common.paging.PageResponse;
 import com.voyageviet.backend.common.response.ApiResponse;
+import com.voyageviet.backend.user.dto.AdminUserDetailResponse;
 import com.voyageviet.backend.user.dto.AdminUserResponse;
 import com.voyageviet.backend.user.dto.UserRoleUpdateRequest;
 import com.voyageviet.backend.user.dto.UserStatusUpdateRequest;
@@ -32,6 +33,14 @@ public class AdminUserController {
         return ApiResponse.success(
                 "Get admin users successfully",
                 userService.getUsersForAdmin(authentication, keyword, status, page, size, sortBy, sortDir)
+        );
+    }
+
+    @GetMapping("/{id}")
+    public ApiResponse<AdminUserDetailResponse> getUserDetail(@PathVariable Long id) {
+        return ApiResponse.success(
+                "Get admin user detail successfully",
+                userService.getUserDetailForAdmin(id)
         );
     }
 

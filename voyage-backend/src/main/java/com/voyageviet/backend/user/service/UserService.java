@@ -2,19 +2,21 @@ package com.voyageviet.backend.user.service;
 
 import com.voyageviet.backend.audit.entity.AuditAction;
 import com.voyageviet.backend.audit.service.AuditLogService;
+import com.voyageviet.backend.booking.repository.BookingRepository;
 import com.voyageviet.backend.common.exception.BusinessException;
 import com.voyageviet.backend.common.exception.ErrorCode;
 import com.voyageviet.backend.common.paging.PageResponse;
+import com.voyageviet.backend.media.dto.MediaUploadResponse;
+import com.voyageviet.backend.media.service.MediaService;
+import com.voyageviet.backend.review.repository.ReviewRepository;
 import com.voyageviet.backend.role.entity.Role;
 import com.voyageviet.backend.role.entity.RoleCode;
 import com.voyageviet.backend.role.repository.RoleRepository;
-import com.voyageviet.backend.user.dto.AdminUserResponse;
-import com.voyageviet.backend.user.dto.UserResponse;
-import com.voyageviet.backend.user.dto.UserRoleUpdateRequest;
-import com.voyageviet.backend.user.dto.UserStatusUpdateRequest;
+import com.voyageviet.backend.user.dto.*;
 import com.voyageviet.backend.user.entity.User;
 import com.voyageviet.backend.user.entity.UserStatus;
 import com.voyageviet.backend.user.repository.UserRepository;
+import com.voyageviet.backend.wishlist.repository.WishlistRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -22,6 +24,8 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.Set;
 
@@ -29,11 +33,18 @@ import java.util.Set;
 @RequiredArgsConstructor
 public class UserService {
 
+    private static final long MAX_AVATAR_SIZE_BYTES = 5 * 1024 * 1024;
+    private static final Set<String> ALLOWED_AVATAR_TYPES = Set.of("image/jpeg", "image/png", "image/webp");
+
     private final UserRepository userRepository;
     private final RoleRepository roleRepository;
     private final AuditLogService auditLogService;
+    private final MediaService mediaService;
+    private final BookingRepository bookingRepository;
+    private final ReviewRepository reviewRepository;
+    private final WishlistRepository wishlistRepository;
 
-    public UserResponse getCurrentUser(Authentication authentication) {
+    public UserMeResponse getCurrentUser(Authentication authentication) {
         String email = authentication.getName();
 
         User user = userRepository.findByEmailIgnoreCase(email)
@@ -42,7 +53,51 @@ public class UserService {
                         "Current user not found"
                 ));
 
-        return toResponse(user);
+        return toMeResponse(user);
+    }
+
+    @Transactional
+    public UserMeResponse updateCurrentUser(Authentication authentication, UserProfileUpdateRequest request) {
+        User user = getCurrentUserEntity(authentication);
+        user.setFullName(request.fullName().trim());
+        user.setPhone(normalizePhone(request.phone()));
+        return toMeResponse(userRepository.save(user));
+    }
+
+    @Transactional
+    public AvatarUploadResponse uploadAvatar(Authentication authentication, MultipartFile file) {
+        User user = getCurrentUserEntity(authentication);
+        validateAvatar(file);
+        MediaUploadResponse uploaded = mediaService.uploadImage(file, "avatars");
+
+        String oldPublicId = user.getAvatarPublicId();
+        user.setAvatarUrl(uploaded.secureUrl());
+        user.setAvatarPublicId(uploaded.publicId());
+        userRepository.save(user);
+
+        if (oldPublicId != null && !oldPublicId.isBlank()) {
+            mediaService.deleteImageByPublicId(oldPublicId);
+        }
+
+        return new AvatarUploadResponse(user.getAvatarUrl());
+    }
+
+    public AdminUserDetailResponse getUserDetailForAdmin(Long id) {
+        User user = findUserWithRoleById(id);
+        return new AdminUserDetailResponse(
+                user.getId(),
+                user.getFullName(),
+                user.getEmail(),
+                user.getPhone(),
+                user.getAvatarUrl(),
+                user.getRole().getCode(),
+                user.getStatus(),
+                bookingRepository.countByUserId(user.getId()),
+                reviewRepository.countByUserId(user.getId()),
+                wishlistRepository.countByUserId(user.getId()),
+                user.getCreatedAt(),
+                user.getUpdatedAt()
+        );
     }
 
     public PageResponse<AdminUserResponse> getUsersForAdmin(
@@ -136,6 +191,15 @@ public class UserService {
                 .orElseThrow(() -> new BusinessException(
                         ErrorCode.USER_NOT_FOUND,
                         "Current admin not found"
+                ));
+    }
+
+    private User getCurrentUserEntity(Authentication authentication) {
+        String email = authentication.getName();
+        return userRepository.findByEmailIgnoreCase(email)
+                .orElseThrow(() -> new BusinessException(
+                        ErrorCode.USER_NOT_FOUND,
+                        "Current user not found"
                 ));
     }
 
@@ -260,6 +324,26 @@ public class UserService {
         return value.trim();
     }
 
+    private String normalizePhone(String phone) {
+        if (phone == null || phone.isBlank()) {
+            return null;
+        }
+        return phone.trim();
+    }
+
+    private void validateAvatar(MultipartFile file) {
+        if (file == null || file.isEmpty()) {
+            throw new BusinessException(ErrorCode.MEDIA_INVALID_FILE, "File avatar không hợp lệ.");
+        }
+        if (file.getSize() > MAX_AVATAR_SIZE_BYTES) {
+            throw new BusinessException(ErrorCode.MEDIA_INVALID_FILE, "Dung lượng ảnh tối đa 5MB.");
+        }
+        String contentType = file.getContentType();
+        if (contentType == null || !ALLOWED_AVATAR_TYPES.contains(contentType)) {
+            throw new BusinessException(ErrorCode.MEDIA_INVALID_FILE, "Chỉ hỗ trợ ảnh jpg, jpeg, png, webp.");
+        }
+    }
+
     private AdminUserResponse toAdminResponse(User user) {
         return new AdminUserResponse(
                 user.getId(),
@@ -287,6 +371,21 @@ public class UserService {
                 user.getEmailVerified(),
                 user.getRole().getCode(),
                 user.getCreatedAt()
+        );
+    }
+
+    private UserMeResponse toMeResponse(User user) {
+        return new UserMeResponse(
+                user.getId(),
+                user.getFullName(),
+                user.getEmail(),
+                user.getPhone(),
+                user.getAvatarUrl(),
+                user.getRole().getCode(),
+                user.getStatus(),
+                user.getEmailVerified(),
+                user.getCreatedAt(),
+                user.getUpdatedAt()
         );
     }
 }

@@ -42,6 +42,8 @@ public interface ReviewRepository extends JpaRepository<Review, Long> {
 
     long countByTourIdAndStatus(Long tourId, ReviewStatus status);
 
+    long countByUserId(Long userId);
+
     @Query("""
         SELECT AVG(r.rating)
         FROM Review r

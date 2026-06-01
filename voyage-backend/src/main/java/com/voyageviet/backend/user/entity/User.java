@@ -41,6 +41,9 @@ public class User extends BaseEntity {
     @Column(name = "AVATAR_URL", length = 500)
     private String avatarUrl;
 
+    @Column(name = "AVATAR_PUBLIC_ID", length = 200)
+    private String avatarPublicId;
+
     @Builder.Default
     @Enumerated(EnumType.STRING)
     @Column(name = "STATUS", nullable = false, length = 30)
@@ -49,6 +52,9 @@ public class User extends BaseEntity {
     @Builder.Default
     @Column(name = "EMAIL_VERIFIED", nullable = false)
     private Boolean emailVerified = false;
+
+    @Column(name = "EMAIL_VERIFIED_AT")
+    private LocalDateTime emailVerifiedAt;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "ROLE_ID", nullable = false)
