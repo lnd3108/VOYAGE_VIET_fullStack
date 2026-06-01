@@ -1,10 +1,10 @@
 import { NgClass, NgFor, NgIf } from '@angular/common';
-import { Component, signal } from '@angular/core';
+import { Component, HostListener, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { TuiDay } from '@taiga-ui/cdk/date-time';
-import { TuiButton, TuiCalendar, TuiDropdown, TuiIcon, TuiTextfield } from '@taiga-ui/core';
-import { TuiChevron, TuiDataListWrapper, TuiInputDate, TuiSelect } from '@taiga-ui/kit';
+import { TuiCalendar, TuiDropdown, TuiIcon, TuiTextfield } from '@taiga-ui/core';
+import { TuiChevron, TuiInputDate } from '@taiga-ui/kit';
 
 interface HomeHeroSidebarItem {
   id: string;
@@ -33,15 +33,12 @@ interface HomeHeroHotDestination {
     NgFor,
     NgIf,
     RouterLink,
-    TuiButton,
     TuiDropdown,
     TuiIcon,
     TuiTextfield,
     TuiCalendar,
     TuiChevron,
-    TuiDataListWrapper,
     TuiInputDate,
-    TuiSelect,
   ],
   templateUrl: './home-hero.html',
   styleUrl: './home-hero.scss',
@@ -52,53 +49,37 @@ export class HomeHero {
   selectedDestination: HomeHeroHotDestination | null = null;
   departureDate: TuiDay | null = new TuiDay(2022, 6, 22);
   guestDropdownOpen = false;
+  destDropdownOpen = false;
 
   adultCount = 1;
   childCount = 0;
-
-  readonly stringifyDestination = (item: HomeHeroHotDestination | null): string => item?.name ?? '';
 
   get guestLabel(): string {
     if (this.adultCount === 1 && this.childCount === 0) {
       return 'Số lượng';
     }
-
     const childText = this.childCount > 0 ? `, ${this.childCount} trẻ em` : '';
     return `${this.adultCount} người lớn${childText}`;
   }
 
+  @HostListener('document:click', ['$event'])
+  onDocumentClick(event: MouseEvent): void {
+    const target = event.target as HTMLElement;
+    if (!target.closest('.home-search__dest-wrap')) {
+      this.destDropdownOpen = false;
+    }
+    if (!target.closest('.home-search__field-wrap')) {
+      this.guestDropdownOpen = false;
+    }
+  }
+
   readonly sidebarItems: HomeHeroSidebarItem[] = [
-    {
-      id: 'domestic',
-      label: 'Tour trong nước',
-      iconUrl: '/hero/sidebar-options/inside.svg',
-    },
-    {
-      id: 'international',
-      label: 'Tour nước ngoài',
-      iconUrl: '/hero/sidebar-options/outside.svg',
-    },
-    {
-      id: 'group',
-      label: 'Tour đoàn',
-      iconUrl: '/hero/sidebar-options/Group.svg',
-    },
-    {
-      id: 'combo',
-      label: 'Tour combo',
-      iconUrl: '/hero/sidebar-options/combo-tour.svg',
-    },
-    {
-      id: 'visa',
-      label: 'Visa',
-      iconUrl: '/hero/sidebar-options/visa.svg',
-      hasBuiltInLabel: true,
-    },
-    {
-      id: 'flight',
-      label: 'Vé máy bay',
-      iconUrl: '/hero/sidebar-options/ve-maybay.svg',
-    },
+    { id: 'domestic', label: 'Tour trong nước', iconUrl: '/hero/sidebar-options/inside.svg' },
+    { id: 'international', label: 'Tour nước ngoài', iconUrl: '/hero/sidebar-options/outside.svg' },
+    { id: 'group', label: 'Tour đoàn', iconUrl: '/hero/sidebar-options/Group.svg' },
+    { id: 'combo', label: 'Tour combo', iconUrl: '/hero/sidebar-options/combo-tour.svg' },
+    { id: 'visa', label: 'Visa', iconUrl: '/hero/sidebar-options/visa.svg', hasBuiltInLabel: true },
+    { id: 'flight', label: 'Vé máy bay', iconUrl: '/hero/sidebar-options/ve-maybay.svg' },
   ];
 
   readonly megaMenus: Record<string, HomeHeroMegaColumn[]> = {
@@ -193,18 +174,9 @@ export class HomeHero {
           'Du lịch Phần Lan',
         ],
       },
-      {
-        title: 'Tour châu Mỹ',
-        links: ['Du lịch Mỹ', 'Du lịch Canada'],
-      },
-      {
-        title: 'Tour châu Úc',
-        links: ['Du lịch Úc', 'Du lịch New Zealand'],
-      },
-      {
-        title: 'Tour châu Phi',
-        links: ['Du lịch Nam Phi'],
-      },
+      { title: 'Tour châu Mỹ', links: ['Du lịch Mỹ', 'Du lịch Canada'] },
+      { title: 'Tour châu Úc', links: ['Du lịch Úc', 'Du lịch New Zealand'] },
+      { title: 'Tour châu Phi', links: ['Du lịch Nam Phi'] },
     ],
     group: [
       {
@@ -257,14 +229,8 @@ export class HomeHero {
           'Làm visa Hà Lan',
         ],
       },
-      {
-        title: 'Làm visa châu Mỹ',
-        links: ['Làm visa Mỹ', 'Làm visa Canada'],
-      },
-      {
-        title: 'Làm visa châu Úc',
-        links: ['Làm visa Úc'],
-      },
+      { title: 'Làm visa châu Mỹ', links: ['Làm visa Mỹ', 'Làm visa Canada'] },
+      { title: 'Làm visa châu Úc', links: ['Làm visa Úc'] },
     ],
     flight: [
       {
@@ -279,36 +245,12 @@ export class HomeHero {
   };
 
   readonly hotDestinations: HomeHeroHotDestination[] = [
-    {
-      name: 'Pháp - Thụy Sỹ - Ý',
-      tourCount: 50,
-      imageUrl: '/hero/list-location/Phap-.svg',
-    },
-    {
-      name: 'Bắc Âu',
-      tourCount: 50,
-      imageUrl: '/hero/list-location/BacAu.svg',
-    },
-    {
-      name: 'Nhật Bản',
-      tourCount: 50,
-      imageUrl: '/hero/list-location/Nhatban.svg',
-    },
-    {
-      name: 'Singapore',
-      tourCount: 50,
-      imageUrl: '/hero/list-location/Sing.svg',
-    },
-    {
-      name: 'Phú Quốc',
-      tourCount: 50,
-      imageUrl: '/hero/list-location/PhuQuoc.svg',
-    },
-    {
-      name: 'Hà Nội',
-      tourCount: 50,
-      imageUrl: '/hero/list-location/Hanoi.svg',
-    },
+    { name: 'Pháp - Thụy Sỹ - Ý', tourCount: 50, imageUrl: '/hero/list-location/Phap-.svg' },
+    { name: 'Bắc Âu', tourCount: 50, imageUrl: '/hero/list-location/BacAu.svg' },
+    { name: 'Nhật Bản', tourCount: 50, imageUrl: '/hero/list-location/Nhatban.svg' },
+    { name: 'Singapore', tourCount: 50, imageUrl: '/hero/list-location/Sing.svg' },
+    { name: 'Phú Quốc', tourCount: 50, imageUrl: '/hero/list-location/PhuQuoc.svg' },
+    { name: 'Hà Nội', tourCount: 50, imageUrl: '/hero/list-location/Hanoi.svg' },
   ];
 
   setActiveSidebarMenu(menuId: string | null): void {
@@ -318,20 +260,13 @@ export class HomeHero {
   increaseAdult(): void {
     this.adultCount++;
   }
-
   decreaseAdult(): void {
-    if (this.adultCount > 1) {
-      this.adultCount--;
-    }
+    if (this.adultCount > 1) this.adultCount--;
   }
-
   increaseChild(): void {
     this.childCount++;
   }
-
   decreaseChild(): void {
-    if (this.childCount > 0) {
-      this.childCount--;
-    }
+    if (this.childCount > 0) this.childCount--;
   }
 }
