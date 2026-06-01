@@ -1,0 +1,82 @@
+.admin-page {
+  width: 100%;
+
+  &__card {
+    padding: 36px;
+    border: 1px solid var(--vv-border);
+    border-radius: var(--vv-radius-lg);
+    background: var(--vv-white);
+    box-shadow: var(--vv-soft-shadow);
+  }
+
+  &__eyebrow {
+    margin: 0 0 14px;
+    color: var(--vv-primary);
+    font-size: 13px;
+    font-weight: 900;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+  }
+
+  &__title {
+    margin: 0;
+    color: var(--vv-text);
+    font-size: 32px;
+    line-height: 1.2;
+    letter-spacing: -0.03em;
+  }
+
+  &__desc {
+    max-width: 760px;
+    margin: 12px 0 0;
+    color: var(--vv-muted);
+    font-size: 15px;
+    line-height: 1.7;
+  }
+
+  &__status {
+    margin-top: 26px;
+    padding: 16px 18px;
+    border: 1px dashed rgba(11, 122, 117, 0.35);
+    border-radius: var(--vv-radius-md);
+    background: rgba(20, 184, 166, 0.08);
+    color: var(--vv-primary);
+    font-weight: 800;
+  }
+
+  &__meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-top: 22px;
+  }
+
+  &__badge {
+    display: inline-flex;
+    align-items: center;
+    min-height: 34px;
+    padding: 0 12px;
+    border-radius: 999px;
+    background: #f8fafc;
+    color: var(--vv-muted);
+    font-size: 13px;
+    font-weight: 800;
+    border: 1px solid var(--vv-border);
+  }
+
+  &__badge--primary {
+    background: rgba(11, 122, 117, 0.1);
+    color: var(--vv-primary);
+    border-color: rgba(11, 122, 117, 0.24);
+  }
+
+  @media (max-width: 768px) {
+    &__card {
+      padding: 24px;
+    }
+
+    &__title {
+      font-size: 26px;
+    }
+  }
+}

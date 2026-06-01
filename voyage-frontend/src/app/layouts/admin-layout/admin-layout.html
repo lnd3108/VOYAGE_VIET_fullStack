@@ -1,0 +1,136 @@
+<div class="admin-layout">
+  <aside class="admin-layout__sidebar">
+    <div class="admin-layout__brand">
+      <a class="admin-layout__brand-link" routerLink="/admin">
+        <span class="admin-layout__brand-logo">VV</span>
+
+        <span class="admin-layout__brand-content">
+          <span class="admin-layout__brand-title">VoyageViet</span>
+          <span class="admin-layout__brand-subtitle">Admin Panel</span>
+        </span>
+      </a>
+    </div>
+
+    <nav class="admin-layout__nav">
+      <a
+        class="admin-layout__nav-link"
+        routerLink="/admin"
+        routerLinkActive="admin-layout__nav-link--active"
+        [routerLinkActiveOptions]="{ exact: true }"
+      >
+        Dashboard
+      </a>
+
+      <a
+        class="admin-layout__nav-link"
+        routerLink="/admin/categories"
+        routerLinkActive="admin-layout__nav-link--active"
+      >
+        Danh mục
+      </a>
+
+      <a
+        class="admin-layout__nav-link"
+        routerLink="/admin/destinations"
+        routerLinkActive="admin-layout__nav-link--active"
+      >
+        Điểm đến
+      </a>
+
+      <a
+        class="admin-layout__nav-link"
+        routerLink="/admin/tours"
+        routerLinkActive="admin-layout__nav-link--active"
+      >
+        Tour
+      </a>
+
+      <a
+        class="admin-layout__nav-link"
+        routerLink="/admin/bookings"
+        routerLinkActive="admin-layout__nav-link--active"
+      >
+        Booking
+      </a>
+
+      <a
+        class="admin-layout__nav-link"
+        routerLink="/admin/users"
+        routerLinkActive="admin-layout__nav-link--active"
+      >
+        Người dùng
+      </a>
+
+      <a
+        class="admin-layout__nav-link"
+        routerLink="/admin/reviews"
+        routerLinkActive="admin-layout__nav-link--active"
+      >
+        Đánh giá
+      </a>
+
+      <a
+        class="admin-layout__nav-link"
+        routerLink="/admin/media"
+        routerLinkActive="admin-layout__nav-link--active"
+      >
+        Media
+      </a>
+
+      <a
+        class="admin-layout__nav-link"
+        routerLink="/admin/features"
+        routerLinkActive="admin-layout__nav-link--active"
+      >
+        Tính năng
+      </a>
+
+      <a
+        class="admin-layout__nav-link"
+        routerLink="/admin/audit-logs"
+        routerLinkActive="admin-layout__nav-link--active"
+      >
+        Audit Logs
+      </a>
+
+      <a class="admin-layout__nav-link admin-layout__nav-link--public" routerLink="/">
+        Về trang public
+      </a>
+    </nav>
+
+    <div class="admin-layout__sidebar-footer">
+      <button
+        type="button"
+        class="admin-layout__logout-button"
+        (click)="authService.logout()"
+      >
+        Đăng xuất
+      </button>
+    </div>
+  </aside>
+
+  <section class="admin-layout__content">
+    <header class="admin-layout__topbar">
+      <div>
+        <h1 class="admin-layout__page-title">Quản trị hệ thống</h1>
+        <p class="admin-layout__page-desc">
+          Quản lý tour, booking, người dùng và dữ liệu VoyageViet.
+        </p>
+      </div>
+
+      <div class="admin-layout__user">
+        <span class="admin-layout__user-name">
+          {{ authService.currentUser()?.fullName || 'Admin' }}
+        </span>
+
+        <span class="admin-layout__user-role">
+          {{ authService.currentUser()?.role || 'ADMIN' }}
+        </span>
+      </div>
+    </header>
+
+    <main class="admin-layout__main">
+      <router-outlet />
+    </main>
+  </section>
+</div>

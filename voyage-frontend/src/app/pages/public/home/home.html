@@ -1,0 +1,174 @@
+<section class="home">
+  <section class="home-hero">
+    <div class="home-hero__background"></div>
+
+    <div class="vv-container home-hero__container">
+      <div class="home-hero__nav" (mouseleave)="setActiveSidebarMenu(null)">
+        <aside class="home-hero__sidebar">
+          <button
+            *ngFor="let item of sidebarItems"
+            class="home-hero__sidebar-item"
+            [class.home-hero__sidebar-item--active]="activeSidebarMenu() === item.id"
+            [class.home-hero__sidebar-item--built-in-label]="item.hasBuiltInLabel"
+            type="button"
+            (mouseenter)="setActiveSidebarMenu(item.id)"
+            (focus)="setActiveSidebarMenu(item.id)"
+          >
+            <img class="home-hero__sidebar-icon" [src]="item.iconUrl" [alt]="item.label" />
+
+            <span class="home-hero__sidebar-label" *ngIf="!item.hasBuiltInLabel">
+              {{ item.label }}
+            </span>
+          </button>
+        </aside>
+
+        <div class="home-hero__mega" *ngIf="activeSidebarMenu() as activeMenu">
+          <div class="home-hero__mega-grid" [ngClass]="'home-hero__mega-grid--' + activeMenu">
+            <section *ngFor="let column of megaMenus[activeMenu]" class="home-hero__mega-column">
+              <h3 class="home-hero__mega-title">
+                {{ column.title }}
+              </h3>
+
+              <a *ngFor="let link of column.links" class="home-hero__mega-link" routerLink="/tours">
+                {{ link }}
+              </a>
+            </section>
+          </div>
+        </div>
+      </div>
+
+      <div class="home-hero__content">
+        <p class="home-hero__eyebrow">Khám phá Việt Nam thế giới</p>
+
+        <h1 class="home-hero__title">Du lịch Châu Á - Khám phá thế giới cùng VoyageViet</h1>
+
+        <p class="home-hero__description">
+          Hơn 500 tour du lịch chất lượng cao, giá tốt, đặt tour dễ dàng và tư vấn nhanh chóng.
+        </p>
+
+        <div class="home-search" (click)="$event.stopPropagation()">
+          <div class="home-search__row home-search__row--top">
+            <button
+              class="home-search__destination"
+              type="button"
+              (click)="toggleDropdown('destination')"
+            >
+              <tui-icon class="home-search__field-icon" icon="@tui.map-pin" />
+
+              <span class="home-search__field-text"> Bạn muốn đi đâu? </span>
+
+              <tui-icon
+                class="home-search__chevron"
+                [icon]="activeDropdown === 'destination' ? '@tui.chevron-up' : '@tui.chevron-down'"
+              />
+            </button>
+
+            <div class="home-search__destination-dropdown" *ngIf="activeDropdown === 'destination'">
+              <h3 class="home-search__dropdown-title">Địa điểm hot</h3>
+
+              <div class="home-search__destination-grid">
+                <button
+                  class="home-search__destination-item"
+                  type="button"
+                  *ngFor="let item of hotDestinations"
+                  (click)="closeDropdown()"
+                >
+                  <img [src]="item.imageUrl" [alt]="item.name" />
+
+                  <span>
+                    <strong>{{ item.name }}</strong>
+                    <small>{{ item.tourCount }} tours</small>
+                  </span>
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <div class="home-search__row home-search__row--bottom">
+            <div class="home-search__field-wrap">
+              <button class="home-search__field" type="button" (click)="toggleDropdown('guest')">
+                <tui-icon class="home-search__field-icon" icon="@tui.user" />
+
+                <span class="home-search__field-text"> Số lượng </span>
+
+                <tui-icon
+                  class="home-search__chevron"
+                  [icon]="activeDropdown === 'guest' ? '@tui.chevron-up' : '@tui.chevron-down'"
+                />
+              </button>
+
+              <div class="home-search__guest-dropdown" *ngIf="activeDropdown === 'guest'">
+                <div class="home-search__guest-row">
+                  <span class="home-search__guest-label">Người lớn</span>
+
+                  <div class="home-search__guest-actions">
+                    <button type="button" (click)="decreaseAdult()">-</button>
+                    <strong>{{ adultCount }}</strong>
+                    <button type="button" (click)="increaseAdult()">+</button>
+                  </div>
+                </div>
+
+                <div class="home-search__guest-row">
+                  <span class="home-search__guest-label">Trẻ em</span>
+
+                  <div class="home-search__guest-actions">
+                    <button type="button" (click)="decreaseChild()">-</button>
+                    <strong>{{ childCount }}</strong>
+                    <button type="button" (click)="increaseChild()">+</button>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <button
+              class="home-search__field home-search__field--date"
+              type="button"
+              (click)="openDatePicker(departureDateInput)"
+            >
+              <span class="home-search__field-text" *ngIf="!departureDate"> Ngày đi </span>
+
+              <span class="home-search__date-value" *ngIf="departureDate">
+                {{ departureDate }}
+              </span>
+
+              <input
+                #departureDateInput
+                class="home-search__date-input"
+                type="date"
+                [(ngModel)]="departureDate"
+                (click)="$event.stopPropagation()"
+              />
+
+              <tui-icon
+                class="home-search__field-icon home-search__field-icon--right"
+                icon="@tui.calendar"
+              />
+            </button>
+
+            <button class="home-search__submit" type="button">
+              <tui-icon class="home-search__submit-icon" icon="@tui.search" />
+
+              <span>Tìm kiếm</span>
+            </button>
+          </div>
+        </div>
+        <div class="home-hero__stats">
+          <div class="home-hero__stat">
+            <strong>500+</strong>
+            <span>Tour du lịch</span>
+          </div>
+
+          <div class="home-hero__stat">
+            <strong>50K+</strong>
+            <span>Khách hàng</span>
+          </div>
+
+          <div class="home-hero__stat">
+            <strong>4.8</strong>
+            <span>Đánh giá tốt</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+</section>

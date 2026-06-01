@@ -1,0 +1,282 @@
+<div class="public-layout">
+  <header class="public-header">
+    <div class="public-header__top">
+      <div class="vv-container public-header__top-inner">
+        <nav class="public-header__top-nav">
+          <a class="public-header__top-link" routerLink="/">Giới thiệu</a>
+          <span class="public-header__divider">|</span>
+
+          <a class="public-header__top-link" routerLink="/">Blog tổng hợp</a>
+          <span class="public-header__divider">|</span>
+
+          <a class="public-header__top-link" routerLink="/">Cẩm nang du lịch</a>
+          <span class="public-header__divider">|</span>
+
+          <a class="public-header__top-link" routerLink="/">Tuyển dụng</a>
+          <span class="public-header__divider">|</span>
+
+          <a class="public-header__top-link" routerLink="/">Tin tức</a>
+          <span class="public-header__divider">|</span>
+
+          <a class="public-header__top-link" routerLink="/">Liên hệ</a>
+        </nav>
+      </div>
+    </div>
+
+    <div class="public-header__main">
+      <div class="vv-container public-header__main-inner">
+        <a class="public-header__brand" routerLink="/" aria-label="VoyageViet">
+          <img class="public-header__logo" src="/logo.png" alt="VoyageViet" />
+        </a>
+
+        <div class="public-header__search">
+          <div class="public-header__departure-wrap" (click)="$event.stopPropagation()">
+            <button
+              class="public-header__departure"
+              type="button"
+              (click)="toggleDepartureDropdown()"
+            >
+              <span class="public-header__departure-label">
+                Xem giá khởi hành tại
+              </span>
+
+              <span class="public-header__departure-city">
+                {{ selectedDepartureLocation() }}
+              </span>
+
+              <tui-icon
+                class="public-header__departure-icon"
+                [class.public-header__departure-icon--open]="departureDropdownOpen()"
+                icon="@tui.chevron-down"
+              />
+            </button>
+
+            <div
+              class="public-header__dropdown public-header__dropdown--departure"
+              *ngIf="departureDropdownOpen()"
+            >
+              <button
+                class="public-header__dropdown-option"
+                *ngFor="let location of departureLocations"
+                type="button"
+                (click)="selectDepartureLocation(location)"
+              >
+                {{ location }}
+              </button>
+            </div>
+          </div>
+
+          <div class="public-header__search-box">
+            <input
+              class="public-header__search-input"
+              type="text"
+              placeholder="Tìm kiếm"
+            />
+
+            <button
+              class="public-header__search-button"
+              type="button"
+              aria-label="Tìm kiếm"
+            >
+              <tui-icon class="public-header__search-icon" icon="@tui.search" />
+            </button>
+          </div>
+        </div>
+
+        <div class="public-header__actions">
+          <a class="public-header__booking-btn" routerLink="/booking-lookup">
+            Tra cứu Booking
+          </a>
+
+          <button class="public-header__icon-btn" type="button" aria-label="Yêu thích">
+            <tui-icon class="public-header__action-icon" icon="@tui.heart" />
+
+            <span class="public-header__badge">2</span>
+          </button>
+
+          <button class="public-header__icon-btn" type="button" aria-label="Giỏ hàng">
+            <tui-icon class="public-header__action-icon" icon="@tui.shopping-cart" />
+
+            <span class="public-header__badge">3</span>
+          </button>
+
+          <ng-container *ngIf="authService.isLoggedIn(); else guestLinks">
+            <a
+              class="public-header__user public-header__user--admin"
+              *ngIf="authService.isAdmin()"
+              routerLink="/admin"
+            >
+              Admin
+            </a>
+
+            <a class="public-header__user" routerLink="/my-bookings">
+              {{ authService.currentUser()?.fullName }}
+            </a>
+
+            <button class="public-header__logout" type="button" (click)="authService.logout()">
+              Đăng xuất
+            </button>
+          </ng-container>
+
+          <ng-template #guestLinks>
+            <a class="public-header__login" routerLink="/login">
+              <tui-icon class="public-header__login-icon" icon="@tui.user" />
+
+              <span class="public-header__login-text">Đăng nhập</span>
+
+              <tui-icon class="public-header__login-chevron" icon="@tui.chevron-down" />
+            </a>
+          </ng-template>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <main class="public-layout__main">
+    <router-outlet />
+  </main>
+
+  <footer class="public-footer">
+    <div class="vv-container public-footer__top">
+      <div class="public-footer__column">
+        <h3 class="public-footer__heading">Du lịch trong nước</h3>
+
+        <ul class="public-footer__list">
+          <li><a class="public-footer__link" routerLink="/tours">Hà Nội</a></li>
+          <li><a class="public-footer__link" routerLink="/tours">Đà Lạt</a></li>
+          <li><a class="public-footer__link" routerLink="/tours">Phan Thiết</a></li>
+          <li><a class="public-footer__link" routerLink="/tours">Nha Trang</a></li>
+          <li><a class="public-footer__link" routerLink="/tours">Phú Quốc</a></li>
+          <li><a class="public-footer__link" routerLink="/tours">Đà Nẵng</a></li>
+          <li><a class="public-footer__link" routerLink="/tours">Hạ Long</a></li>
+          <li><a class="public-footer__link" routerLink="/tours">Cần Thơ</a></li>
+        </ul>
+      </div>
+
+      <div class="public-footer__column">
+        <h3 class="public-footer__heading">Du lịch nước ngoài</h3>
+
+        <ul class="public-footer__list">
+          <li><a class="public-footer__link" routerLink="/tours">Thái Lan</a></li>
+          <li><a class="public-footer__link" routerLink="/tours">Hàn Quốc</a></li>
+          <li><a class="public-footer__link" routerLink="/tours">Singapore</a></li>
+          <li><a class="public-footer__link" routerLink="/tours">Nhật Bản</a></li>
+          <li><a class="public-footer__link" routerLink="/tours">Trung Quốc</a></li>
+          <li><a class="public-footer__link" routerLink="/tours">Hoa Kỳ</a></li>
+          <li><a class="public-footer__link" routerLink="/tours">Châu Âu</a></li>
+          <li><a class="public-footer__link" routerLink="/tours">Úc</a></li>
+        </ul>
+      </div>
+
+      <div class="public-footer__column">
+        <h3 class="public-footer__heading">Dòng tour</h3>
+
+        <ul class="public-footer__list">
+          <li><a class="public-footer__link" routerLink="/tours">Tour cao cấp</a></li>
+          <li><a class="public-footer__link" routerLink="/tours">Tour tiêu chuẩn</a></li>
+          <li><a class="public-footer__link" routerLink="/tours">Tour tiết kiệm</a></li>
+          <li><a class="public-footer__link" routerLink="/tours">Tour gia đình</a></li>
+          <li><a class="public-footer__link" routerLink="/tours">Tour honeymoon</a></li>
+        </ul>
+      </div>
+
+      <div class="public-footer__column public-footer__column--support">
+        <h3 class="public-footer__heading">Hỗ trợ khách hàng</h3>
+
+        <ul class="public-footer__contact-list">
+          <li class="public-footer__contact-item">
+            <tui-icon class="public-footer__contact-icon" icon="@tui.phone" />
+            <span>HN & Miền Bắc: 0899 567 779</span>
+          </li>
+
+          <li class="public-footer__contact-item">
+            <tui-icon class="public-footer__contact-icon" icon="@tui.phone" />
+            <span>HCM & Miền Nam: 0899 567 779</span>
+          </li>
+
+          <li class="public-footer__contact-item">
+            <tui-icon class="public-footer__contact-icon" icon="@tui.mail" />
+            <span>info&#64;voyageviet.com</span>
+          </li>
+
+          <li class="public-footer__contact-item">
+            <tui-icon class="public-footer__contact-icon" icon="@tui.clock" />
+            <span>Thứ 2 - Chủ nhật: 8:00 - 21:00</span>
+          </li>
+        </ul>
+      </div>
+
+      <div class="public-footer__column public-footer__column--newsletter">
+        <h3 class="public-footer__heading">Đăng ký nhận ưu đãi</h3>
+
+        <p class="public-footer__text">
+          Nhập email để nhận thông tin tour mới và ưu đãi đặc biệt từ VoyageViet.
+        </p>
+
+        <form class="public-footer__newsletter">
+          <input class="public-footer__newsletter-input" type="email" placeholder="Email của bạn" />
+
+          <button class="public-footer__newsletter-button" type="button">Đăng ký</button>
+        </form>
+
+        <h3 class="public-footer__heading public-footer__heading--social">Kết nối với chúng tôi</h3>
+
+        <div class="public-footer__socials">
+          <a class="public-footer__social-link" href="#" aria-label="Facebook">
+            <img src="/home/mxh/facebook.svg" alt="Facebook" />
+          </a>
+
+          <a class="public-footer__social-link" href="#" aria-label="Instagram">
+            <img src="/home/mxh/insta.svg" alt="Instagram" />
+          </a>
+
+          <a class="public-footer__social-link" href="#" aria-label="YouTube">
+            <img src="/home/mxh/youtube.svg" alt="YouTube" />
+          </a>
+
+          <a class="public-footer__social-link" href="#" aria-label="Zalo">
+            <img src="/home/mxh/zalo.svg" alt="Zalo" />
+          </a>
+        </div>
+      </div>
+    </div>
+
+    <div class="vv-container public-footer__bottom">
+      <div class="public-footer__company">
+        <img class="public-footer__company-logo" src="/logo.png" alt="VoyageViet" />
+
+        <div class="public-footer__company-content">
+          <h3 class="public-footer__company-name">Công ty TNHH Du lịch VoyageViet</h3>
+
+          <p class="public-footer__company-text">Địa chỉ: 123 Nguyễn Văn Linh, Hải Châu, Đà Nẵng</p>
+
+          <p class="public-footer__company-text">MST: 0401234567 - Cấp ngày: 01/01/2026</p>
+        </div>
+      </div>
+
+      <div class="public-footer__payments">
+        <h3 class="public-footer__payment-title">Phương thức thanh toán</h3>
+
+        <div class="public-footer__payment-list">
+          <img src="/home/payments/Frame 1.svg" alt="Payment 1" />
+          <img src="/home/payments/Frame 2.svg" alt="Payment 2" />
+          <img src="/home/payments/Frame 3.svg" alt="Payment 3" />
+          <img src="/home/payments/Frame 4.svg" alt="Payment 4" />
+          <img src="/home/payments/Frame 5.svg" alt="Payment 5" />
+          <img src="/home/payments/Frame 6.svg" alt="Payment 6" />
+          <img src="/home/payments/Frame 7.svg" alt="Payment 7" />
+        </div>
+      </div>
+
+      <div class="public-footer__copyright">
+        <p>© 2026 VoyageViet. All rights reserved.</p>
+
+        <div class="public-footer__policy">
+          <a routerLink="/">Chính sách bảo mật</a>
+          <span>|</span>
+          <a routerLink="/">Điều khoản sử dụng</a>
+        </div>
+      </div>
+    </div>
+  </footer>
+</div>

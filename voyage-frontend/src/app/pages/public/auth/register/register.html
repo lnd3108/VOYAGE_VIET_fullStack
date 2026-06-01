@@ -1,0 +1,114 @@
+<section class="auth">
+  <div class="auth__shell">
+    <div class="auth__visual">
+      <p class="auth__eyebrow">VoyageViet</p>
+
+      <h1 class="auth__hero-title">
+        Tạo tài khoản để đặt tour nhanh hơn
+      </h1>
+
+      <p class="auth__hero-desc">
+        Theo dõi booking, lưu tour yêu thích và nhận ưu đãi du lịch dành riêng cho bạn.
+      </p>
+    </div>
+
+    <form class="auth__card" [formGroup]="form" (ngSubmit)="submit()">
+      <p class="auth__eyebrow">Đăng ký</p>
+
+      <h2 class="auth__title">Tạo tài khoản</h2>
+
+      <p class="auth__desc">
+        Điền thông tin bên dưới để bắt đầu.
+      </p>
+
+      <div class="auth__field">
+        <label class="auth__label" for="fullName">Họ tên</label>
+        <input
+          id="fullName"
+          class="auth__input"
+          type="text"
+          formControlName="fullName"
+          placeholder="Nguyen Van A"
+        />
+
+        <small
+          class="auth__error"
+          *ngIf="form.controls.fullName.touched && form.controls.fullName.invalid"
+        >
+          Vui lòng nhập họ tên.
+        </small>
+      </div>
+
+      <div class="auth__field">
+        <label class="auth__label" for="email">Email</label>
+        <input
+          id="email"
+          class="auth__input"
+          type="email"
+          formControlName="email"
+          placeholder="user@gmail.com"
+        />
+
+        <small
+          class="auth__error"
+          *ngIf="form.controls.email.touched && form.controls.email.invalid"
+        >
+          Email không hợp lệ.
+        </small>
+      </div>
+
+      <div class="auth__field">
+        <label class="auth__label" for="password">Mật khẩu</label>
+        <input
+          id="password"
+          class="auth__input"
+          type="password"
+          formControlName="password"
+          placeholder="Tối thiểu 8 ký tự"
+        />
+
+        <small
+          class="auth__error"
+          *ngIf="form.controls.password.touched && form.controls.password.invalid"
+        >
+          Mật khẩu phải có tối thiểu 8 ký tự.
+        </small>
+      </div>
+
+      <div class="auth__field">
+        <label class="auth__label" for="phone">Số điện thoại</label>
+        <input
+          id="phone"
+          class="auth__input"
+          type="text"
+          formControlName="phone"
+          placeholder="0987654321"
+        />
+
+        <small
+          class="auth__error"
+          *ngIf="form.controls.phone.touched && form.controls.phone.invalid"
+        >
+          Số điện thoại phải gồm 9 đến 11 chữ số.
+        </small>
+      </div>
+
+      <div class="auth__alert auth__alert--error" *ngIf="errorMessage()">
+        {{ errorMessage() }}
+      </div>
+
+      <div class="auth__alert auth__alert--success" *ngIf="successMessage()">
+        {{ successMessage() }}
+      </div>
+
+      <button class="auth__button" type="submit" [disabled]="loading()">
+        {{ loading() ? 'Đang đăng ký...' : 'Đăng ký' }}
+      </button>
+
+      <p class="auth__switch">
+        Đã có tài khoản?
+        <a routerLink="/login">Đăng nhập</a>
+      </p>
+    </form>
+  </div>
+</section>
