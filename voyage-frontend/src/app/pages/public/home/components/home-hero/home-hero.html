@@ -53,7 +53,6 @@
             <ng-template #destinationContent let-item>
               <div class="home-search__destination-option">
                 <img [src]="item.imageUrl" [alt]="item.name" />
-
                 <span>
                   <strong>{{ item.name }}</strong>
                   <small>{{ item.tourCount }} tours</small>
@@ -64,13 +63,19 @@
             <div class="home-search__control home-search__control--destination">
               <tui-icon class="home-search__control-icon" icon="@tui.map-pin" />
 
+              <span class="home-search__fake-placeholder" *ngIf="!selectedDestination">
+                Bạn muốn đi đâu?
+              </span>
+
               <tui-textfield
                 tuiChevron
                 size="l"
                 class="home-search__taiga-field home-search__taiga-field--destination"
                 [stringify]="stringifyDestination"
+                [tuiDropdownDirection]="'bottom'"
+                [tuiDropdownOffset]="8"
               >
-                <input tuiSelect [(ngModel)]="selectedDestination" placeholder="Bạn muốn đi đâu?" />
+                <input tuiSelect [(ngModel)]="selectedDestination" />
 
                 <tui-data-list-wrapper
                   *tuiDropdown
@@ -92,10 +97,17 @@
                 type="button"
                 [tuiDropdown]="guestDropdown"
                 [(tuiDropdownOpen)]="guestDropdownOpen"
+                [tuiDropdownDirection]="'bottom'"
+                [tuiDropdownOffset]="8"
               >
                 <tui-icon class="home-search__control-icon" icon="@tui.user" />
 
-                <span class="home-search__field-text">
+                <span
+                  class="home-search__field-text"
+                  [class.home-search__field-text--placeholder]="
+                    adultCount === 1 && childCount === 0
+                  "
+                >
                   {{ guestLabel }}
                 </span>
 
@@ -106,7 +118,7 @@
               </button>
 
               <ng-template #guestDropdown>
-                <div class="home-search__guest-panel">
+                <div class="home-search__guest-panel" (click)="$event.stopPropagation()">
                   <div class="home-search__guest-row">
                     <span class="home-search__guest-label">Người lớn</span>
 
@@ -174,12 +186,15 @@
               <span class="home-search__date-caption">Ngày đi:</span>
 
               <tui-textfield
+                tuiChevron
                 size="l"
                 class="home-search__taiga-field home-search__taiga-field--date"
+                [tuiDropdownDirection]="'bottom'"
+                [tuiDropdownOffset]="8"
               >
                 <input tuiInputDate [(ngModel)]="departureDate" />
 
-                <tui-calendar *tuiDropdown />
+                <tui-calendar class="home-search__calendar" *tuiDropdown />
               </tui-textfield>
             </div>
 

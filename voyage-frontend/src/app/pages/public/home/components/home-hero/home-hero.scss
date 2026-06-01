@@ -7,96 +7,90 @@
   isolation: isolate;
   min-height: 611px;
   overflow: hidden;
-  background: #dfe7e6;
 
   &__background {
     position: absolute;
     inset: 0;
     z-index: -2;
     background:
-      linear-gradient(0deg, rgba(0, 0, 0, 0.22), rgba(0, 0, 0, 0.22)),
-      linear-gradient(
-        90deg,
-        rgba(20, 83, 79, 0.34) 0%,
-        rgba(31, 111, 104, 0.14) 45%,
-        rgba(0, 0, 0, 0.08) 100%
-      ),
+      linear-gradient(0deg, rgba(0, 0, 0, 0.2), rgba(0, 0, 0, 0.2)),
       url('/hero/bg-home.png') center / cover no-repeat;
   }
 
+  // ── Container: sidebar (97px) + gap (111px) + content ──────────────────
   &__container {
     position: relative;
     min-height: 611px;
     display: grid;
     grid-template-columns: 97px minmax(0, 1fr);
     align-items: center;
-    gap: 116px;
-    padding-top: 0;
-    padding-bottom: 0;
+    gap: 111px;
+    padding-top: 72px;
+    padding-bottom: 72px;
   }
 
+  // ── Nav wrapper (sidebar + mega overlay) ───────────────────────────────
   &__nav {
     position: relative;
     z-index: 40;
-    width: 97px;
     align-self: center;
   }
 
+  // ── Sidebar pill ────────────────────────────────────────────────────────
   &__sidebar {
     position: relative;
     z-index: 42;
     width: 97px;
     height: 467px;
+    display: flex;
+    flex-direction: column;
     overflow: hidden;
     border-radius: 10px;
-    background: linear-gradient(180deg, #1f6f68 0%, #14534f 100%);
-    box-shadow: 0 2px 12px rgba(6, 78, 74, 0.34);
+    background: #1f6f68;
+    box-shadow: 0 2px 3px rgba(0, 0, 0, 0.5);
   }
 
   &__sidebar-item {
+    flex: 1;
     width: 100%;
-    height: calc(467px / 6);
-    padding: 9px 8px;
-    border: 0;
+    padding: 8px 6px;
+    border: none;
     background: transparent;
     color: #ffffff;
-    display: grid;
-    place-items: center;
-    gap: 7px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
     text-align: center;
     cursor: pointer;
     transition:
-      background 0.16s ease,
-      color 0.16s ease,
-      transform 0.16s ease;
+      background 0.15s ease,
+      color 0.15s ease;
 
     &:hover {
-      background: rgba(255, 255, 255, 0.1);
-      color: #ffffff;
+      background: rgba(255, 255, 255, 0.12);
     }
 
     &--active {
       background: #ffffff;
       color: #1f6f68;
+
+      .home-hero__sidebar-icon {
+        filter: brightness(0) saturate(100%) invert(34%) sepia(20%) saturate(1088%)
+          hue-rotate(126deg) brightness(94%) contrast(90%);
+      }
+
+      .home-hero__sidebar-label {
+        color: #1f6f68;
+      }
     }
 
-    &:active {
-      transform: scale(0.98);
-    }
-
-    &:hover .home-hero__sidebar-icon {
-      filter: brightness(0) invert(1);
-    }
-
-    &--active .home-hero__sidebar-icon,
-    &--active:hover .home-hero__sidebar-icon {
-      filter: brightness(0) saturate(100%) invert(34%) sepia(20%) saturate(1088%) hue-rotate(126deg)
-        brightness(94%) contrast(90%);
-    }
-
-    &--built-in-label .home-hero__sidebar-icon {
-      width: 58px;
-      height: 44px;
+    &--built-in-label {
+      .home-hero__sidebar-icon {
+        width: 58px;
+        height: 30px;
+      }
     }
   }
 
@@ -105,80 +99,61 @@
     height: 30px;
     object-fit: contain;
     filter: brightness(0) invert(1);
-    transition: filter 0.16s ease;
+    transition: filter 0.15s ease;
   }
 
   &__sidebar-label {
-    max-width: 82px;
-    color: inherit;
+    color: #ffffff;
     font-size: 9.912px;
-    font-weight: 900;
+    font-weight: 700;
     line-height: 1.18;
-    letter-spacing: 0.38px;
+    letter-spacing: 0.381px;
     text-transform: uppercase;
   }
 
+  // ── Mega menu ───────────────────────────────────────────────────────────
   &__mega {
     position: absolute;
     left: 97px;
-    top: 0;
     z-index: 41;
     width: min(990px, calc(100vw - 180px));
-    min-height: 293px;
-    padding: 43px 68px 40px 84px;
+    padding: 36px 56px 36px 72px;
     border-radius: 0 10px 10px 0;
     background: #ffffff;
     box-shadow: 0 18px 42px rgba(15, 23, 42, 0.14);
-  }
 
-  &__mega--domestic {
-    top: 0;
-    min-height: 293px;
-  }
+    // align top edge to corresponding sidebar item
+    $item-h: calc(467px / 6);
 
-  &__mega--international {
-    top: calc(467px / 6);
-    min-height: 424px;
-    padding-top: 47px;
-    padding-bottom: 47px;
-  }
-
-  &__mega--group {
-    top: calc((467px / 6) * 2);
-    min-height: 260px;
-  }
-
-  &__mega--combo {
-    top: calc((467px / 6) * 3);
-    min-height: 230px;
-  }
-
-  &__mega--visa {
-    top: calc((467px / 6) * 2);
-    min-height: 293px;
-  }
-
-  &__mega--flight {
-    top: calc((467px / 6) * 3);
-    min-height: 230px;
+    &--domestic {
+      top: 0;
+    }
+    &--international {
+      top: $item-h;
+    }
+    &--group {
+      top: calc(#{$item-h} * 2);
+    }
+    &--combo {
+      top: calc(#{$item-h} * 3);
+    }
+    &--visa {
+      top: calc(#{$item-h} * 4);
+    }
+    &--flight {
+      top: calc(#{$item-h} * 5);
+    }
   }
 
   &__mega-grid {
     display: grid;
     grid-template-columns: repeat(4, minmax(0, 1fr));
-    gap: 46px;
-  }
+    gap: 40px;
 
-  &__mega-grid--international {
-    grid-template-columns: repeat(5, minmax(0, 1fr));
-    gap: 42px;
-  }
-
-  &__mega-grid--group,
-  &__mega-grid--combo,
-  &__mega-grid--visa,
-  &__mega-grid--flight {
-    grid-template-columns: repeat(4, minmax(0, 1fr));
+    &--international {
+      grid-template-columns: repeat(5, minmax(0, 1fr));
+      gap: 36px;
+    }
   }
 
   &__mega-column {
@@ -186,107 +161,147 @@
   }
 
   &__mega-title {
-    margin: 0 0 12px;
+    margin: 0 0 10px;
     color: #1f6f68;
-    font-size: 15px;
+    font-size: 13px;
     font-weight: 900;
     line-height: 1.18;
-    letter-spacing: 0.58px;
+    letter-spacing: 0.5px;
     text-transform: uppercase;
   }
 
   &__mega-link {
     display: block;
-    margin-top: 8px;
+    margin-top: 7px;
     color: #111827;
     font-size: 13px;
-    font-weight: 700;
-    line-height: 1.18;
-    letter-spacing: 0.44px;
+    font-weight: 500;
+    line-height: 1.4;
     text-decoration: none;
-    transition: color 0.16s ease;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    transition: color 0.15s ease;
 
     &:hover {
-      color: #f59e0b;
+      color: #1f6f68;
     }
   }
 
+  // ── Hero content (title + description + search) ─────────────────────────
   &__content {
     position: relative;
     z-index: 2;
-    max-width: 880px;
-    padding-top: 8px;
+    width: 100%;
+    max-width: 769px;
     color: #ffffff;
   }
 
   &__title {
-    max-width: 790px;
     margin: 0;
     color: #ffffff;
-    font-size: clamp(38px, 3.3vw, 48px);
-    font-weight: 900;
+    font-family: 'SVN-Gilroy', sans-serif;
+    font-size: 40px;
+    font-weight: 700;
     line-height: 1.18;
-    letter-spacing: 1.8px;
+    letter-spacing: 1.796px;
   }
 
   &__description {
     max-width: 526px;
-    margin: 22px 0 0;
-    color: rgba(255, 255, 255, 0.95);
+    margin: 16px 0 0;
+    color: #ffffff;
+    font-family: 'SVN-Gilroy', sans-serif;
     font-size: 16px;
-    font-weight: 500;
-    line-height: 1.35;
-    letter-spacing: 0.2px;
+    font-weight: 400;
+    line-height: 1.5;
   }
 }
 
+// ── Search widget ───────────────────────────────────────────────────────────
 .home-search {
   position: relative;
   z-index: 20;
-  width: min(1376px, 100%);
-  margin-top: 38px;
-  padding: 0;
-  background: transparent;
-  box-shadow: none;
+  width: 768px;
+  max-width: 100%;
+  margin-top: 40px;
+  padding: 40px;
+  border-radius: 10px;
+  background: rgba(0, 0, 0, 0.4);
 
   &__row {
-    display: grid;
-    gap: 22px;
-
     &--top {
-      grid-template-columns: 1fr;
-      margin-bottom: 22px;
+      margin-bottom: 20px;
     }
 
     &--bottom {
-      grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) 254px;
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) 127px;
       align-items: center;
+      gap: 20px;
     }
   }
 
+  // ── Shared field wrapper ────────────────────────────────────────────────
   &__control,
   &__field-wrap {
     position: relative;
     min-width: 0;
   }
 
+  // Leading icon inside each field
   &__control-icon {
     position: absolute;
     top: 50%;
-    left: 26px;
-    z-index: 3;
-    width: 24px;
-    height: 24px;
+    left: 16px;
+    z-index: 5;
+    width: 18px;
+    height: 18px;
     transform: translateY(-50%);
-    color: #1f6f68;
+    color: #2065b3;
     pointer-events: none;
   }
 
+  // Fake placeholder (destination field)
+  &__fake-placeholder {
+    position: absolute;
+    top: 50%;
+    left: 46px;
+    z-index: 6;
+    transform: translateY(-50%);
+    color: #a6a6a6;
+    font-family: 'SVN-Gilroy', sans-serif;
+    font-size: 13.318px;
+    font-weight: 500;
+    line-height: 1.18;
+    letter-spacing: 0.596px;
+    pointer-events: none;
+  }
+
+  // Date caption label
+  &__date-caption {
+    position: absolute;
+    top: 50%;
+    left: 46px;
+    z-index: 5;
+    transform: translateY(-50%);
+    color: #a6a6a6;
+    font-family: 'SVN-Gilroy', sans-serif;
+    font-size: 13.318px;
+    font-weight: 500;
+    line-height: 1.18;
+    letter-spacing: 0.596px;
+    pointer-events: none;
+    white-space: nowrap;
+  }
+
+  // ── Taiga textfield base ────────────────────────────────────────────────
   &__taiga-field {
+    display: block;
     width: 100%;
     min-width: 0;
-    height: 58px;
-    border-radius: 16px;
+    height: 57.72px;
+    border-radius: 10px;
     background: #ffffff;
 
     --tui-background-base: #ffffff;
@@ -294,105 +309,100 @@
     --tui-text-primary: #111827;
     --tui-text-secondary: #a6a6a6;
     --tui-border-normal: transparent;
-    --tui-border-hover: rgba(31, 111, 104, 0.34);
-    --tui-border-focus: #1f6f68;
-    --tui-radius-m: 16px;
-    --tui-radius-l: 16px;
-  }
+    --tui-border-hover: transparent;
+    --tui-border-focus: transparent;
+    --tui-radius-m: 10px;
+    --tui-radius-l: 10px;
 
-  &__taiga-field--destination {
-    input {
-      padding-left: 72px !important;
-      padding-right: 54px !important;
+    &--destination input {
+      padding-left: 46px !important;
+      padding-right: 44px !important;
+      font-family: 'SVN-Gilroy', sans-serif !important;
+      font-size: 13.318px !important;
+      font-weight: 500 !important;
+      letter-spacing: 0.596px !important;
       color: #111827 !important;
-      font-size: 13.5px !important;
-      font-weight: 700 !important;
-      letter-spacing: 0.4px;
+    }
 
-      &::placeholder {
-        color: #a6a6a6 !important;
-        opacity: 1;
-      }
+    &--date input {
+      padding-left: 110px !important;
+      padding-right: 44px !important;
+      font-family: 'SVN-Gilroy', sans-serif !important;
+      font-size: 13.318px !important;
+      font-weight: 500 !important;
+      letter-spacing: 0.596px !important;
+      color: #a6a6a6 !important;
     }
   }
 
-  &__taiga-field--date {
-    input {
-      padding-left: 132px !important;
-      padding-right: 54px !important;
-      color: #111827 !important;
-      font-size: 13.5px !important;
-      font-weight: 700 !important;
-      letter-spacing: 0.4px;
-    }
-  }
-
-  &__date-caption {
-    position: absolute;
-    top: 50%;
-    left: 68px;
-    z-index: 3;
-    transform: translateY(-50%);
-    color: #a6a6a6;
-    font-size: 13.5px;
-    font-weight: 700;
-    letter-spacing: 0.4px;
-    pointer-events: none;
-  }
-
+  // ── Guest trigger button ────────────────────────────────────────────────
   &__guest-trigger {
     position: relative;
     width: 100% !important;
-    height: 58px !important;
+    height: 57.72px !important;
+    min-height: 57.72px !important;
     justify-content: flex-start !important;
-    padding: 0 54px 0 72px !important;
-    border-radius: 16px !important;
+    padding: 0 44px 0 46px !important;
+    border: none !important;
+    border-radius: 10px !important;
     background: #ffffff !important;
     color: #111827 !important;
     box-shadow: none !important;
-    border: 0 !important;
 
     &:hover,
     &:focus-visible {
       background: #ffffff !important;
-      box-shadow: 0 0 0 3px rgba(31, 111, 104, 0.16) !important;
+      box-shadow: none !important;
     }
   }
 
   &__field-text {
-    color: #a6a6a6;
-    font-size: 13.5px;
-    font-weight: 700;
-    letter-spacing: 0.4px;
-    white-space: nowrap;
+    display: block;
     overflow: hidden;
+    font-family: 'SVN-Gilroy', sans-serif;
+    font-size: 13.318px;
+    font-weight: 500;
+    line-height: 1.18;
+    letter-spacing: 0.596px;
+    color: #111827;
     text-overflow: ellipsis;
+    white-space: nowrap;
+
+    &--placeholder {
+      color: #a6a6a6;
+    }
   }
 
   &__chevron {
     position: absolute;
     top: 50%;
-    right: 22px;
-    width: 16px;
-    height: 16px;
+    right: 16px;
+    width: 14px;
+    height: 14px;
     transform: translateY(-50%);
-    color: #1f6f68;
+    color: #2065b3;
     pointer-events: none;
   }
 
+  // ── Submit button ───────────────────────────────────────────────────────
   &__submit {
-    height: 58px !important;
-    border-radius: 16px !important;
+    width: 100% !important;
+    height: 57.72px !important;
+    min-height: 57.72px !important;
+    border-radius: 10px !important;
     background: #1f6f68 !important;
     color: #ffffff !important;
     display: inline-flex !important;
     align-items: center !important;
     justify-content: center !important;
-    gap: 10px !important;
-    font-size: 14px !important;
-    font-weight: 800 !important;
-    letter-spacing: 0.4px !important;
-    box-shadow: 0 10px 22px rgba(31, 111, 104, 0.28) !important;
+    gap: 8px !important;
+    padding: 0 16px !important;
+    font-family: 'SVN-Gilroy', sans-serif !important;
+    font-size: 13.318px !important;
+    font-weight: 500 !important;
+    letter-spacing: 0.596px !important;
+    box-shadow: 0 3.298px 3.298px rgba(0, 0, 0, 0.25) !important;
+    transition: background 0.15s ease !important;
 
     &:hover {
       background: #14534f !important;
@@ -400,135 +410,313 @@
   }
 
   &__submit-icon {
-    width: 22px;
-    height: 22px;
+    width: 16px;
+    height: 16px;
   }
 
+  // ── Destination dropdown list ───────────────────────────────────────────
+  // Wrapper panel: 688px wide, white, rounded — matches Figma Group 1584
   &__destination-list {
-    min-width: 420px;
-    max-height: 360px;
-    overflow: auto;
+    width: 688px !important;
+    max-width: calc(100vw - 32px) !important;
+    max-height: 340px !important;
+    overflow-y: auto !important;
+    overflow-x: hidden !important;
+    padding: 20px !important;
+    border-radius: 10px !important;
+    background: #ffffff !important;
+    box-shadow: 0 16px 36px rgba(15, 23, 42, 0.18) !important;
+  }
+
+  // Header row "Địa Điểm Hot" inside the dropdown
+  &__destination-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 16px;
+    color: #1f6f68;
+    font-family: 'SVN-Gilroy', sans-serif;
+    font-size: 14px;
+    font-weight: 600;
+    line-height: 1.18;
+    letter-spacing: 0.596px;
+
+    tui-icon,
+    &-icon {
+      width: 18px;
+      height: 18px;
+      color: #1f6f68;
+    }
+  }
+
+  // 3-column grid of destination items
+  &__destination-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 12px 16px;
   }
 
   &__destination-option {
-    min-width: 0;
-    min-height: 54px;
-    display: grid;
-    grid-template-columns: 60px minmax(0, 1fr);
+    display: flex;
     align-items: center;
-    gap: 14px;
+    gap: 10px;
+    padding: 6px 4px;
     text-align: left;
+    cursor: pointer;
+    border-radius: 6px;
+    transition: background 0.12s ease;
+
+    &:hover {
+      background: #f5f9ff;
+    }
 
     img {
+      flex-shrink: 0;
       width: 60px;
       height: 47px;
       border-radius: 5px;
       object-fit: cover;
-      display: block;
       background: #e2e8f0;
     }
 
     span {
       min-width: 0;
-      display: block;
+      display: flex;
+      flex-direction: column;
     }
 
     strong {
       display: block;
-      max-width: 220px;
-      overflow: hidden;
       color: #1f6f68;
-      font-size: 13px;
-      font-weight: 900;
+      font-family: 'SVN-Gilroy', sans-serif;
+      font-size: 10px;
+      font-weight: 600;
       line-height: 1.18;
-      letter-spacing: 0.4px;
+      letter-spacing: 0.596px;
+      overflow: hidden;
       text-overflow: ellipsis;
       white-space: nowrap;
     }
 
     small {
       display: block;
-      margin-top: 5px;
+      margin-top: 2px;
       color: #a6a6a6;
-      font-size: 11px;
-      font-weight: 700;
+      font-family: 'SVN-Gilroy', sans-serif;
+      font-size: 8px;
+      font-weight: 500;
       line-height: 1.18;
-      letter-spacing: 0.4px;
+      letter-spacing: 0.596px;
     }
   }
 
+  // ── Guest count panel ───────────────────────────────────────────────────
   &__guest-panel {
     width: 233px;
-    min-height: 112px;
-    padding: 8px 15px 12px;
-    border-radius: 12px;
+    padding: 0;
+    border-radius: 10px;
     background: #ffffff;
     box-shadow: 0 16px 36px rgba(15, 23, 42, 0.18);
+    overflow: hidden;
   }
 
   &__guest-row {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    gap: 14px;
-    min-height: 34px;
-    padding: 8px 0;
+    gap: 8px;
+    padding: 10px 16px;
 
     &:not(:last-child) {
-      border-bottom: 1px solid #d6d6d6;
+      border-bottom: 1px solid #c9c9c9;
     }
   }
 
   &__guest-label {
+    flex: 1;
     color: #a6a6a6;
+    font-family: 'SVN-Gilroy', sans-serif;
     font-size: 12px;
-    font-weight: 600;
-    letter-spacing: 0.4px;
+    font-weight: 500;
+    line-height: 1.18;
+    letter-spacing: 0.537px;
   }
 
   &__guest-actions {
     display: flex;
     align-items: center;
-    gap: 14px;
+    gap: 6px;
 
     button {
+      // Override tuiButton — match Figma: white box with grey border
       width: 20px !important;
       height: 20px !important;
       min-width: 20px !important;
+      min-height: 20px !important;
       padding: 0 !important;
       border-radius: 5px !important;
+      border: 0.5px solid #c0c0c0 !important;
+      background: #ffffff !important;
+      box-shadow: none !important;
       color: #1f6f68 !important;
+      font-family: 'SVN-Gilroy', sans-serif !important;
       font-size: 12px !important;
-      font-weight: 700 !important;
+      font-weight: 500 !important;
       line-height: 1 !important;
+      letter-spacing: 0.537px !important;
+      display: inline-flex !important;
+      align-items: center !important;
+      justify-content: center !important;
+
+      &:hover:not([disabled]) {
+        background: #f0f0f0 !important;
+      }
+
+      &[disabled] {
+        opacity: 0.4 !important;
+      }
     }
 
     strong {
-      min-width: 10px;
+      min-width: 16px;
       color: #1f6f68;
+      font-family: 'SVN-Gilroy', sans-serif;
       font-size: 12px;
-      font-weight: 700;
+      font-weight: 500;
+      line-height: 1.18;
+      letter-spacing: 0.537px;
       text-align: center;
     }
   }
 }
 
+// ── Taiga deep overrides ────────────────────────────────────────────────────
 :host ::ng-deep {
-  .home-search__taiga-field [tuiWrapper] {
-    border-radius: 16px !important;
+  // Textfield wrapper
+  .home-search__taiga-field {
+    height: 57.72px !important;
+    border-radius: 10px !important;
+    background: #ffffff !important;
+  }
+
+  .home-search__taiga-field [tuiWrapper],
+  .home-search__taiga-field .t-wrapper,
+  .home-search__taiga-field .t-content {
+    height: 57.72px !important;
+    min-height: 57.72px !important;
+    border-radius: 10px !important;
     background: #ffffff !important;
     box-shadow: none !important;
+    border: none !important;
   }
 
   .home-search__taiga-field input {
-    height: 58px !important;
+    height: 57.72px !important;
+    min-height: 57.72px !important;
+    background: transparent !important;
   }
 
-  .home-search__taiga-field tui-icon {
-    color: #1f6f68 !important;
+  // Chevron icon color inside taiga fields
+  .home-search__taiga-field tui-icon[data-appearance='chevron'],
+  .home-search__taiga-field [tuiChevron] tui-icon {
+    color: #2065b3 !important;
+  }
+
+  // No focus ring
+  .home-search__taiga-field:hover [tuiWrapper],
+  .home-search__taiga-field:focus-within [tuiWrapper] {
+    box-shadow: none !important;
+  }
+
+  // Guest trigger
+  .home-search__guest-trigger [tuiWrapper],
+  .home-search__guest-trigger .t-wrapper {
+    background: transparent !important;
+    box-shadow: none !important;
+  }
+
+  // Destination list — 688px panel, grid 3 cột, header "Địa Điểm Hot" via ::before
+  .home-search__destination-list {
+    width: 688px !important;
+    max-width: calc(100vw - 32px) !important;
+    padding: 20px !important;
+    border-radius: 10px !important;
+    background: #ffffff !important;
+    box-shadow: 0 16px 36px rgba(15, 23, 42, 0.18) !important;
+  }
+
+  // tui-data-list bên trong: bỏ flex mặc định, chuyển thành grid 3 cột
+  .home-search__destination-list tui-data-list {
+    display: block !important;
+    width: 100% !important;
+    max-height: 320px !important;
+    overflow-y: auto !important;
+    background: #ffffff !important;
+  }
+
+  // Inject header "Địa Điểm Hot" trước list
+  .home-search__destination-list tui-data-list::before {
+    content: '📍  Địa Điểm Hot';
+    display: block;
+    margin-bottom: 14px;
+    color: #1f6f68;
+    font-family: 'SVN-Gilroy', sans-serif;
+    font-size: 14px;
+    font-weight: 600;
+    line-height: 1.18;
+    letter-spacing: 0.596px;
+  }
+
+  // tui-opt-group hoặc wrapper bên trong: grid 3 cột
+  .home-search__destination-list tui-data-list [role='listbox'],
+  .home-search__destination-list tui-data-list tui-opt-group,
+  .home-search__destination-list tui-data-list > * {
+    display: grid !important;
+    grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+    gap: 8px 12px !important;
+  }
+
+  // Mỗi option button: reset padding, cho destination-option tự handle layout
+  .home-search__destination-list button[tuiOption],
+  .home-search__destination-list [tuiOption] {
+    min-height: unset !important;
+    height: auto !important;
+    padding: 0 !important;
+    background: transparent !important;
+    border-radius: 6px !important;
+
+    &:hover {
+      background: #f5f9ff !important;
+    }
+  }
+
+  // Calendar dropdown
+  .home-search__calendar {
+    border-radius: 14px !important;
+    overflow: hidden !important;
+  }
+
+  // Guest panel (tui dropdown)
+  .home-search__guest-panel {
+    width: 233px !important;
+    padding: 0 !important;
+    background: #ffffff !important;
+    border-radius: 10px !important;
+    box-shadow: 0 16px 36px rgba(15, 23, 42, 0.18) !important;
+    overflow: hidden !important;
+  }
+
+  // Guest ± buttons: flat white box with grey border (Figma spec)
+  .home-search__guest-actions [tuiButton] [tuiWrapper],
+  .home-search__guest-actions button[tuiButton] [tuiWrapper] {
+    background: #ffffff !important;
+    box-shadow: none !important;
+    border: 0.5px solid #c0c0c0 !important;
+    border-radius: 5px !important;
   }
 }
 
+// ── Responsive ──────────────────────────────────────────────────────────────
 @media (max-width: 1180px) {
   .home-hero {
     &__container {
@@ -536,7 +724,6 @@
       gap: 54px;
     }
 
-    &__nav,
     &__sidebar {
       width: 92px;
     }
@@ -544,8 +731,8 @@
     &__mega {
       left: 92px;
       width: min(820px, calc(100vw - 160px));
-      padding-left: 56px;
-      padding-right: 44px;
+      padding-left: 48px;
+      padding-right: 36px;
     }
 
     &__mega-grid,
@@ -555,88 +742,21 @@
   }
 
   .home-search {
-    &__row--bottom {
-      grid-template-columns: 1fr 1fr 220px;
-    }
+    width: 100%;
   }
 }
 
 @media (max-width: 900px) {
-  .home-hero {
-    min-height: auto;
-    overflow: hidden;
-
-    &__container {
-      min-height: auto;
-      grid-template-columns: 1fr;
-      gap: 24px;
-      padding-top: 32px;
-      padding-bottom: 42px;
-    }
-
-    &__nav {
-      width: 100%;
-    }
-
-    &__sidebar {
-      width: 100%;
-      height: auto;
-      min-height: auto;
-      display: grid;
-      grid-template-columns: repeat(6, minmax(92px, 1fr));
-      overflow-x: auto;
-      border-radius: 14px;
-    }
-
-    &__sidebar-item {
-      height: 76px;
-      min-height: 76px;
-    }
-
-    &__mega,
-    &__mega--domestic,
-    &__mega--international,
-    &__mega--group,
-    &__mega--combo,
-    &__mega--visa,
-    &__mega--flight {
-      position: static;
-      width: 100%;
-      min-height: unset;
-      margin-top: 12px;
-      padding: 28px;
-      border-radius: 16px;
-    }
-
-    &__mega-grid,
-    &__mega-grid--international,
-    &__mega-grid--group,
-    &__mega-grid--combo,
-    &__mega-grid--visa,
-    &__mega-grid--flight {
-      grid-template-columns: repeat(2, minmax(0, 1fr));
-    }
-
-    &__content {
-      max-width: 100%;
-      padding-top: 0;
-    }
-
-    &__title {
-      font-size: 36px;
-      letter-spacing: 0.4px;
-    }
-  }
-
   .home-search {
-    width: 100%;
+    padding: 28px;
 
     &__row--bottom {
-      grid-template-columns: 1fr;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
     }
 
     &__submit {
-      width: 100% !important;
+      grid-column: 1 / -1;
     }
   }
 }
@@ -644,66 +764,60 @@
 @media (max-width: 640px) {
   .home-hero {
     &__container {
-      width: min(100% - 24px, 1220px);
+      grid-template-columns: 1fr;
+      gap: 0;
+      padding-top: 24px;
+      padding-bottom: 32px;
+      align-items: start;
     }
 
-    &__sidebar {
-      grid-template-columns: repeat(6, 90px);
-      border-radius: 12px;
-    }
-
-    &__mega {
+    &__nav {
       display: none;
     }
 
     &__title {
-      font-size: 30px;
-      line-height: 1.22;
+      font-size: 28px;
+      letter-spacing: 0.8px;
     }
 
     &__description {
-      max-width: 100%;
       font-size: 14px;
-      line-height: 1.5;
     }
   }
 
   .home-search {
-    &__row--top,
-    &__row--bottom {
-      gap: 16px;
+    width: 100%;
+    padding: 20px;
+
+    &__row--top {
+      margin-bottom: 14px;
     }
 
-    &__taiga-field,
-    &__guest-trigger,
-    &__submit {
-      height: 54px !important;
+    &__row--bottom {
+      grid-template-columns: 1fr;
+      gap: 12px;
     }
 
     &__control-icon {
-      left: 18px;
+      left: 14px;
     }
 
-    &__taiga-field--destination input {
-      padding-left: 58px !important;
-    }
-
-    &__guest-trigger {
-      padding-left: 58px !important;
-      padding-right: 48px !important;
-    }
-
+    &__fake-placeholder,
     &__date-caption {
-      left: 58px;
+      left: 40px;
       font-size: 13px;
     }
 
-    &__taiga-field--date input {
-      padding-left: 118px !important;
+    &__taiga-field--destination input {
+      padding-left: 40px !important;
     }
 
-    &__guest-panel {
-      width: min(233px, calc(100vw - 40px));
+    &__taiga-field--date input {
+      padding-left: 104px !important;
+    }
+
+    &__guest-trigger {
+      padding-left: 40px !important;
     }
   }
 }

@@ -282,32 +282,32 @@ export class HomeHero {
     {
       name: 'Pháp - Thụy Sỹ - Ý',
       tourCount: 50,
-      imageUrl: '../../../../public/hero/list-location/Phap-.svg',
+      imageUrl: '/hero/list-location/Phap-.svg',
     },
     {
       name: 'Bắc Âu',
       tourCount: 50,
-      imageUrl: '../../../../public/hero/list-location/BacAu.svg',
+      imageUrl: '/hero/list-location/BacAu.svg',
     },
     {
       name: 'Nhật Bản',
       tourCount: 50,
-      imageUrl: '../../../../public/hero/list-location/Nhatban.svg',
+      imageUrl: '/hero/list-location/Nhatban.svg',
     },
     {
       name: 'Singapore',
       tourCount: 50,
-      imageUrl: '../../../../public/hero/list-location/Sing.svg',
+      imageUrl: '/hero/list-location/Sing.svg',
     },
     {
       name: 'Phú Quốc',
       tourCount: 50,
-      imageUrl: '../../../../public/hero/list-location/PhuQuoc.svg',
+      imageUrl: '/hero/list-location/PhuQuoc.svg',
     },
     {
       name: 'Hà Nội',
       tourCount: 50,
-      imageUrl: '../../../../public/hero/list-location/Hanoi.svg',
+      imageUrl: '/hero/list-location/Hanoi.svg',
     },
   ];
 
