@@ -43,7 +43,7 @@
           Khám phá các hành trình trong nước và quốc tế với ưu đãi tốt nhất từ VoyageViet.
         </p>
 
-        <div class="home-search">
+        <div class="home-search" (keydown.enter)="submitSearch()">
           <div class="home-search__row home-search__row--top">
             <div
               class="home-search__dest-wrap"
@@ -111,7 +111,7 @@
                     *ngFor="let item of hotDestinations"
                     type="button"
                     class="home-search__dest-item"
-                    (click)="selectedDestination = item; destDropdownOpen = false"
+                    (click)="selectDestination(item)"
                   >
                     <img [src]="item.imageUrl" [alt]="item.name" />
                     <span>
@@ -256,7 +256,7 @@
                 (dayClick)="selectDepartureDate($event)"
               />
             </div>
-            <button type="button" class="home-search__submit">
+            <button type="button" class="home-search__submit" (click)="submitSearch()">
               <svg
                 viewBox="0 0 24 24"
                 fill="none"

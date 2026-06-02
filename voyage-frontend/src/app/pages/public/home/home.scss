@@ -12,6 +12,29 @@
     z-index: 1;
   }
 
+  &__status {
+    position: relative;
+    z-index: 1;
+    margin: 28px auto 0;
+    padding: 14px 16px;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 700;
+    line-height: 1.4;
+  }
+
+  &__status--loading {
+    border: 1px solid rgba(31, 111, 104, 0.18);
+    background: #f0fdfa;
+    color: #1f6f68;
+  }
+
+  &__status--error {
+    border: 1px solid rgba(185, 28, 28, 0.18);
+    background: #fff7f7;
+    color: #b91c1c;
+  }
+
   &__floating-social {
     position: sticky;
     top: 140px;

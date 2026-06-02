@@ -1,7 +1,7 @@
 import { NgClass, NgFor, NgIf } from '@angular/common';
-import { Component, HostListener, signal } from '@angular/core';
+import { Component, HostListener, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { RouterLink } from '@angular/router';
+import { Router, RouterLink } from '@angular/router';
 import { TuiDay } from '@taiga-ui/cdk/date-time';
 import { TuiButton, TuiCalendar, TuiDropdown, TuiIcon } from '@taiga-ui/core';
 
@@ -40,8 +40,12 @@ interface HomeHeroHotDestination {
   styleUrl: './home-hero.scss',
 })
 export class HomeHero {
+  private readonly router = inject(Router);
+
   readonly activeSidebarMenu = signal<string | null>(null);
 
+  keyword = '';
+  departureLocation = '';
   selectedDestination: HomeHeroHotDestination | null = null;
   departureDate: TuiDay | null = null;
   guestDropdownOpen = false;
@@ -52,6 +56,10 @@ export class HomeHero {
   childCount = 0;
 
   readonly guestTitle = 'Số lượng';
+
+  get totalPeople(): number {
+    return this.adultCount + this.childCount;
+  }
 
   get departureDateLabel(): string {
     return this.departureDate ? this.departureDate.toString('dd/mm/yyyy', '/') : 'Ngày đi';
@@ -273,6 +281,12 @@ export class HomeHero {
     this.activeSidebarMenu.set(menuId);
   }
 
+  selectDestination(destination: HomeHeroHotDestination): void {
+    this.selectedDestination = destination;
+    this.keyword = destination.name;
+    this.destDropdownOpen = false;
+  }
+
   increaseAdult(): void {
     this.adultCount++;
   }
@@ -299,6 +313,7 @@ export class HomeHero {
 
   clearDestination(event: MouseEvent): void {
     event.stopPropagation();
+    this.keyword = '';
     this.selectedDestination = null;
     this.destDropdownOpen = false;
   }
@@ -308,5 +323,33 @@ export class HomeHero {
     this.adultCount = 0;
     this.childCount = 0;
     this.guestDropdownOpen = false;
+  }
+
+  submitSearch(): void {
+    const queryParams = this.cleanQueryParams({
+      keyword: this.keyword.trim() || this.selectedDestination?.name,
+      departureLocation: this.departureLocation.trim(),
+      people: this.totalPeople > 0 ? this.totalPeople : null,
+      departureDate: this.departureDate?.toString('yyyy/mm/dd', '-'),
+      page: 0,
+      size: 12,
+    });
+
+    this.router.navigate(['/tours'], { queryParams });
+  }
+
+  private cleanQueryParams(
+    params: Record<string, string | number | null | undefined>,
+  ): Record<string, string | number> {
+    return Object.entries(params).reduce<Record<string, string | number>>(
+      (queryParams, [key, value]) => {
+        if (value !== null && value !== undefined && value !== '') {
+          queryParams[key] = value;
+        }
+
+        return queryParams;
+      },
+      {},
+    );
   }
 }

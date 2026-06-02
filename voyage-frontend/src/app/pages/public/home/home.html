@@ -3,7 +3,37 @@
 
   <div class="home__body">
     <app-home-floating-social class="home__floating-social" />
-    <app-home-tour-section />
-    <div class="home__sections"></div>
+
+    <div class="home__status home__status--loading" *ngIf="loading">
+      Đang tải dữ liệu tour...
+    </div>
+
+    <div class="home__status home__status--error" *ngIf="errorMessage">
+      {{ errorMessage }}
+    </div>
+
+    <div class="home__sections">
+      <app-home-tour-section
+        title="Ưu đãi nổi bật"
+        subtitle="Những hành trình đang được quan tâm nhất"
+        [tours]="featuredTours"
+        viewMoreLink="/tours"
+        variant="highlight"
+      />
+
+      <app-home-tour-section
+        title="Tour trong nước"
+        subtitle="Khám phá những điểm đến được yêu thích tại Việt Nam"
+        [tours]="domesticTours"
+        viewMoreLink="/tours"
+      />
+
+      <app-home-tour-section
+        title="Tour nước ngoài"
+        subtitle="Các hành trình quốc tế dành cho kỳ nghỉ sắp tới"
+        [tours]="internationalTours"
+        viewMoreLink="/tours"
+      />
+    </div>
   </div>
 </section>
