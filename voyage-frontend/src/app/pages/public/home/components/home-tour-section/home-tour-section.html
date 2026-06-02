@@ -1,13 +1,38 @@
-<section class="home-tour-section">
-  <section class="home-tour">
-    <div class="home-tour__header">
-      <div class="home-tour__header-item"><p>Tour Nước Ngoài</p></div>
-      <div class="home-tour__header-item"><p>Tour Trong Nước</p></div>
-      <div class="home-tour__header-item"><p>Combo Du Lịch</p></div>
+<section
+  class="home-tour-section"
+  [ngClass]="{
+    'home-tour-section--highlight': variant === 'highlight',
+    'home-tour-section--compact': variant === 'compact'
+  }"
+>
+  <div class="home-tour-section__header">
+    <div class="home-tour-section__intro">
+      <h2 class="home-tour-section__title">{{ title }}</h2>
+
+      <p class="home-tour-section__subtitle" *ngIf="subtitle">
+        {{ subtitle }}
+      </p>
     </div>
-    <div class="home-tour__title">
-      <p>Xem tất cả</p>
+
+    <a
+      class="home-tour-section__more"
+      *ngIf="showViewMore"
+      [routerLink]="viewMoreLink"
+    >
+      Xem tất cả
+    </a>
+  </div>
+
+  <div class="home-tour-section__grid" *ngIf="tours.length; else emptyTours">
+    <app-tour-card
+      *ngFor="let tour of tours"
+      [tour]="tour"
+    />
+  </div>
+
+  <ng-template #emptyTours>
+    <div class="home-tour-section__empty">
+      Chưa có tour phù hợp để hiển thị.
     </div>
-    <div class="home-tour__body"></div>
-  </section>
+  </ng-template>
 </section>

@@ -44,14 +44,12 @@
         </p>
 
         <div class="home-search">
-          <!-- ── Row 1: Destination ── -->
           <div class="home-search__row home-search__row--top">
             <div
               class="home-search__dest-wrap"
               [class.home-search__dest-wrap--open]="destDropdownOpen"
               (clickOutside)="destDropdownOpen = false"
             >
-              <!-- Trigger field -->
               <button
                 type="button"
                 class="home-search__dest-trigger"
@@ -92,8 +90,6 @@
                   />
                 </svg>
               </button>
-
-              <!-- Dropdown panel -->
               <div class="home-search__dest-panel" *ngIf="destDropdownOpen">
                 <div class="home-search__dest-header">
                   <svg viewBox="0 0 24 24" fill="currentColor" width="16" height="16">
@@ -121,28 +117,20 @@
             </div>
           </div>
 
-          <!-- ── Row 2: Guest / Date / Submit ── -->
           <div class="home-search__row home-search__row--bottom">
-            <!-- Guest picker -->
             <div class="home-search__field-wrap">
               <button
+                tuiButton
+                appearance="custom"
+                size="l"
                 type="button"
                 class="home-search__guest-trigger"
-                (click)="guestDropdownOpen = !guestDropdownOpen"
-                [attr.aria-expanded]="guestDropdownOpen"
+                [tuiDropdown]="guestDropdown"
+                [(tuiDropdownOpen)]="guestDropdownOpen"
+                [tuiDropdownDirection]="'bottom'"
+                [tuiDropdownOffset]="8"
               >
-                <svg
-                  class="home-search__control-icon"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  stroke-width="1.8"
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                >
-                  <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
-                  <circle cx="12" cy="7" r="4" />
-                </svg>
+                <tui-icon icon="@tui.user" class="home-search__guest-icon" />
                 <span
                   class="home-search__field-text"
                   [class.home-search__field-text--placeholder]="
@@ -151,64 +139,69 @@
                 >
                   {{ guestLabel }}
                 </span>
-                <svg
-                  class="home-search__chevron"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  stroke-width="2"
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                >
-                  <polyline
-                    [attr.points]="guestDropdownOpen ? '18 15 12 9 6 15' : '6 9 12 15 18 9'"
-                  />
-                </svg>
+                <tui-icon
+                  class="home-search__chevron-icon"
+                  [icon]="guestDropdownOpen ? '@tui.chevron-up' : '@tui.chevron-down'"
+                />
               </button>
 
-              <div
-                class="home-search__guest-panel"
-                *ngIf="guestDropdownOpen"
-                (click)="$event.stopPropagation()"
-              >
-                <div class="home-search__guest-row">
-                  <span class="home-search__guest-label">Người lớn</span>
-                  <div class="home-search__guest-actions">
-                    <button
-                      type="button"
-                      class="home-search__guest-btn"
-                      [disabled]="adultCount <= 1"
-                      (click)="decreaseAdult()"
-                    >
-                      -
-                    </button>
-                    <strong>{{ adultCount }}</strong>
-                    <button type="button" class="home-search__guest-btn" (click)="increaseAdult()">
-                      +
-                    </button>
+              <ng-template #guestDropdown>
+                <div class="home-search__guest-panel" (click)="$event.stopPropagation()">
+                  <div class="home-search__guest-row">
+                    <span class="home-search__guest-label">Người lớn</span>
+                    <div class="home-search__guest-actions">
+                      <button
+                        tuiIconButton
+                        appearance="outline"
+                        size="xs"
+                        type="button"
+                        icon="@tui.minus"
+                        class="home-search__guest-btn"
+                        [disabled]="adultCount <= 1"
+                        (click)="decreaseAdult()"
+                      ></button>
+                      <strong class="home-search__guest-count">{{ adultCount }}</strong>
+                      <button
+                        tuiIconButton
+                        appearance="outline"
+                        size="xs"
+                        type="button"
+                        icon="@tui.plus"
+                        class="home-search__guest-btn"
+                        (click)="increaseAdult()"
+                      ></button>
+                    </div>
+                  </div>
+
+                  <div class="home-search__guest-row">
+                    <span class="home-search__guest-label">Trẻ em</span>
+                    <div class="home-search__guest-actions">
+                      <button
+                        tuiIconButton
+                        appearance="outline"
+                        size="xs"
+                        type="button"
+                        icon="@tui.minus"
+                        class="home-search__guest-btn"
+                        [disabled]="childCount <= 0"
+                        (click)="decreaseChild()"
+                      ></button>
+                      <strong class="home-search__guest-count">{{ childCount }}</strong>
+                      <button
+                        tuiIconButton
+                        appearance="outline"
+                        size="xs"
+                        type="button"
+                        icon="@tui.plus"
+                        class="home-search__guest-btn"
+                        (click)="increaseChild()"
+                      ></button>
+                    </div>
                   </div>
                 </div>
-                <div class="home-search__guest-row">
-                  <span class="home-search__guest-label">Trẻ em</span>
-                  <div class="home-search__guest-actions">
-                    <button
-                      type="button"
-                      class="home-search__guest-btn"
-                      [disabled]="childCount <= 0"
-                      (click)="decreaseChild()"
-                    >
-                      -
-                    </button>
-                    <strong>{{ childCount }}</strong>
-                    <button type="button" class="home-search__guest-btn" (click)="increaseChild()">
-                      +
-                    </button>
-                  </div>
-                </div>
-              </div>
+              </ng-template>
             </div>
 
-            <!-- Date picker (keep Taiga) -->
             <div class="home-search__control home-search__control--date">
               <tui-icon class="home-search__control-icon" icon="@tui.calendar" />
               <span class="home-search__date-caption">Ngày đi:</span>
@@ -219,12 +212,11 @@
                 [tuiDropdownDirection]="'bottom'"
                 [tuiDropdownOffset]="8"
               >
+                <tui-calendar *tuiDropdown />
                 <input tuiInputDate [(ngModel)]="departureDate" />
                 <tui-calendar class="home-search__calendar" *tuiDropdown />
               </tui-textfield>
             </div>
-
-            <!-- Submit -->
             <button type="button" class="home-search__submit">
               <svg
                 viewBox="0 0 24 24"

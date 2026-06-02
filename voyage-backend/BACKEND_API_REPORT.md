@@ -211,3 +211,178 @@ Gia tri enum `FeatureCode`: `PUBLIC_BOOKING`, `PUBLIC_REVIEW`, `PUBLIC_PAYMENT`,
 - File `src/main/resources/application-local.properties` dang co thong tin Cloudinary va database local. Neu day la repo dung chung, nen chuyen cac secret sang bien moi truong.
 - `DataSeeder.java` co noi dung tieng Viet bi loi encoding khi doc tu terminal. Nen kiem tra lai charset file trong IDE neu du lieu seed hien thi sai.
 - Chua thay test nghiep vu chi tiet, moi co test khoi dong mac dinh `VoyageBackendApplicationTests`.
+
+## 7. Cap nhat API va code moi sau cac phase mo rong
+
+Ngay cap nhat: 02/06/2026
+
+Phan nay tong hop cac thay doi backend da bo sung sau bao cao ban dau, tap trung vao code/module thay doi va cac dau API moi.
+
+### 7.1 Tour Core Phase 1
+
+Code/entity/repository/service moi:
+
+- Entity: `TourSchedule`, `TourScheduleStatus`, `TourItinerary`, `TourImage`.
+- Repository: `TourScheduleRepository`, `TourItineraryRepository`, `TourImageRepository`.
+- Service: `TourScheduleService`, `TourItineraryService`, `TourImageService`, `TourPublishService`.
+- Controller: `AdminTourScheduleController`, `PublicTourScheduleController`, `AdminTourItineraryController`, `PublicTourItineraryController`, `AdminTourImageController`.
+- DTO: schedule request/response, itinerary request/response, image request/response, publish checklist, `AdminTourDetailResponse`, `PublicTourScheduleResponse`.
+
+Bang/entity moi:
+
+- `TOUR_SCHEDULES`: lich khoi hanh, gia theo nguoi lon/tre em/em be, so cho, status `OPEN/CLOSED/FULL/CANCELLED`, `@Version`.
+- `TOUR_ITINERARIES`: lich trinh theo ngay, replace-all strategy.
+- `TOUR_IMAGES`: gallery anh tour, thumbnail, Cloudinary public id.
+
+API moi:
+
+| Method | Endpoint | Quyen | Chuc nang | Payload/Tham so chinh |
+|---|---|---|---|---|
+| GET | `/api/admin/tours/{id}` | Admin | Lay chi tiet tour admin, kem count schedule/image/itinerary va publish checklist | `id` |
+| POST | `/api/admin/tours/{id}/schedules` | Admin | Tao lich khoi hanh | `departureDate`, `returnDate`, `priceAdult`, `priceChild`, `priceInfant`, `singleSupplement`, `maxSeats`, `bookedSeats`, `status`, `notes` |
+| GET | `/api/admin/tours/{id}/schedules` | Admin | Lay danh sach lich khoi hanh admin | `status`, `page`, `size` |
+| GET | `/api/admin/tours/{tourId}/schedules/{id}` | Admin | Lay chi tiet lich khoi hanh | `tourId`, `id` |
+| PUT | `/api/admin/tours/{tourId}/schedules/{id}` | Admin | Cap nhat lich khoi hanh | Payload nhu tao lich |
+| DELETE | `/api/admin/tours/{tourId}/schedules/{id}` | Admin | Xoa lich khoi hanh | Khong cho xoa neu da co booking |
+| PATCH | `/api/admin/tours/{tourId}/schedules/{id}/status` | Admin | Cap nhat status lich | `status` |
+| POST | `/api/admin/tours/{tourId}/schedules/{id}/duplicate` | Admin | Nhan ban lich khoi hanh | `departureDate` |
+| GET | `/api/public/tours/{slug}/schedules` | Public | Lay lich khoi hanh public OPEN/future | `slug` |
+| GET | `/api/admin/tours/{id}/publish-checklist` | Admin | Lay checklist publish tour | `id` |
+| POST | `/api/admin/tours/{id}/publish` | Admin | Publish tour neu checklist dat | `id` |
+| GET | `/api/admin/tours/{id}/itineraries` | Admin | Lay lich trinh admin | `id` |
+| PUT | `/api/admin/tours/{id}/itineraries` | Admin | Luu replace-all lich trinh | `items[]` |
+| POST | `/api/admin/tours/{id}/itineraries/reorder` | Admin | Sap xep lich trinh | `items[]: id, sortOrder` |
+| GET | `/api/public/tours/{slug}/itinerary` | Public | Lay lich trinh public | `slug` |
+| GET | `/api/admin/tours/{id}/images` | Admin | Lay gallery anh tour | `id` |
+| POST | `/api/admin/tours/{id}/images` | Admin | Upload anh tour | multipart `file`, `altText` |
+| DELETE | `/api/admin/tours/{tourId}/images/{imageId}` | Admin | Xoa anh tour | Khong cho xoa thumbnail neu con anh khac |
+| PATCH | `/api/admin/tours/{tourId}/images/{imageId}/thumbnail` | Admin | Set thumbnail | `tourId`, `imageId` |
+| PATCH | `/api/admin/tours/{id}/images/reorder` | Admin | Sap xep anh | `items[]: id, sortOrder` |
+| PATCH | `/api/admin/tours/{tourId}/images/{imageId}/alt` | Admin | Cap nhat alt text | `altText` |
+
+Logic nghiep vu chinh:
+
+- Public schedules chi tra `OPEN` va `departureDate >= today`, co `remainingSeats`, khong expose `bookedSeats` trong DTO public.
+- Schedule tu chuyen `FULL` khi `bookedSeats >= maxSeats`.
+- Itinerary khong duoc trung `dayNumber`, sort theo `dayNumber ASC, sortOrder ASC`.
+- Gallery toi da 10 anh/tour, chi 1 thumbnail/tour.
+- Publish tour yeu cau du 9 checklist: ten tour, category, destination, thumbnail, gallery, itinerary, open schedule, valid price, max seats.
+
+### 7.2 Booking theo lich khoi hanh
+
+Code/entity/repository/service thay doi:
+
+- `Booking` bo sung relation `schedule: TourSchedule`, `bookingCode`, `adultCount`, `childCount`, `infantCount`, `totalPeople`, snapshot gia.
+- `BookingCreateRequest` bo sung `scheduleId`, `adultCount`, `childCount`, `infantCount`; giu field cu `tourId/startDate/numberOfPeople` de parse payload cu nhung booking moi bat buoc chon schedule.
+- `BookingResponse` bo sung `bookingCode`, `thumbnailUrl`, `scheduleId`, `departureDate`, `returnDate`, passenger counts, price snapshots, `paymentStatus`.
+- `BookingRepository` bo sung method theo `scheduleId`, `bookingCode`, `countByUserId`.
+- `TourScheduleService` hoan thien rule khong cho update/delete schedule da co booking.
+
+API giu nguyen URL:
+
+| Method | Endpoint | Quyen | Thay doi |
+|---|---|---|---|
+| POST | `/api/bookings` | Authenticated | Payload moi dung `scheduleId`, `adultCount`, `childCount`, `infantCount`; tao booking PENDING va giu cho tren schedule |
+| GET | `/api/bookings/me` | Authenticated | Response co them thong tin schedule va bookingCode |
+| PATCH | `/api/bookings/{id}/cancel` | Authenticated | Huy PENDING/CONFIRMED va release ghe schedule |
+| GET | `/api/admin/bookings` | Admin | Response co them thong tin schedule/snapshot |
+| PATCH | `/api/admin/bookings/{id}/status` | Admin | PENDING->CONFIRMED khong cong ghe lai; CANCELLED release ghe; COMPLETED khong cho huy |
+
+Logic nghiep vu chinh:
+
+- Booking moi bat buoc co `scheduleId`, neu thieu tra loi: `Vui long chon lich khoi hanh.`
+- PENDING van giu cho de tranh oversell.
+- Khi cancel PENDING/CONFIRMED thi tru lai `schedule.bookedSeats`, neu schedule dang FULL va con cho thi set ve OPEN.
+- Dung `@Version` tren `TourSchedule`; khi dat dong thoi va bi optimistic lock thi tra loi `Co nguoi vua dat lich nay, vui long thu lai.`
+
+### 7.3 Auth mo rong: refresh token, logout, forgot/reset password, verify email
+
+Code/entity/repository/service moi va thay doi:
+
+- Entity: `RefreshToken`, `EmailToken`, `EmailTokenType`.
+- Repository: `RefreshTokenRepository`, `EmailTokenRepository`.
+- DTO: `RefreshTokenRequest`, `LogoutRequest`, `ForgotPasswordRequest`, `ResetPasswordRequest`, `VerifyEmailRequest`.
+- Service: `EmailService`, `LoggingEmailService`.
+- `AuthService` bo sung refresh rotation, logout idempotent, forgot/reset password, verify email.
+- `JwtService` bo sung `getAccessTokenExpirationSeconds`.
+- `LoginResponse` bo sung `refreshToken`, `expiresIn`.
+
+Bang/entity moi:
+
+- `REFRESH_TOKENS`: luu SHA-256 `tokenHash`, khong luu raw refresh token.
+- `EMAIL_TOKENS`: token cho `PASSWORD_RESET` va `EMAIL_VERIFY`.
+
+API moi:
+
+| Method | Endpoint | Quyen | Chuc nang | Payload chinh |
+|---|---|---|---|---|
+| POST | `/api/auth/refresh` | Public | Rotate refresh token, cap access token moi | `refreshToken` |
+| POST | `/api/auth/logout` | Public | Revoke refresh token, idempotent | `refreshToken` |
+| POST | `/api/auth/forgot-password` | Public | Tao password reset token neu email ton tai, khong leak email | `email` |
+| POST | `/api/auth/reset-password` | Public | Doi mat khau bang token reset | `token`, `newPassword`, `confirmPassword` |
+| POST | `/api/auth/verify-email` | Public | Xac thuc email bang token | `token` |
+
+API thay doi response:
+
+| Method | Endpoint | Thay doi |
+|---|---|---|
+| POST | `/api/auth/login` | Response co `accessToken`, `refreshToken`, `tokenType`, `expiresIn`, `user` |
+
+Logic nghiep vu chinh:
+
+- Raw refresh token chi tra cho frontend dung 1 lan; DB chi luu hash SHA-256.
+- Refresh token het han sau 7 ngay.
+- Refresh token rotation: token cu bi `revokedAt`, token moi duoc tao.
+- Reset password thanh cong se revoke tat ca refresh token dang active cua user.
+- Chua co SMTP that; `LoggingEmailService` log token o backend log, khong tra token trong response.
+
+### 7.4 User profile, avatar, wishlist, admin user detail
+
+Code/entity/repository/service moi va thay doi:
+
+- `User` bo sung `avatarPublicId`, `emailVerifiedAt`.
+- DTO: `UserProfileUpdateRequest`, `UserMeResponse`, `AvatarUploadResponse`, `AdminUserDetailResponse`.
+- Entity: `Wishlist`.
+- Repository: `WishlistRepository`.
+- Service/Controller: `WishlistService`, `WishlistController`.
+- `UserService`, `UserController`, `AdminUserController` bo sung profile/avatar/admin detail.
+- `ReviewRepository` bo sung `countByUserId`.
+
+Bang/entity moi:
+
+- `WISHLISTS`: unique `(USER_ID, TOUR_ID)`.
+
+API moi:
+
+| Method | Endpoint | Quyen | Chuc nang | Payload/Tham so |
+|---|---|---|---|---|
+| PUT | `/api/users/me` | Authenticated | User cap nhat profile | `fullName`, `phone` |
+| POST | `/api/users/me/avatar` | Authenticated | User upload avatar Cloudinary | multipart `file` |
+| GET | `/api/users/me/wishlist` | Authenticated | Lay wishlist co paging | `page`, `size`, `sortBy`, `sortDir` |
+| POST | `/api/users/me/wishlist/{tourId}` | Authenticated | Toggle wishlist tour | `tourId` |
+| GET | `/api/admin/users/{id}` | Admin | Xem chi tiet user admin | `id` |
+
+API thay doi response:
+
+| Method | Endpoint | Thay doi |
+|---|---|---|
+| GET | `/api/users/me` | Response moi `UserMeResponse`, co `updatedAt`, `emailVerified` |
+
+Logic nghiep vu chinh:
+
+- User chi duoc tu cap nhat `fullName` va `phone`; khong nhan email/role/status.
+- Avatar chi cho jpg/jpeg/png/webp, toi da 5MB, upload vao folder `avatars`; neu co avatar cu thi xoa bang `avatarPublicId`.
+- Wishlist chi cho tour `PUBLISHED`; toggle lan 1 them, lan 2 xoa.
+- Admin user detail tra `bookingCount`, `reviewCount`, `wishlistCount`, khong tra password/hash/token.
+
+### 7.5 Tong quan endpoint moi sau cap nhat
+
+So endpoint moi bo sung sau bao cao 31/05/2026: 31 endpoint.
+
+Nhom them nhieu nhat:
+
+- Tour Core: 21 endpoint.
+- Auth mo rong: 5 endpoint.
+- User/Profile/Wishlist/Admin detail: 5 endpoint.
+- Booking: khong them URL moi, nhung thay doi payload/response va logic giu cho theo schedule.
+- Admin tour detail: 1 endpoint nam trong nhom Tour Core.

@@ -1,15 +1,13 @@
-// ── Variables ───────────────────────────────────────────────────────────────
 $theme: #1f6f68;
 $theme-dark: #14534f;
+$muted: #a6a6a6;
 $field-h: 57.72px;
-$field-radius: 10px;
+$radius: 10px;
 
-// ── Home wrapper ────────────────────────────────────────────────────────────
 .home {
   background: var(--vv-bg, #f8fafc);
 }
 
-// ── Hero section ────────────────────────────────────────────────────────────
 .home-hero {
   position: relative;
   isolation: isolate;
@@ -21,11 +19,10 @@ $field-radius: 10px;
     inset: 0;
     z-index: -2;
     background:
-      linear-gradient(0deg, rgba(0, 0, 0, 0.2), rgba(0, 0, 0, 0.2)),
+      linear-gradient(rgba(0, 0, 0, 0.2), rgba(0, 0, 0, 0.2)),
       url('/hero/bg-home.png') center / cover no-repeat;
   }
 
-  // Container: 97px sidebar + 111px gap + content
   &__container {
     position: relative;
     min-height: 611px;
@@ -33,27 +30,27 @@ $field-radius: 10px;
     grid-template-columns: 97px minmax(0, 1fr);
     align-items: center;
     gap: 111px;
-    padding-top: 72px;
-    padding-bottom: 72px;
+    padding-block: 72px;
   }
 
-  // Nav wrapper
-  &__nav {
+  &__nav,
+  &__sidebar {
     position: relative;
+  }
+
+  &__nav {
     z-index: 40;
     align-self: center;
   }
 
-  // Sidebar pill
   &__sidebar {
-    position: relative;
     z-index: 42;
     width: 97px;
     height: 467px;
     display: flex;
     flex-direction: column;
     overflow: hidden;
-    border-radius: $field-radius;
+    border-radius: $radius;
     background: $theme;
     box-shadow: 0 2px 3px rgba(0, 0, 0, 0.5);
   }
@@ -62,9 +59,9 @@ $field-radius: 10px;
     flex: 1;
     width: 100%;
     padding: 8px 6px;
-    border: none;
+    border: 0;
     background: transparent;
-    color: #ffffff;
+    color: #fff;
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -79,7 +76,7 @@ $field-radius: 10px;
     }
 
     &--active {
-      background: #ffffff;
+      background: #fff;
 
       .home-hero__sidebar-icon {
         filter: brightness(0) saturate(100%) invert(34%) sepia(20%) saturate(1088%)
@@ -106,24 +103,21 @@ $field-radius: 10px;
   }
 
   &__sidebar-label {
-    color: #ffffff;
-    font-family: 'SVN-Gilroy', sans-serif;
-    font-size: 9.912px;
+    color: #fff;
+    font-size: 10px;
     font-weight: 700;
     line-height: 1.18;
-    letter-spacing: 0.381px;
     text-transform: uppercase;
   }
 
-  // Mega menu
   &__mega {
     position: absolute;
     left: 97px;
     z-index: 41;
     width: min(990px, calc(100vw - 180px));
     padding: 36px 56px 36px 72px;
-    border-radius: 0 $field-radius $field-radius 0;
-    background: #ffffff;
+    border-radius: 0 $radius $radius 0;
+    background: #fff;
     box-shadow: 0 18px 42px rgba(15, 23, 42, 0.14);
 
     $item-h: calc(467px / 6);
@@ -165,24 +159,21 @@ $field-radius: 10px;
   &__mega-title {
     margin: 0 0 10px;
     color: $theme;
-    font-family: 'SVN-Gilroy', sans-serif;
     font-size: 13px;
     font-weight: 900;
     line-height: 1.18;
-    letter-spacing: 0.5px;
     text-transform: uppercase;
   }
 
   &__mega-link {
     display: block;
     margin-top: 7px;
+    overflow: hidden;
     color: #111827;
-    font-family: 'SVN-Gilroy', sans-serif;
     font-size: 13px;
     font-weight: 500;
     line-height: 1.4;
     text-decoration: none;
-    overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
     transition: color 0.15s ease;
@@ -192,19 +183,17 @@ $field-radius: 10px;
     }
   }
 
-  // Hero content
   &__content {
     position: relative;
     z-index: 2;
     width: 100%;
     max-width: 769px;
-    color: #ffffff;
+    color: #fff;
   }
 
   &__title {
     margin: 0;
-    color: #ffffff;
-    font-family: 'SVN-Gilroy', sans-serif;
+    color: #fff;
     font-size: 40px;
     font-weight: 700;
     line-height: 1.18;
@@ -214,112 +203,126 @@ $field-radius: 10px;
   &__description {
     max-width: 526px;
     margin: 16px 0 0;
-    color: #ffffff;
-    font-family: 'SVN-Gilroy', sans-serif;
+    color: #fff;
     font-size: 16px;
-    font-weight: 400;
     line-height: 1.5;
   }
 }
 
-// ── Search widget ────────────────────────────────────────────────────────────
+// ═══════════════════════════════════════════════════════════
+//  HOME SEARCH
+// ═══════════════════════════════════════════════════════════
+
 .home-search {
   position: relative;
-  z-index: 20;
+  // FIX 2: z-index đủ cao để dropdown panel không bị clip
+  // nhưng không cao hơn mega-menu (z-index 41)
+  z-index: 30;
   width: 768px;
   max-width: 100%;
   margin-top: 40px;
   padding: 40px;
-  border-radius: $field-radius;
+  border-radius: $radius;
   background: rgba(0, 0, 0, 0.4);
 
-  &__row {
-    &--top {
-      margin-bottom: 20px;
-    }
-    &--bottom {
-      display: grid;
-      grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) 127px;
-      gap: 20px;
-      align-items: start;
-    }
+  &__row--top {
+    margin-bottom: 20px;
   }
 
-  // ── Shared field base ────────────────────────────────────────────────────
-  %field-base {
-    display: flex;
-    align-items: center;
-    width: 100%;
-    height: $field-h;
-    padding: 0 44px 0 16px;
-    border: none;
-    border-radius: $field-radius;
-    background: #ffffff;
-    cursor: pointer;
-    text-align: left;
-    gap: 10px;
-    font-family: 'SVN-Gilroy', sans-serif;
-    font-size: 13.318px;
-    font-weight: 500;
-    line-height: 1.18;
-    letter-spacing: 0.596px;
+  &__row--bottom {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) 127px;
+    gap: 20px;
+    align-items: start;
+    // FIX 2: cho phép dropdown panel tràn ra ngoài row
+    overflow: visible;
   }
 
-  // ── Destination custom dropdown ──────────────────────────────────────────
-  &__dest-wrap {
+  &__dest-wrap,
+  &__field-wrap,
+  &__control {
     position: relative;
-    width: 100%;
+    min-width: 0;
+    // FIX 2: overflow visible để dropdown không bị cắt
+    overflow: visible;
   }
 
   &__dest-trigger {
-    @extend %field-base;
     position: relative;
-  }
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    width: 100%;
+    height: $field-h;
+    padding: 0 44px 0 16px;
+    border: 1.5px solid rgba(255, 255, 255, 0.55);
+    border-radius: $radius;
+    background: rgba(255, 255, 255, 0.12);
+    backdrop-filter: blur(6px);
+    cursor: pointer;
+    font-size: 13px;
+    font-weight: 500;
+    text-align: left;
+    transition:
+      border-color 0.15s ease,
+      background 0.15s ease;
 
-  &__dest-icon {
-    flex-shrink: 0;
-    width: 18px;
-    height: 18px;
-    color: #2065b3;
-  }
-
-  &__dest-value {
-    flex: 1;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-    color: #111827;
-
-    &--placeholder {
-      color: #a6a6a6;
+    &:hover {
+      border-color: rgba(255, 255, 255, 0.8);
+      background: rgba(255, 255, 255, 0.18);
     }
   }
 
-  &__dest-chevron {
-    position: absolute;
-    right: 16px;
-    top: 50%;
-    transform: translateY(-50%);
-    width: 14px;
-    height: 14px;
-    color: #2065b3;
+  &__dest-icon,
+  &__control-icon {
     flex-shrink: 0;
+    width: 18px;
+    height: 18px;
+    color: #fff;
   }
 
-  // Dropdown panel: 688px wide, white, rounded
-  &__dest-panel {
+  &__dest-value,
+  &__field-text {
+    flex: 1;
+    overflow: hidden;
+    color: #fff;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+
+    &--placeholder {
+      color: rgba(255, 255, 255, 0.6);
+    }
+  }
+
+  &__dest-chevron,
+  &__chevron {
+    position: absolute;
+    top: 50%;
+    right: 16px;
+    width: 14px;
+    height: 14px;
+    color: #fff;
+    transform: translateY(-50%);
+  }
+
+  &__dest-panel,
+  &__guest-panel {
     position: absolute;
     top: calc(100% + 8px);
     left: 0;
-    z-index: 100;
+    // FIX 2: z-index cao hơn home-search (30) để hiện đúng
+    z-index: 200;
+    border-radius: $radius;
+    background: #fff;
+    box-shadow: 0 16px 36px rgba(15, 23, 42, 0.18);
+  }
+
+  &__dest-panel {
     width: 688px;
     max-width: calc(100vw - 32px);
     max-height: 340px;
     overflow-y: auto;
     padding: 20px;
-    border-radius: $field-radius;
-    background: #ffffff;
-    box-shadow: 0 16px 36px rgba(15, 23, 42, 0.18);
   }
 
   &__dest-header {
@@ -328,19 +331,14 @@ $field-radius: 10px;
     gap: 8px;
     margin-bottom: 16px;
     color: $theme;
-    font-family: 'SVN-Gilroy', sans-serif;
     font-size: 14px;
     font-weight: 600;
-    line-height: 1.18;
-    letter-spacing: 0.596px;
 
     svg {
       flex-shrink: 0;
-      color: $theme;
     }
   }
 
-  // 3-column grid
   &__dest-grid {
     display: grid;
     grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -352,7 +350,7 @@ $field-radius: 10px;
     align-items: center;
     gap: 10px;
     padding: 6px 8px;
-    border: none;
+    border: 0;
     border-radius: 6px;
     background: transparent;
     cursor: pointer;
@@ -364,7 +362,7 @@ $field-radius: 10px;
     }
 
     img {
-      flex-shrink: 0;
+      flex: 0 0 auto;
       width: 60px;
       height: 47px;
       border-radius: 5px;
@@ -373,88 +371,88 @@ $field-radius: 10px;
     }
 
     span {
-      display: flex;
-      flex-direction: column;
       min-width: 0;
     }
 
-    strong {
+    strong,
+    small {
       display: block;
+      line-height: 1.18;
+    }
+
+    strong {
+      overflow: hidden;
       color: $theme;
-      font-family: 'SVN-Gilroy', sans-serif;
       font-size: 10px;
       font-weight: 600;
-      line-height: 1.18;
-      letter-spacing: 0.596px;
-      overflow: hidden;
       text-overflow: ellipsis;
       white-space: nowrap;
     }
 
     small {
-      display: block;
       margin-top: 2px;
-      color: #a6a6a6;
-      font-family: 'SVN-Gilroy', sans-serif;
+      color: $muted;
       font-size: 8px;
       font-weight: 500;
-      line-height: 1.18;
-      letter-spacing: 0.596px;
     }
   }
 
-  // ── Guest trigger ────────────────────────────────────────────────────────
-  &__field-wrap {
-    position: relative;
-    min-width: 0;
-  }
-
+  // ── Guest trigger ─────────────────────────────────────────
   &__guest-trigger {
-    @extend %field-base;
-    position: relative;
+    position: relative !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: flex-start !important;
+    gap: 10px !important;
+    width: 100% !important;
+    height: $field-h !important;
+    min-height: $field-h !important;
+    padding: 0 44px 0 14px !important;
+    border: 1.5px solid rgba(255, 255, 255, 0.55) !important;
+    border-radius: $radius !important;
+    background: rgba(255, 255, 255, 0.12) !important;
+    backdrop-filter: blur(6px) !important;
+    color: #fff !important;
+    font-size: 13px !important;
+    font-weight: 500 !important;
+    font-family: 'SVN-Gilroy', sans-serif !important;
+    text-align: left !important;
+    box-shadow: none !important;
+    transition:
+      border-color 0.15s ease,
+      background 0.15s ease !important;
+
+    &:hover {
+      border-color: rgba(255, 255, 255, 0.8) !important;
+      background: rgba(255, 255, 255, 0.18) !important;
+    }
   }
 
-  &__control-icon {
+  &__guest-icon {
     flex-shrink: 0;
     width: 18px;
     height: 18px;
-    color: #2065b3;
+    color: #fff;
+    pointer-events: none;
   }
 
-  &__field-text {
-    flex: 1;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-    color: #111827;
-
-    &--placeholder {
-      color: #a6a6a6;
-    }
-  }
-
-  &__chevron {
+  &__chevron-icon {
     position: absolute;
-    right: 16px;
     top: 50%;
-    transform: translateY(-50%);
+    right: 14px;
     width: 14px;
     height: 14px;
-    color: #2065b3;
-    flex-shrink: 0;
+    color: #fff;
+    transform: translateY(-50%);
+    pointer-events: none;
   }
 
-  // Guest panel — 233px, Figma spec
   &__guest-panel {
-    position: absolute;
-    top: calc(100% + 8px);
-    left: 0;
-    z-index: 100;
     width: 233px;
-    border-radius: $field-radius;
-    background: #ffffff;
-    box-shadow: 0 16px 36px rgba(15, 23, 42, 0.18);
     overflow: hidden;
+    border-radius: $radius;
+    background: #fff;
+    box-shadow: 0 16px 36px rgba(15, 23, 42, 0.18);
   }
 
   &__guest-row {
@@ -469,126 +467,130 @@ $field-radius: 10px;
   }
 
   &__guest-label {
-    color: #a6a6a6;
-    font-family: 'SVN-Gilroy', sans-serif;
+    color: $muted;
     font-size: 12px;
     font-weight: 500;
-    line-height: 1.18;
-    letter-spacing: 0.537px;
   }
 
   &__guest-actions {
     display: flex;
     align-items: center;
     gap: 8px;
-
-    strong {
-      min-width: 16px;
-      color: $theme;
-      font-family: 'SVN-Gilroy', sans-serif;
-      font-size: 12px;
-      font-weight: 500;
-      text-align: center;
-      letter-spacing: 0.537px;
-    }
   }
 
-  // Native ± button — Figma: 20x20, border 0.5px #C0C0C0, radius 5px
-  &__guest-btn {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    width: 20px;
-    height: 20px;
-    padding: 0;
-    border: 0.5px solid #c0c0c0;
-    border-radius: 5px;
-    background: #ffffff;
+  &__guest-count {
+    min-width: 16px;
     color: $theme;
-    font-family: 'SVN-Gilroy', sans-serif;
-    font-size: 14px;
-    font-weight: 500;
-    line-height: 1;
-    cursor: pointer;
-    transition: background 0.12s ease;
+    font-size: 12px;
+    font-weight: 600;
+    text-align: center;
+    display: inline-block;
+  }
 
-    &:hover:not(:disabled) {
-      background: #f0f0f0;
+  &__guest-btn {
+    width: 20px !important;
+    height: 20px !important;
+    min-width: 20px !important;
+    min-height: 20px !important;
+    padding: 0 !important;
+    border-radius: 5px !important;
+    border: 0.5px solid #c0c0c0 !important;
+    background: #fff !important;
+    color: $theme !important;
+    box-shadow: none !important;
+
+    tui-icon {
+      width: 10px !important;
+      height: 10px !important;
+      font-size: 10px !important;
     }
-    &:disabled {
-      opacity: 0.35;
-      cursor: not-allowed;
+
+    &:hover:not([disabled]) {
+      background: #f0f0f0 !important;
+    }
+    &[disabled] {
+      opacity: 0.35 !important;
     }
   }
 
-  // ── Date field (keep Taiga) ──────────────────────────────────────────────
-  &__control {
-    position: relative;
-    min-width: 0;
+  // ── Date field wrapper ────────────────────────────────────
+  // FIX 1: Bỏ position:absolute cho control-icon và date-caption.
+  // Thay bằng flex container để icon, caption và Taiga field
+  // cùng hàng — không còn đè lên nút clear của Taiga.
+  &__control--date {
+    display: flex;
+    align-items: center;
+    height: $field-h;
+    padding: 0 0 0 16px;
+    border: 1.5px solid rgba(255, 255, 255, 0.55);
+    border-radius: $radius;
+    background: rgba(255, 255, 255, 0.12);
+    backdrop-filter: blur(6px);
+    overflow: visible; // dropdown calendar tràn ra ngoài
+    transition:
+      border-color 0.15s ease,
+      background 0.15s ease;
 
-    &--date {
-      // icon + caption overlay the taiga input
+    &:hover {
+      border-color: rgba(255, 255, 255, 0.8);
+      background: rgba(255, 255, 255, 0.18);
     }
   }
 
+  // FIX 1: icon và caption là flex children — không absolute nữa
   &__control-icon {
-    // reused on tui-icon inside date field
-    position: absolute;
-    top: 50%;
-    left: 16px;
-    z-index: 5;
+    flex-shrink: 0;
     width: 18px;
     height: 18px;
-    transform: translateY(-50%);
-    color: #2065b3;
+    color: #fff !important;
+    // XÓA position/top/left/z-index/transform — không còn absolute
     pointer-events: none;
+    margin-right: 4px;
   }
 
   &__date-caption {
-    position: absolute;
-    top: 50%;
-    left: 46px;
-    z-index: 5;
-    transform: translateY(-50%);
-    color: #a6a6a6;
-    font-family: 'SVN-Gilroy', sans-serif;
-    font-size: 13.318px;
+    flex-shrink: 0;
+    color: rgba(255, 255, 255, 0.6);
+    font-size: 13px;
     font-weight: 500;
-    line-height: 1.18;
-    letter-spacing: 0.596px;
     pointer-events: none;
     white-space: nowrap;
+    margin-right: 4px;
+    // XÓA position/top/left/z-index/transform — không còn absolute
   }
 
+  // Taiga textfield flex-grows vào phần còn lại của container
   &__taiga-field {
     display: block;
-    width: 100%;
-    height: $field-h;
-    border-radius: $field-radius;
-    background: #ffffff;
-
-    --tui-background-base: #ffffff;
-    --tui-background-base-alt: #ffffff;
-    --tui-text-primary: #111827;
-    --tui-text-secondary: #a6a6a6;
+    // FIX 1: flex: 1 thay vì width: 100% / height fixed
+    flex: 1;
+    min-width: 0;
+    height: 100%;
+    // border và background do wrapper .control--date quản lý
+    border: 0 !important;
+    border-radius: 0 $radius $radius 0;
+    background: transparent;
+    --tui-background-base: transparent;
+    --tui-background-base-alt: transparent;
+    --tui-text-primary: #ffffff;
+    --tui-text-secondary: rgba(255, 255, 255, 0.6);
     --tui-border-normal: transparent;
     --tui-border-hover: transparent;
     --tui-border-focus: transparent;
-    --tui-radius-m: #{$field-radius};
-    --tui-radius-l: #{$field-radius};
+    --tui-radius-m: #{$radius};
+    --tui-radius-l: #{$radius};
 
+    // FIX 1: input không cần padding-left lớn nữa vì icon/caption đã là flex sibling
     &--date input {
-      padding-left: 110px !important;
-      padding-right: 44px !important;
-      font-family: 'SVN-Gilroy', sans-serif !important;
-      font-size: 13.318px !important;
+      padding-left: 4px !important; // chỉ cần một khoảng nhỏ
+      padding-right: 8px !important; // nhường chỗ cho nút X + chevron của Taiga
+      color: rgba(255, 255, 255, 0.6) !important;
+      font-size: 13px !important;
       font-weight: 500 !important;
-      letter-spacing: 0.596px !important;
-      color: #a6a6a6 !important;
+      background: transparent !important;
     }
   }
 
-  // ── Submit button ────────────────────────────────────────────────────────
   &__submit {
     display: inline-flex;
     align-items: center;
@@ -597,14 +599,12 @@ $field-radius: 10px;
     width: 100%;
     height: $field-h;
     padding: 0 16px;
-    border: none;
-    border-radius: $field-radius;
+    border: 0;
+    border-radius: $radius;
     background: $theme;
-    color: #ffffff;
-    font-family: 'SVN-Gilroy', sans-serif;
-    font-size: 13.318px;
+    color: #fff;
+    font-size: 13px;
     font-weight: 500;
-    letter-spacing: 0.596px;
     cursor: pointer;
     box-shadow: 0 3.298px 3.298px rgba(0, 0, 0, 0.25);
     transition: background 0.15s ease;
@@ -615,72 +615,131 @@ $field-radius: 10px;
   }
 }
 
-// ── Taiga deep overrides (date field only) ──────────────────────────────────
-:host ::ng-deep {
-  .home-search__taiga-field {
-    height: $field-h !important;
-    border-radius: $field-radius !important;
-    background: #ffffff !important;
-  }
+// ═══════════════════════════════════════════════════════════
+//  NG-DEEP — Taiga UI overrides
+// ═══════════════════════════════════════════════════════════
 
+:host ::ng-deep {
+  // ── Date field wrappers ─────────────────────────────────
+  // FIX 1: height 100% (từ flex parent) thay vì $field-h fixed
+  .home-search__taiga-field,
   .home-search__taiga-field [tuiWrapper],
   .home-search__taiga-field .t-wrapper,
   .home-search__taiga-field .t-content {
-    height: $field-h !important;
-    min-height: $field-h !important;
-    border-radius: $field-radius !important;
-    background: #ffffff !important;
+    height: 100% !important;
+    min-height: unset !important;
+    border: 0 !important;
+    border-radius: 0 !important;
+    background: transparent !important;
     box-shadow: none !important;
-    border: none !important;
   }
 
   .home-search__taiga-field input {
-    height: $field-h !important;
-    min-height: $field-h !important;
+    height: 100% !important;
+    min-height: unset !important;
     background: transparent !important;
+    color: rgba(255, 255, 255, 0.6) !important;
   }
 
+  // FIX 1: Taiga clear button (×) và chevron không bị che
+  // Chúng nằm trong .t-content → đã được flex layout xử lý
+  .home-search__control--date .t-content {
+    display: flex !important;
+    align-items: center !important;
+    padding-right: 36px !important; // nhường chỗ cho chevron Taiga
+  }
+
+  // Chevron và icon clear của Taiga — giữ màu trắng
   .home-search__taiga-field tui-icon[data-appearance='chevron'],
-  .home-search__taiga-field [tuiChevron] tui-icon {
-    color: #2065b3 !important;
+  .home-search__taiga-field [tuiChevron] tui-icon,
+  .home-search__control--date tui-icon {
+    color: #fff !important;
   }
 
+  // FIX 1: Icon lịch NỘI BỘ của Taiga (nếu có) — ẩn đi vì
+  // chúng ta đã dùng icon ngoài (home-search__control-icon)
+  .home-search__taiga-field tui-icon:not([tuiChevron] tui-icon):not([data-appearance]) {
+    display: none !important;
+  }
+
+  // No focus ring
   .home-search__taiga-field:hover [tuiWrapper],
   .home-search__taiga-field:focus-within [tuiWrapper] {
     box-shadow: none !important;
+    background: transparent !important;
   }
 
   .home-search__calendar {
-    border-radius: 14px !important;
     overflow: hidden !important;
+    border-radius: 14px !important;
+  }
+
+  // ── Guest trigger ──────────────────────────────────────
+  .home-search__guest-trigger [tuiWrapper],
+  .home-search__guest-trigger .t-wrapper,
+  .home-search__guest-trigger .t-content {
+    background: transparent !important;
+    box-shadow: none !important;
+    border: 0 !important;
+    height: 100% !important;
+    min-height: unset !important;
+    padding: 0 !important;
+    border-radius: 0 !important;
+  }
+
+  // FIX 2: Taiga tuiDropdown portal — đảm bảo z-index đủ cao
+  // Taiga dùng tui-dropdown-box render vào document.body
+  // nên z-index 200 là đủ (không cần override Taiga portal)
+  // Nhưng nếu dùng *tuiDropdown template (guest panel) thì
+  // panel render ngay trong DOM → cần wrapper overflow:visible
+  .home-search__field-wrap {
+    overflow: visible !important;
+  }
+
+  // ── Guest ± buttons ─────────────────────────────────────
+  .home-search__guest-btn [tuiWrapper],
+  .home-search__guest-btn .t-wrapper {
+    width: 20px !important;
+    height: 20px !important;
+    min-width: 20px !important;
+    min-height: 20px !important;
+    border-radius: 5px !important;
+    border: 0.5px solid #c0c0c0 !important;
+    background: #fff !important;
+    box-shadow: none !important;
+  }
+
+  .home-search__guest-btn tui-icon {
+    width: 10px !important;
+    height: 10px !important;
+    font-size: 10px !important;
+    color: $theme !important;
   }
 }
 
-// ── Responsive ──────────────────────────────────────────────────────────────
+// ═══════════════════════════════════════════════════════════
+//  RESPONSIVE
+// ═══════════════════════════════════════════════════════════
+
 @media (max-width: 1180px) {
   .home-hero {
     &__container {
       grid-template-columns: 92px minmax(0, 1fr);
       gap: 54px;
     }
-
     &__sidebar {
       width: 92px;
     }
-
     &__mega {
       left: 92px;
       width: min(820px, calc(100vw - 160px));
-      padding-left: 48px;
-      padding-right: 36px;
+      padding-inline: 48px 36px;
     }
-
     &__mega-grid,
     &__mega-grid--international {
       grid-template-columns: repeat(3, minmax(0, 1fr));
     }
   }
-
   .home-search {
     width: 100%;
   }
@@ -689,12 +748,10 @@ $field-radius: 10px;
 @media (max-width: 900px) {
   .home-search {
     padding: 28px;
-
     &__row--bottom {
       grid-template-columns: 1fr 1fr;
       gap: 16px;
     }
-
     &__submit {
       grid-column: 1 / -1;
     }
@@ -705,11 +762,9 @@ $field-radius: 10px;
   .home-hero {
     &__container {
       grid-template-columns: 1fr;
-      padding-top: 24px;
-      padding-bottom: 32px;
       align-items: start;
+      padding-block: 24px 32px;
     }
-
     &__nav {
       display: none;
     }
@@ -721,11 +776,9 @@ $field-radius: 10px;
       font-size: 14px;
     }
   }
-
   .home-search {
     width: 100%;
     padding: 20px;
-
     &__row--top {
       margin-bottom: 14px;
     }
@@ -733,11 +786,9 @@ $field-radius: 10px;
       grid-template-columns: 1fr;
       gap: 12px;
     }
-
     &__dest-panel {
       width: min(100vw - 32px, 688px);
     }
-
     &__guest-panel {
       width: 100%;
     }

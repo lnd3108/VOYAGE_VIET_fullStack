@@ -3,7 +3,7 @@ import { Component, HostListener, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { TuiDay } from '@taiga-ui/cdk/date-time';
-import { TuiCalendar, TuiDropdown, TuiIcon, TuiTextfield } from '@taiga-ui/core';
+import { TuiButton, TuiCalendar, TuiDropdown, TuiIcon, TuiTextfield } from '@taiga-ui/core';
 import { TuiChevron, TuiInputDate } from '@taiga-ui/kit';
 
 interface HomeHeroSidebarItem {
@@ -33,6 +33,7 @@ interface HomeHeroHotDestination {
     NgFor,
     NgIf,
     RouterLink,
+    TuiButton,
     TuiDropdown,
     TuiIcon,
     TuiTextfield,

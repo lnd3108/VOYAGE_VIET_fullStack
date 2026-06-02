@@ -1,1 +1,51 @@
-<p>tour-card works!</p>
+<article class="tour-card" *ngIf="tour">
+  <a class="tour-card__link" [routerLink]="detailLink" [attr.aria-label]="tour.title">
+    <div class="tour-card__media">
+      <img
+        class="tour-card__image"
+        [src]="tour.thumbnailUrl || fallbackImage"
+        [alt]="tour.title"
+        loading="lazy"
+        (error)="handleImageError($event)"
+      />
+
+      <div class="tour-card__badges">
+        <span class="tour-card__badge" *ngIf="tour.categoryName">
+          {{ tour.categoryName }}
+        </span>
+
+        <span class="tour-card__badge tour-card__badge--status" *ngIf="statusLabel">
+          {{ statusLabel }}
+        </span>
+      </div>
+    </div>
+
+    <div class="tour-card__body">
+      <p class="tour-card__code">Mã tour: VV{{ tour.id }}</p>
+
+      <h3 class="tour-card__title">{{ tour.title }}</h3>
+
+      <div class="tour-card__meta">
+        <span *ngIf="tour.departureLocation">Khởi hành: {{ tour.departureLocation }}</span>
+        <span>{{ tour.durationDays }} ngày {{ tour.durationNights }} đêm</span>
+        <span *ngIf="tour.availableSeats !== null && tour.availableSeats !== undefined">
+          Còn {{ tour.availableSeats }} chỗ
+        </span>
+      </div>
+
+      <div class="tour-card__price">
+        <span class="tour-card__price-old" *ngIf="hasDiscount">
+          {{ formatPrice(tour.originalPrice) }}
+        </span>
+
+        <span class="tour-card__price-current">
+          {{ formatPrice(displayPrice) }}
+        </span>
+      </div>
+
+      <div class="tour-card__actions">
+        <span class="tour-card__button">Xem chi tiết</span>
+      </div>
+    </div>
+  </a>
+</article>
