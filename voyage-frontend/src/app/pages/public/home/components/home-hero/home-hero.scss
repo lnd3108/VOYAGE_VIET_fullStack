@@ -88,9 +88,9 @@ $radius: 10px;
       }
     }
 
-    &--built-in-label .home-hero__sidebar-icon {
-      width: 56px;
-      height: 30px;
+    &--visa .home-hero__sidebar-icon {
+      width: 44px;
+      height: 31px;
     }
   }
 
@@ -209,14 +209,10 @@ $radius: 10px;
   }
 }
 
-// ═══════════════════════════════════════════════════════════
 //  HOME SEARCH
-// ═══════════════════════════════════════════════════════════
 
 .home-search {
   position: relative;
-  // FIX 2: z-index đủ cao để dropdown panel không bị clip
-  // nhưng không cao hơn mega-menu (z-index 41)
   z-index: 30;
   width: 768px;
   max-width: 100%;
@@ -234,51 +230,72 @@ $radius: 10px;
     grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) 127px;
     gap: 20px;
     align-items: start;
-    // FIX 2: cho phép dropdown panel tràn ra ngoài row
     overflow: visible;
   }
 
   &__dest-wrap,
-  &__field-wrap,
-  &__control {
+  &__field-wrap {
     position: relative;
     min-width: 0;
-    // FIX 2: overflow visible để dropdown không bị cắt
     overflow: visible;
   }
 
-  &__dest-trigger {
+  &__dest-trigger,
+  &__guest-trigger,
+  &__date-trigger {
+    width: 100%;
+    min-width: 0;
+    height: $field-h;
+    min-height: $field-h;
+    border: 1px solid rgba(255, 255, 255, 0.28);
+    border-radius: $radius;
+    background: rgba(255, 255, 255, 0.14);
+    backdrop-filter: blur(14px);
+    color: #fff;
+  }
+
+  &__dest-trigger,
+  &__guest-trigger,
+  &__date-trigger {
     position: relative;
     display: flex;
     align-items: center;
     gap: 10px;
-    width: 100%;
-    height: $field-h;
     padding: 0 44px 0 16px;
-    border: 1.5px solid rgba(255, 255, 255, 0.55);
-    border-radius: $radius;
-    background: rgba(255, 255, 255, 0.12);
-    backdrop-filter: blur(6px);
     cursor: pointer;
     font-size: 13px;
     font-weight: 500;
     text-align: left;
-    transition:
-      border-color 0.15s ease,
-      background 0.15s ease;
+  }
 
-    &:hover {
-      border-color: rgba(255, 255, 255, 0.8);
-      background: rgba(255, 255, 255, 0.18);
+  &__date-trigger {
+    user-select: none;
+
+    .home-search__field-text {
+      padding-right: 42px;
     }
   }
 
+  &__dest-value,
+  &__guest-trigger &__field-text {
+    padding-right: 42px;
+  }
+
   &__dest-icon,
-  &__control-icon {
+  &__guest-icon,
+  &__date-icon,
+  &__chevron-icon,
+  &__dest-chevron {
+    color: #fff;
+  }
+
+  &__dest-icon,
+  &__guest-icon,
+  &__date-icon {
     flex-shrink: 0;
     width: 18px;
     height: 18px;
-    color: #fff;
+    pointer-events: none;
   }
 
   &__dest-value,
@@ -290,27 +307,38 @@ $radius: 10px;
     white-space: nowrap;
 
     &--placeholder {
-      color: rgba(255, 255, 255, 0.6);
+      color: rgba(255, 255, 255, 0.72);
     }
   }
 
   &__dest-chevron,
-  &__chevron {
+  &__chevron-icon {
     position: absolute;
     top: 50%;
     right: 16px;
     width: 14px;
     height: 14px;
-    color: #fff;
     transform: translateY(-50%);
+    transition: transform 0.2s ease;
+    pointer-events: none;
+
+    &--open {
+      transform: translateY(-50%) rotate(180deg);
+    }
   }
 
-  &__dest-panel,
-  &__guest-panel {
+  &__dest-chevron {
+    transition: transform 0.2s ease;
+
+    &--open {
+      transform: translateY(-50%) rotate(180deg);
+    }
+  }
+
+  &__dest-panel {
     position: absolute;
     top: calc(100% + 8px);
     left: 0;
-    // FIX 2: z-index cao hơn home-search (30) để hiện đúng
     z-index: 200;
     border-radius: $radius;
     background: #fff;
@@ -333,10 +361,6 @@ $radius: 10px;
     color: $theme;
     font-size: 14px;
     font-weight: 600;
-
-    svg {
-      flex-shrink: 0;
-    }
   }
 
   &__dest-grid {
@@ -355,7 +379,6 @@ $radius: 10px;
     background: transparent;
     cursor: pointer;
     text-align: left;
-    transition: background 0.12s ease;
 
     &:hover {
       background: #f0f7f6;
@@ -397,197 +420,126 @@ $radius: 10px;
     }
   }
 
-  // ── Guest trigger ─────────────────────────────────────────
   &__guest-trigger {
-    position: relative !important;
-    display: flex !important;
-    align-items: center !important;
-    justify-content: flex-start !important;
-    gap: 10px !important;
-    width: 100% !important;
-    height: $field-h !important;
-    min-height: $field-h !important;
-    padding: 0 44px 0 14px !important;
-    border: 1.5px solid rgba(255, 255, 255, 0.55) !important;
-    border-radius: $radius !important;
-    background: rgba(255, 255, 255, 0.12) !important;
-    backdrop-filter: blur(6px) !important;
-    color: #fff !important;
-    font-size: 13px !important;
-    font-weight: 500 !important;
-    font-family: 'SVN-Gilroy', sans-serif !important;
-    text-align: left !important;
-    box-shadow: none !important;
-    transition:
-      border-color 0.15s ease,
-      background 0.15s ease !important;
-
-    &:hover {
-      border-color: rgba(255, 255, 255, 0.8) !important;
-      background: rgba(255, 255, 255, 0.18) !important;
-    }
-  }
-
-  &__guest-icon {
-    flex-shrink: 0;
-    width: 18px;
-    height: 18px;
-    color: #fff;
-    pointer-events: none;
-  }
-
-  &__chevron-icon {
-    position: absolute;
-    top: 50%;
-    right: 14px;
-    width: 14px;
-    height: 14px;
-    color: #fff;
-    transform: translateY(-50%);
-    pointer-events: none;
+    justify-content: flex-start;
+    font-family: 'SVN-Gilroy', sans-serif;
+    box-shadow: none;
   }
 
   &__guest-panel {
-    width: 233px;
+    width: 100%;
+    min-width: 233px;
+    height: 112px;
     overflow: hidden;
     border-radius: $radius;
     background: #fff;
-    box-shadow: 0 16px 36px rgba(15, 23, 42, 0.18);
   }
 
-  &__guest-row {
-    display: flex;
+  &__guest-head {
+    display: grid;
+    grid-template-columns: 20px minmax(0, 1fr);
     align-items: center;
-    justify-content: space-between;
-    padding: 10px 16px;
-
-    &:not(:last-child) {
-      border-bottom: 1px solid #c9c9c9;
-    }
+    gap: 13px;
+    height: 46px;
+    padding: 0 33px 0 34px;
   }
 
-  &__guest-label {
+  &__guest-head-icon {
+    color: #004fa8;
+  }
+
+  &__guest-head-text {
+    overflow: hidden;
     color: $muted;
     font-size: 12px;
     font-weight: 500;
+    line-height: 1.18;
+    letter-spacing: 0.537px;
+    white-space: nowrap;
+  }
+
+  &__guest-row {
+    box-sizing: border-box;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: center;
+    min-height: 33px;
+    padding: 0 34px;
+  }
+
+  &__guest-row + &__guest-row {
+    border-top: 1px solid #c9c9c9;
+  }
+
+  &__guest-label {
+    overflow: hidden;
+    color: $muted;
+    font-size: 12px;
+    font-weight: 500;
+    line-height: 1.18;
+    letter-spacing: 0.537px;
+    white-space: nowrap;
   }
 
   &__guest-actions {
-    display: flex;
+    display: grid;
+    grid-template-columns: 20px 20px 20px;
     align-items: center;
-    gap: 8px;
+    gap: 9px;
   }
 
   &__guest-count {
-    min-width: 16px;
-    color: $theme;
+    display: block;
+    min-width: 20px;
+    color: #004fa8;
     font-size: 12px;
-    font-weight: 600;
+    font-weight: 500;
+    line-height: 1.18;
+    letter-spacing: 0.537px;
     text-align: center;
-    display: inline-block;
   }
 
   &__guest-btn {
-    width: 20px !important;
-    height: 20px !important;
-    min-width: 20px !important;
-    min-height: 20px !important;
-    padding: 0 !important;
-    border-radius: 5px !important;
-    border: 0.5px solid #c0c0c0 !important;
-    background: #fff !important;
-    color: $theme !important;
-    box-shadow: none !important;
-
-    tui-icon {
-      width: 10px !important;
-      height: 10px !important;
-      font-size: 10px !important;
-    }
-
-    &:hover:not([disabled]) {
-      background: #f0f0f0 !important;
-    }
-    &[disabled] {
-      opacity: 0.35 !important;
-    }
-  }
-
-  // ── Date field wrapper ────────────────────────────────────
-  // FIX 1: Bỏ position:absolute cho control-icon và date-caption.
-  // Thay bằng flex container để icon, caption và Taiga field
-  // cùng hàng — không còn đè lên nút clear của Taiga.
-  &__control--date {
+    width: 20px;
+    height: 20px;
+    padding: 0;
+    border: 0.5px solid #c0c0c0;
+    border-radius: 5px;
+    background: #fff;
+    color: #004fa8;
     display: flex;
     align-items: center;
-    height: $field-h;
-    padding: 0 0 0 16px;
-    border: 1.5px solid rgba(255, 255, 255, 0.55);
-    border-radius: $radius;
-    background: rgba(255, 255, 255, 0.12);
-    backdrop-filter: blur(6px);
-    overflow: visible; // dropdown calendar tràn ra ngoài
-    transition:
-      border-color 0.15s ease,
-      background 0.15s ease;
+    justify-content: center;
+    font-size: 12px;
+    cursor: pointer;
+    box-shadow: none;
 
-    &:hover {
-      border-color: rgba(255, 255, 255, 0.8);
-      background: rgba(255, 255, 255, 0.18);
+    &:disabled {
+      color: rgba(0, 79, 168, 0.35);
+      cursor: default;
     }
   }
 
-  // FIX 1: icon và caption là flex children — không absolute nữa
-  &__control-icon {
-    flex-shrink: 0;
-    width: 18px;
-    height: 18px;
-    color: #fff !important;
-    // XÓA position/top/left/z-index/transform — không còn absolute
-    pointer-events: none;
-    margin-right: 4px;
-  }
-
-  &__date-caption {
-    flex-shrink: 0;
-    color: rgba(255, 255, 255, 0.6);
-    font-size: 13px;
-    font-weight: 500;
-    pointer-events: none;
-    white-space: nowrap;
-    margin-right: 4px;
-    // XÓA position/top/left/z-index/transform — không còn absolute
-  }
-
-  // Taiga textfield flex-grows vào phần còn lại của container
-  &__taiga-field {
-    display: block;
-    // FIX 1: flex: 1 thay vì width: 100% / height fixed
-    flex: 1;
-    min-width: 0;
-    height: 100%;
-    // border và background do wrapper .control--date quản lý
-    border: 0 !important;
-    border-radius: 0 $radius $radius 0;
+  &__clear-btn {
+    position: absolute;
+    top: 50%;
+    right: 40px;
+    width: 20px;
+    height: 20px;
+    padding: 0;
+    border: 0;
+    border-radius: 50%;
     background: transparent;
-    --tui-background-base: transparent;
-    --tui-background-base-alt: transparent;
-    --tui-text-primary: #ffffff;
-    --tui-text-secondary: rgba(255, 255, 255, 0.6);
-    --tui-border-normal: transparent;
-    --tui-border-hover: transparent;
-    --tui-border-focus: transparent;
-    --tui-radius-m: #{$radius};
-    --tui-radius-l: #{$radius};
+    color: rgba(255, 255, 255, 0.72);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 18px;
+    line-height: 1;
+    transform: translateY(-50%);
 
-    // FIX 1: input không cần padding-left lớn nữa vì icon/caption đã là flex sibling
-    &--date input {
-      padding-left: 4px !important; // chỉ cần một khoảng nhỏ
-      padding-right: 8px !important; // nhường chỗ cho nút X + chevron của Taiga
-      color: rgba(255, 255, 255, 0.6) !important;
-      font-size: 13px !important;
-      font-weight: 500 !important;
-      background: transparent !important;
+    &:hover {
+      color: #fff;
     }
   }
 
@@ -607,7 +559,6 @@ $radius: 10px;
     font-weight: 500;
     cursor: pointer;
     box-shadow: 0 3.298px 3.298px rgba(0, 0, 0, 0.25);
-    transition: background 0.15s ease;
 
     &:hover {
       background: $theme-dark;
@@ -615,66 +566,14 @@ $radius: 10px;
   }
 }
 
-// ═══════════════════════════════════════════════════════════
-//  NG-DEEP — Taiga UI overrides
-// ═══════════════════════════════════════════════════════════
-
 :host ::ng-deep {
-  // ── Date field wrappers ─────────────────────────────────
-  // FIX 1: height 100% (từ flex parent) thay vì $field-h fixed
-  .home-search__taiga-field,
-  .home-search__taiga-field [tuiWrapper],
-  .home-search__taiga-field .t-wrapper,
-  .home-search__taiga-field .t-content {
-    height: 100% !important;
-    min-height: unset !important;
-    border: 0 !important;
-    border-radius: 0 !important;
-    background: transparent !important;
-    box-shadow: none !important;
-  }
-
-  .home-search__taiga-field input {
-    height: 100% !important;
-    min-height: unset !important;
-    background: transparent !important;
-    color: rgba(255, 255, 255, 0.6) !important;
-  }
-
-  // FIX 1: Taiga clear button (×) và chevron không bị che
-  // Chúng nằm trong .t-content → đã được flex layout xử lý
-  .home-search__control--date .t-content {
-    display: flex !important;
-    align-items: center !important;
-    padding-right: 36px !important; // nhường chỗ cho chevron Taiga
-  }
-
-  // Chevron và icon clear của Taiga — giữ màu trắng
-  .home-search__taiga-field tui-icon[data-appearance='chevron'],
-  .home-search__taiga-field [tuiChevron] tui-icon,
-  .home-search__control--date tui-icon {
-    color: #fff !important;
-  }
-
-  // FIX 1: Icon lịch NỘI BỘ của Taiga (nếu có) — ẩn đi vì
-  // chúng ta đã dùng icon ngoài (home-search__control-icon)
-  .home-search__taiga-field tui-icon:not([tuiChevron] tui-icon):not([data-appearance]) {
-    display: none !important;
-  }
-
-  // No focus ring
-  .home-search__taiga-field:hover [tuiWrapper],
-  .home-search__taiga-field:focus-within [tuiWrapper] {
-    box-shadow: none !important;
-    background: transparent !important;
-  }
-
   .home-search__calendar {
     overflow: hidden !important;
-    border-radius: 14px !important;
+    border-radius: $radius !important;
+    background: #fff !important;
+    color: #1f2937 !important;
   }
 
-  // ── Guest trigger ──────────────────────────────────────
   .home-search__guest-trigger [tuiWrapper],
   .home-search__guest-trigger .t-wrapper,
   .home-search__guest-trigger .t-content {
@@ -687,40 +586,11 @@ $radius: 10px;
     border-radius: 0 !important;
   }
 
-  // FIX 2: Taiga tuiDropdown portal — đảm bảo z-index đủ cao
-  // Taiga dùng tui-dropdown-box render vào document.body
-  // nên z-index 200 là đủ (không cần override Taiga portal)
-  // Nhưng nếu dùng *tuiDropdown template (guest panel) thì
-  // panel render ngay trong DOM → cần wrapper overflow:visible
   .home-search__field-wrap {
     overflow: visible !important;
   }
 
-  // ── Guest ± buttons ─────────────────────────────────────
-  .home-search__guest-btn [tuiWrapper],
-  .home-search__guest-btn .t-wrapper {
-    width: 20px !important;
-    height: 20px !important;
-    min-width: 20px !important;
-    min-height: 20px !important;
-    border-radius: 5px !important;
-    border: 0.5px solid #c0c0c0 !important;
-    background: #fff !important;
-    box-shadow: none !important;
-  }
-
-  .home-search__guest-btn tui-icon {
-    width: 10px !important;
-    height: 10px !important;
-    font-size: 10px !important;
-    color: $theme !important;
-  }
 }
-
-// ═══════════════════════════════════════════════════════════
-//  RESPONSIVE
-// ═══════════════════════════════════════════════════════════
-
 @media (max-width: 1180px) {
   .home-hero {
     &__container {

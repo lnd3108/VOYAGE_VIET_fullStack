@@ -3,14 +3,12 @@ import { Component, HostListener, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { TuiDay } from '@taiga-ui/cdk/date-time';
-import { TuiButton, TuiCalendar, TuiDropdown, TuiIcon, TuiTextfield } from '@taiga-ui/core';
-import { TuiChevron, TuiInputDate } from '@taiga-ui/kit';
+import { TuiButton, TuiCalendar, TuiDropdown, TuiIcon } from '@taiga-ui/core';
 
 interface HomeHeroSidebarItem {
   id: string;
   label: string;
   iconUrl: string;
-  hasBuiltInLabel?: boolean;
 }
 
 interface HomeHeroMegaColumn {
@@ -36,10 +34,7 @@ interface HomeHeroHotDestination {
     TuiButton,
     TuiDropdown,
     TuiIcon,
-    TuiTextfield,
     TuiCalendar,
-    TuiChevron,
-    TuiInputDate,
   ],
   templateUrl: './home-hero.html',
   styleUrl: './home-hero.scss',
@@ -48,19 +43,36 @@ export class HomeHero {
   readonly activeSidebarMenu = signal<string | null>(null);
 
   selectedDestination: HomeHeroHotDestination | null = null;
-  departureDate: TuiDay | null = new TuiDay(2022, 6, 22);
+  departureDate: TuiDay | null = null;
   guestDropdownOpen = false;
+  dateDropdownOpen = false;
   destDropdownOpen = false;
 
-  adultCount = 1;
+  adultCount = 0;
   childCount = 0;
 
+  readonly guestTitle = 'Số lượng';
+
+  get departureDateLabel(): string {
+    return this.departureDate ? this.departureDate.toString('dd/mm/yyyy', '/') : 'Ngày đi';
+  }
+
   get guestLabel(): string {
-    if (this.adultCount === 1 && this.childCount === 0) {
+    if (this.adultCount === 0 && this.childCount === 0) {
       return 'Số lượng';
     }
-    const childText = this.childCount > 0 ? `, ${this.childCount} trẻ em` : '';
-    return `${this.adultCount} người lớn${childText}`;
+
+    const parts: string[] = [];
+
+    if (this.adultCount > 0) {
+      parts.push(`${this.adultCount} người lớn`);
+    }
+
+    if (this.childCount > 0) {
+      parts.push(`${this.childCount} trẻ em`);
+    }
+
+    return parts.join(', ');
   }
 
   @HostListener('document:click', ['$event'])
@@ -72,6 +84,9 @@ export class HomeHero {
     if (!target.closest('.home-search__field-wrap')) {
       this.guestDropdownOpen = false;
     }
+    if (!target.closest('.home-search__date-wrap') && !target.closest('.home-search__calendar')) {
+      this.dateDropdownOpen = false;
+    }
   }
 
   readonly sidebarItems: HomeHeroSidebarItem[] = [
@@ -79,7 +94,7 @@ export class HomeHero {
     { id: 'international', label: 'Tour nước ngoài', iconUrl: '/hero/sidebar-options/outside.svg' },
     { id: 'group', label: 'Tour đoàn', iconUrl: '/hero/sidebar-options/Group.svg' },
     { id: 'combo', label: 'Tour combo', iconUrl: '/hero/sidebar-options/combo-tour.svg' },
-    { id: 'visa', label: 'Visa', iconUrl: '/hero/sidebar-options/visa.svg', hasBuiltInLabel: true },
+    { id: 'visa', label: 'VISA', iconUrl: '/hero/sidebar-options/visa.svg' },
     { id: 'flight', label: 'Vé máy bay', iconUrl: '/hero/sidebar-options/ve-maybay.svg' },
   ];
 
@@ -262,12 +277,36 @@ export class HomeHero {
     this.adultCount++;
   }
   decreaseAdult(): void {
-    if (this.adultCount > 1) this.adultCount--;
+    if (this.adultCount > 0) this.adultCount--;
   }
   increaseChild(): void {
     this.childCount++;
   }
   decreaseChild(): void {
     if (this.childCount > 0) this.childCount--;
+  }
+
+  selectDepartureDate(day: TuiDay): void {
+    this.departureDate = day;
+    this.dateDropdownOpen = false;
+  }
+
+  clearDepartureDate(event: MouseEvent): void {
+    event.stopPropagation();
+    this.departureDate = null;
+    this.dateDropdownOpen = false;
+  }
+
+  clearDestination(event: MouseEvent): void {
+    event.stopPropagation();
+    this.selectedDestination = null;
+    this.destDropdownOpen = false;
+  }
+
+  clearGuests(event: MouseEvent): void {
+    event.stopPropagation();
+    this.adultCount = 0;
+    this.childCount = 0;
+    this.guestDropdownOpen = false;
   }
 }
