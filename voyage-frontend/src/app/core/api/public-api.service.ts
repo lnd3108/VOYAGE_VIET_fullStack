@@ -7,7 +7,13 @@ import { PublicFeatureMap } from '../models/feature.model';
 import { HomeResponse } from '../models/home.model';
 import { PageResponse } from '../models/page-response.model';
 import { ReviewResponse } from '../models/review.model';
-import { TourCardResponse, TourDetailResponse, TourSearchParams } from '../models/tour.model';
+import {
+  TourCardResponse,
+  TourDetailResponse,
+  TourItineraryResponse,
+  TourScheduleResponse,
+  TourSearchParams,
+} from '../models/tour.model';
 
 @Injectable({
   providedIn: 'root',
@@ -45,6 +51,18 @@ export class PublicApiService {
 
   getTourReviews(slug: string) {
     return this.http.get<ApiResponse<ReviewResponse[]>>(`${this.apiUrl}/public/tours/${slug}/reviews`);
+  }
+
+  getTourSchedules(slug: string) {
+    return this.http.get<ApiResponse<TourScheduleResponse[]>>(
+      `${this.apiUrl}/public/tours/${slug}/schedules`,
+    );
+  }
+
+  getTourItinerary(slug: string) {
+    return this.http.get<ApiResponse<TourItineraryResponse[]>>(
+      `${this.apiUrl}/public/tours/${slug}/itinerary`,
+    );
   }
 
   getPublicFeatures() {

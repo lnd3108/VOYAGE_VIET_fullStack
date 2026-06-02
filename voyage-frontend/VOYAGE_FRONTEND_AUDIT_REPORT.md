@@ -176,3 +176,155 @@ Methods/state hiện có:
 - Bổ sung admin API services riêng cho categories, destinations, tours, bookings, users, reviews, media, features, audit logs.
 - Chuẩn hóa encoding tiếng Việt trong source nếu vẫn còn hiện mojibake ở editor/terminal.
 - Xem lại Angular style budgets vì `home-hero.scss` và `public-layout.scss` đang gần hoặc vượt warning budget.
+
+## Cập Nhật: Trang Danh Sách Tour Và Bộ Lọc
+
+Thời gian cập nhật: 2026-06-02 11:56:16 +07:00
+
+### File Đã Sửa/Tạo Mới
+
+- `src/app/pages/public/tours/tours.ts`
+- `src/app/pages/public/tours/tours.html`
+- `src/app/pages/public/tours/tours.scss`
+
+### Đầu Việc Đã Làm
+
+- Thay placeholder `/tours` bằng trang danh sách tour hoàn chỉnh.
+- Dựng layout theo mẫu gồm breadcrumb, banner, chip điểm đến/khu vực, filter bar, grid tour, nút xem thêm và block mô tả cuối trang.
+- Tái sử dụng `app-tour-card` để render dữ liệu tour.
+- Kết nối trang `/tours` với query params trên URL.
+- Khi query params thay đổi, trang tự gọi lại API bằng `switchMap` và hủy subscription bằng `takeUntilDestroyed`.
+- Thêm helper chuẩn hóa response API để xử lý nhiều dạng payload.
+
+### Chức Năng Đã Thêm/Sửa
+
+- Trang `/tours` đọc các query params: `keyword`, `categorySlug`, `destinationSlug`, `region`, `departureLocation`, `minPrice`, `maxPrice`, `minDurationDays`, `maxDurationDays`, `people`, `sortBy`, `sortDir`, `page`, `size`.
+- Title section đổi theo context:
+  - Có `keyword`: `Kết quả tìm kiếm: "keyword"`.
+  - `region=DOMESTIC`: `Tour Trong Nước`.
+  - `region=INTERNATIONAL`: `Tour Nước Ngoài`.
+  - Mặc định: `Danh sách Tour`.
+- Chip hoạt động:
+  - `Hạ Long`, `Đà Nẵng`, `Phú Quốc`, `Quy Nhơn`.
+  - `Tour Miền Bắc`, `Tour Miền Trung`, `Tour Miền Nam`, `Tour Tây Nguyên`.
+- Filter hoạt động:
+  - Loại hình tour.
+  - Lọc theo giá.
+  - Điểm đi.
+  - Điểm đến.
+  - Số ngày.
+  - Số người.
+  - Sắp xếp: mới nhất, giá thấp đến cao, giá cao đến thấp.
+- Có trạng thái loading, error và empty.
+- Có nút `Xem thêm`; hiện tại nút cập nhật `page` query param và render lại danh sách theo page mới.
+- Có block tĩnh `Đánh Giá Chi Tiết` với ảnh fallback `/hero/bg-home.png`.
+
+### API Đã Nối
+
+- `PublicApiService.getTours(params)` gọi `GET /api/public/tours`.
+- Params gửi vào API hiện gồm:
+  - `keyword`
+  - `categorySlug`
+  - `destinationSlug`
+  - `region`
+  - `departureLocation`
+  - `minPrice`
+  - `maxPrice`
+  - `minDurationDays`
+  - `maxDurationDays`
+  - `people`
+  - `sortBy`
+  - `sortDir`
+  - `page`
+  - `size`
+- `departureDate` từ HomeHero được đọc vào state của `/tours`, nhưng chưa gửi vào `PublicApiService.getTours()` vì `TourSearchParams` hiện chưa khai báo field này.
+
+### Kết Quả Build/Test
+
+- `npx ng build --configuration development`: pass.
+- `npm run build`: pass.
+
+### Warning/Lỗi Còn Lại
+
+- Initial bundle vẫn vượt warning budget.
+- `src/app/layouts/public-layout/public-layout.scss` vẫn vượt warning budget.
+- `src/app/pages/public/home/components/home-hero/home-hero.scss` vẫn vượt warning budget.
+- Không có lỗi compile sau bước này.
+
+### Ghi Chú Kỹ Thuật Và Rủi Ro
+
+- `Xem thêm` hiện update `page` query param và thay danh sách bằng page mới; nếu muốn đúng hành vi "append thêm tour", cần bổ sung mode nối dữ liệu trong state.
+- Filter chip dùng mapping tạm qua `keyword`/`region`; khi backend có danh mục hoặc destination slug ổn định thì nên đổi sang `categorySlug`/`destinationSlug`.
+- Các dropdown filter đang dùng HTML `details` custom để tránh phát sinh import Taiga và giữ SCSS gọn; có thể thay bằng `tuiDropdown` sau nếu cần đồng bộ toàn bộ design system.
+- SCSS của trang `/tours` mới khá lớn nhưng production build vẫn pass; cần theo dõi budget nếu tiếp tục mở rộng UI.
+
+## Cập Nhật: Trang Chi Tiết Tour Public
+
+Thời gian cập nhật: 2026-06-02 14:05:03 +07:00
+
+### File Đã Sửa/Tạo Mới
+
+- `src/app/core/models/tour.model.ts`
+- `src/app/core/api/public-api.service.ts`
+- `src/app/pages/public/tour-detail/tour-detail.ts`
+- `src/app/pages/public/tour-detail/tour-detail.html`
+- `src/app/pages/public/tour-detail/tour-detail.scss`
+- `VOYAGE_FRONTEND_AUDIT_REPORT.md`
+
+### Đầu Việc Đã Làm
+
+- Thay placeholder `/tours/:slug` bằng trang chi tiết tour thật, kế thừa `PublicLayout` hiện có và không thêm header/footer riêng.
+- Dựng layout 2 cột theo mẫu detail: cột trái là nội dung tour, cột phải là booking card/sidebar sticky.
+- Bổ sung model linh hoạt cho lịch khởi hành và lịch trình tour public.
+- Bổ sung API public còn thiếu cho schedules và itinerary.
+- Load dữ liệu theo `slug` route param, có loading/error state và không subscribe lồng nhau.
+- Schedules, itinerary, reviews lỗi riêng không làm sập toàn trang detail.
+- Thêm helper chuẩn hóa response để xử lý `ApiResponse<T>`, `ApiResponse<T[]>`, `PageResponse<T>`, `ApiResponse<PageResponse<T>>`.
+
+### Chức Năng Đã Thêm/Sửa
+
+- Breadcrumb: `HOME > category > title`.
+- Hero ảnh chính dùng `thumbnailUrl`, fallback `/hero/bg-home.png`.
+- Gallery thumbnail fallback từ `thumbnailUrl` trong lúc chưa có gallery API public.
+- Section `Thông Tin Tour` render `description`/`shortDescription`, có nút mở rộng/thu gọn.
+- Section `Lịch Trình Tour` render itinerary theo `dayNumber`, kèm meals/transport/placeNames nếu API có trả.
+- Section `Lịch Khởi Hành` render schedules dạng list/table, click để chọn lịch.
+- Section `Thông Tin Chi Tiết Giá Tour` có tab nhỏ: giá bao gồm, không bao gồm, phụ thu, huỷ đổi, lưu ý.
+- Section `Sản Phẩm Tour Liên Quan` dùng lại `app-tour-card`.
+- Section `Đánh Giá Sản Phẩm` có điểm trung bình, tổng đánh giá, progress 5 sao -> 1 sao và danh sách review.
+- Form bình luận dựng UI disabled, chưa gọi POST review.
+- Booking card có chọn lịch, counter người lớn/trẻ em/em bé, mã giảm giá UI tĩnh, tổng tiền và CTA.
+- CTA `ĐẶT NGAY` yêu cầu chọn lịch nếu schedules có dữ liệu; hiện chưa điều hướng sai sang `booking-lookup` vì chưa có route checkout/detail booking rõ ràng.
+- Sidebar có anchor scroll nội dung, block sản phẩm đã xem và tin mới dùng related tour fallback.
+
+### API Đã Nối
+
+- `PublicApiService.getTourBySlug(slug)` gọi `GET /api/public/tours/{slug}`.
+- `PublicApiService.getTourReviews(slug)` gọi `GET /api/public/tours/{slug}/reviews`.
+- `PublicApiService.getTourSchedules(slug)` gọi `GET /api/public/tours/{slug}/schedules`.
+- `PublicApiService.getTourItinerary(slug)` gọi `GET /api/public/tours/{slug}/itinerary`.
+- `PublicApiService.getTours(params)` gọi `GET /api/public/tours` để lấy tour liên quan với params ưu tiên:
+  - `categorySlug`
+  - `destinationSlug`
+  - `page: 0`
+  - `size: 4`
+
+### Kết Quả Build/Test
+
+- `npx ng build --configuration development`: pass.
+- `npm run build`: pass.
+
+### Warning/Lỗi Còn Lại
+
+- Initial bundle vẫn vượt warning budget: budget 500.00 kB, total 759.04 kB.
+- `src/app/pages/public/home/components/home-hero/home-hero.scss` vẫn vượt warning budget: 9.88 kB.
+- `src/app/layouts/public-layout/public-layout.scss` vẫn vượt warning budget: 9.99 kB.
+- Không có lỗi compile sau bước này.
+- Không phát sinh warning budget mới từ `tour-detail.scss`.
+
+### Ghi Chú Kỹ Thuật Và Rủi Ro
+
+- Public gallery API chưa có nên gallery detail đang fallback bằng `thumbnailUrl`; khi backend có gallery nên thay nguồn ảnh thật.
+- Chưa có route checkout/booking detail rõ ràng, nên CTA đặt tour chỉ validate và hiển thị thông báo TODO thay vì điều hướng sai.
+- Nội dung chi tiết giá tour dùng fallback từ mô tả tour và text chính sách ngắn; khi backend có trường riêng cho included/excluded/policy nên map lại đúng dữ liệu.
+- Tour liên quan đang gọi theo cả `categorySlug` và `destinationSlug`; nếu backend lọc quá chặt khiến trả rỗng, có thể cần fallback thêm bằng `{ page: 0, size: 4 }`.

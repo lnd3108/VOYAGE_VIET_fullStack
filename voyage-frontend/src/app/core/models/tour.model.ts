@@ -60,6 +60,30 @@ export interface TourDetailResponse {
   updatedAt?: string;
 }
 
+export interface TourScheduleResponse {
+  id?: number;
+  scheduleId?: number;
+  departureDate?: string;
+  returnDate?: string;
+  priceAdult?: number;
+  priceChild?: number;
+  priceInfant?: number;
+  remainingSeats?: number;
+  availableSeats?: number;
+  status?: string;
+}
+
+export interface TourItineraryResponse {
+  id?: number;
+  dayNumber?: number;
+  title?: string;
+  description?: string;
+  meals?: string[] | string;
+  transportModes?: string[] | string;
+  placeNames?: string[] | string;
+  imageUrl?: string;
+}
+
 export interface TourSearchParams {
   keyword?: string;
   categorySlug?: string;

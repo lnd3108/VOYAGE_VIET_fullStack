@@ -1,7 +1,237 @@
-<section class="placeholder-page">
-  <div class="vv-container">
-    <p class="eyebrow">Public Page</p>
-    <h1>Chi tiết tour</h1>
-    <p>Route `/tours/:slug` đã hoạt động. Tour Detail sẽ làm sau.</p>
+<section class="tour-detail">
+  <div class="tour-detail__container">
+    <div class="tour-detail__state" *ngIf="loading">Đang tải chi tiết tour...</div>
+
+    <div class="tour-detail__state tour-detail__state--error" *ngIf="!loading && errorMessage && !tour">
+      <p>{{ errorMessage }}</p>
+      <button type="button" (click)="backToTours()">Quay lại danh sách tour</button>
+    </div>
+
+    <ng-container *ngIf="tour as tourData">
+      <nav class="tour-detail__breadcrumb">
+        HOME &gt; {{ tourData.categoryName || 'TOUR' }} &gt; {{ tourData.title }}
+      </nav>
+
+      <h1 class="tour-detail__title">{{ tourData.title }}</h1>
+
+      <div class="tour-detail__layout">
+        <main class="tour-detail__main">
+          <img
+            class="tour-detail__hero-image"
+            [src]="selectedImage"
+            [alt]="tourData.title"
+            (error)="handleImageError($event)"
+          />
+
+          <div class="tour-detail__gallery">
+            <button
+              *ngFor="let image of galleryImages"
+              type="button"
+              class="tour-detail__thumb"
+              [ngClass]="{ 'tour-detail__thumb--active': image === selectedImage }"
+              (click)="selectImage(image)"
+            >
+              <img [src]="image" [alt]="tourData.title" (error)="handleImageError($event)" />
+            </button>
+          </div>
+
+          <div class="tour-detail__quick-info">
+            <span>{{ durationText }}</span>
+            <span>{{ tourData.departureLocation || 'Đang cập nhật điểm đi' }}</span>
+            <span>{{ tourData.availableSeats || tourData.maxParticipants || 0 }} chỗ</span>
+            <span>{{ tourData.destinationName || 'VoyageViet' }}</span>
+          </div>
+
+          <section id="tour-info" class="tour-detail__section">
+            <h2 class="tour-detail__section-title">Thông Tin Tour</h2>
+            <div
+              class="tour-detail__description"
+              [ngClass]="{ 'tour-detail__description--open': showFullDescription }"
+              [innerHTML]="tourData.description || tourData.shortDescription || 'Thông tin tour đang được cập nhật.'"
+            ></div>
+            <button type="button" class="tour-detail__text-button" (click)="showFullDescription = !showFullDescription">
+              {{ showFullDescription ? 'Thu gọn' : 'Xem tất cả' }}
+            </button>
+          </section>
+
+          <section id="tour-itinerary" class="tour-detail__section">
+            <h2 class="tour-detail__section-title">Lịch Trình Tour</h2>
+            <div class="tour-detail__itinerary" *ngIf="itinerary.length; else emptyItinerary">
+              <article *ngFor="let item of itinerary" class="tour-detail__itinerary-card">
+                <strong>NGÀY {{ item.dayNumber || 1 }} | {{ item.title || 'Lịch trình đang cập nhật' }}</strong>
+                <p [innerHTML]="item.description || 'Nội dung lịch trình đang được cập nhật.'"></p>
+                <div class="tour-detail__tags" *ngIf="asTextList(item.meals).length">
+                  <span *ngFor="let meal of asTextList(item.meals)">{{ meal }}</span>
+                </div>
+                <div class="tour-detail__tags" *ngIf="asTextList(item.transportModes).length">
+                  <span *ngFor="let transport of asTextList(item.transportModes)">{{ transport }}</span>
+                </div>
+                <div class="tour-detail__places" *ngIf="asTextList(item.placeNames).length">
+                  {{ asTextList(item.placeNames).join(' - ') }}
+                </div>
+              </article>
+            </div>
+            <ng-template #emptyItinerary>
+              <div class="tour-detail__empty">Lịch trình tour đang được cập nhật.</div>
+            </ng-template>
+          </section>
+
+          <section id="tour-schedules" class="tour-detail__section">
+            <h2 class="tour-detail__section-title">Lịch Khởi Hành</h2>
+            <div class="tour-detail__schedule-table" *ngIf="schedules.length; else emptySchedules">
+              <button
+                *ngFor="let schedule of schedules"
+                type="button"
+                class="tour-detail__schedule-row"
+                [ngClass]="{ 'tour-detail__schedule-row--active': isScheduleSelected(schedule) }"
+                (click)="selectSchedule(schedule)"
+              >
+                <span>{{ formatDate(schedule.departureDate) }}</span>
+                <span>{{ formatDate(schedule.returnDate) }}</span>
+                <strong>{{ formatCurrency(schedule.priceAdult || basePrice) }}</strong>
+                <em>{{ formatScheduleStatus(schedule) }}</em>
+              </button>
+            </div>
+            <ng-template #emptySchedules>
+              <div class="tour-detail__empty">Chưa có lịch khởi hành công khai cho tour này.</div>
+            </ng-template>
+          </section>
+
+          <section id="tour-price" class="tour-detail__section">
+            <h2 class="tour-detail__section-title">Thông Tin Chi Tiết Giá Tour</h2>
+            <div class="tour-detail__price-tabs">
+              <button
+                *ngFor="let tab of priceTabs"
+                type="button"
+                [ngClass]="{ 'tour-detail__price-tab--active': activePriceTab === tab.id }"
+                (click)="setActivePriceTab(tab.id)"
+              >
+                {{ tab.label }}
+              </button>
+            </div>
+            <div class="tour-detail__price-panel" [innerHTML]="activePriceText"></div>
+          </section>
+
+          <section class="tour-detail__section">
+            <h2 class="tour-detail__section-title">Sản Phẩm Tour Liên Quan</h2>
+            <div class="tour-detail__related" *ngIf="relatedTours.length; else emptyRelated">
+              <app-tour-card *ngFor="let item of relatedTours" [tour]="item" />
+            </div>
+            <ng-template #emptyRelated>
+              <div class="tour-detail__empty">Chưa có tour liên quan để hiển thị.</div>
+            </ng-template>
+          </section>
+
+          <section id="tour-reviews" class="tour-detail__section">
+            <h2 class="tour-detail__section-title">Đánh Giá Sản Phẩm</h2>
+            <div class="tour-detail__review-summary">
+              <div>
+                <strong>{{ averageRating || 0 }}</strong>
+                <span>/5 từ {{ reviewTotal }} đánh giá</span>
+              </div>
+              <div class="tour-detail__rating-bars">
+                <div *ngFor="let star of [5, 4, 3, 2, 1]">
+                  <span>{{ star }} sao</span>
+                  <i><b [style.width.%]="getRatingPercent(star)"></b></i>
+                  <em>{{ getRatingCount(star) }}</em>
+                </div>
+              </div>
+            </div>
+
+            <article class="tour-detail__review" *ngFor="let review of reviews">
+              <strong>{{ review.userFullName || 'Khách hàng VoyageViet' }}</strong>
+              <span>{{ review.rating }}/5 - {{ formatDate(review.createdAt) }}</span>
+              <p>{{ review.comment || 'Khách hàng chưa để lại bình luận chi tiết.' }}</p>
+            </article>
+
+            <div class="tour-detail__empty" *ngIf="!reviews.length">Chưa có đánh giá.</div>
+
+            <form class="tour-detail__comment">
+              <input type="text" value="Đăng nhập để gửi đánh giá" disabled />
+              <textarea rows="4" placeholder="Bình luận" disabled></textarea>
+              <button type="button" disabled>Gửi đánh giá</button>
+            </form>
+          </section>
+        </main>
+
+        <aside class="tour-detail__sidebar">
+          <section class="tour-detail__booking-card">
+            <h2 class="tour-detail__booking-title">ĐẶT NGAY, CHỈ 2 PHÚT</h2>
+            <p class="tour-detail__booking-price">{{ formatCurrency(basePrice) }}</p>
+            <p>{{ tourData.departureLocation || 'Đang cập nhật điểm đi' }}</p>
+
+            <label>
+              Chọn ngày khởi hành
+              <select (change)="selectSchedule(schedules[$any($event.target).selectedIndex - 1])">
+                <option>Chọn lịch khởi hành</option>
+                <option *ngFor="let schedule of schedules">
+                  {{ formatDate(schedule.departureDate) }} - {{ formatScheduleStatus(schedule) }}
+                </option>
+              </select>
+            </label>
+
+            <div class="tour-detail__booking-dates" *ngIf="displaySchedule as schedule">
+              <span>Ngày đi: {{ formatDate(schedule.departureDate) }}</span>
+              <span>Ngày về: {{ formatDate(schedule.returnDate) }}</span>
+              <span>{{ formatScheduleStatus(schedule) }}</span>
+            </div>
+
+            <div class="tour-detail__counter">
+              <span>Người lớn</span>
+              <button type="button" (click)="changeCount('adult', -1)">-</button>
+              <strong>{{ adultCount }}</strong>
+              <button type="button" (click)="changeCount('adult', 1)">+</button>
+            </div>
+            <div class="tour-detail__counter">
+              <span>Trẻ em</span>
+              <button type="button" (click)="changeCount('child', -1)">-</button>
+              <strong>{{ childCount }}</strong>
+              <button type="button" (click)="changeCount('child', 1)">+</button>
+            </div>
+            <div class="tour-detail__counter">
+              <span>Em bé</span>
+              <button type="button" (click)="changeCount('infant', -1)">-</button>
+              <strong>{{ infantCount }}</strong>
+              <button type="button" (click)="changeCount('infant', 1)">+</button>
+            </div>
+
+            <input class="tour-detail__coupon" type="text" placeholder="Mã giảm giá" />
+
+            <div class="tour-detail__total">
+              <span>Tổng cộng</span>
+              <strong>{{ formatCurrency(totalPrice) }}</strong>
+            </div>
+
+            <button type="button" class="tour-detail__cta" (click)="bookNow()">ĐẶT NGAY</button>
+            <p class="tour-detail__booking-message" *ngIf="bookingMessage">{{ bookingMessage }}</p>
+            <button type="button" class="tour-detail__support">HOTLINE ĐẶT TOUR</button>
+            <button type="button" class="tour-detail__support">Liên hệ tư vấn</button>
+          </section>
+
+          <nav class="tour-detail__anchor-card">
+            <button type="button" (click)="scrollTo('tour-info')">THÔNG TIN TOUR</button>
+            <button type="button" (click)="scrollTo('tour-itinerary')">LỊCH TRÌNH TOUR</button>
+            <button type="button" (click)="scrollTo('tour-schedules')">LỊCH KHỞI HÀNH KHÁC</button>
+            <button type="button" (click)="scrollTo('tour-price')">THỦ TỤC XIN VISA</button>
+          </nav>
+
+          <section class="tour-detail__side-block">
+            <h3>SẢN PHẨM BẠN ĐÃ XEM</h3>
+            <a class="tour-detail__mini-card" *ngFor="let item of relatedTours.slice(0, 5)" [routerLink]="['/tours', item.slug]">
+              <img [src]="item.thumbnailUrl || fallbackImage" [alt]="item.title" (error)="handleImageError($event)" />
+              <span>{{ item.title }}</span>
+            </a>
+          </section>
+
+          <section class="tour-detail__side-block">
+            <h3>TIN MỚI</h3>
+            <div class="tour-detail__mini-card" *ngFor="let item of relatedTours.slice(0, 3)">
+              <img [src]="item.thumbnailUrl || fallbackImage" [alt]="item.title" (error)="handleImageError($event)" />
+              <span>{{ item.destinationName || item.title }}</span>
+            </div>
+          </section>
+        </aside>
+      </div>
+    </ng-container>
   </div>
 </section>

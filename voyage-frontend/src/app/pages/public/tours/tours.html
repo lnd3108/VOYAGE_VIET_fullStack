@@ -1,7 +1,142 @@
-<section class="placeholder-page">
-  <div class="vv-container">
-    <p class="eyebrow">Public Page</p>
-    <h1>Danh sách tour</h1>
-    <p>Route `/tours` đã hoạt động. Tour List + filter sẽ làm sau.</p>
+<section class="tours-page">
+  <div class="tours-page__container">
+    <nav class="tours-page__breadcrumb">HOME &gt; {{ pageTitle }}</nav>
+
+    <section class="tours-page__banner">
+      <img src="/hero/bg-home.png" alt="VoyageViet tours" />
+      <div class="tours-page__banner-copy">
+        <span>VoyageViet</span>
+        <h1>Khám phá hành trình phù hợp</h1>
+      </div>
+    </section>
+
+    <div class="tours-page__chips tours-page__chips--image">
+      <button
+        *ngFor="let chip of destinationChips"
+        type="button"
+        class="tours-page__chip tours-page__chip--image"
+        [ngClass]="{ 'tours-page__chip--active': isChipActive(chip) }"
+        (click)="applyFilter(chip.queryParams)"
+      >
+        {{ chip.label }}
+      </button>
+    </div>
+
+    <div class="tours-page__chips">
+      <button
+        *ngFor="let chip of regionChips"
+        type="button"
+        class="tours-page__chip"
+        [ngClass]="{ 'tours-page__chip--active': isChipActive(chip) }"
+        (click)="applyFilter(chip.queryParams)"
+      >
+        {{ chip.label }}
+      </button>
+    </div>
+
+    <div class="tours-page__filters">
+      <strong>Bộ lọc:</strong>
+
+      <details class="tours-page__filter-item">
+        <summary>Loại hình tour</summary>
+        <div class="tours-page__filter-menu">
+          <button *ngFor="let item of tourTypeOptions" type="button" (click)="applyFilter(item.queryParams)">
+            {{ item.label }}
+          </button>
+        </div>
+      </details>
+
+      <details class="tours-page__filter-item">
+        <summary>Lọc theo giá</summary>
+        <div class="tours-page__filter-menu">
+          <button *ngFor="let item of priceOptions" type="button" (click)="applyFilter(item.queryParams)">
+            {{ item.label }}
+          </button>
+        </div>
+      </details>
+
+      <details class="tours-page__filter-item">
+        <summary>Điểm đi</summary>
+        <div class="tours-page__filter-menu">
+          <button *ngFor="let item of departureOptions" type="button" (click)="applyFilter(item.queryParams)">
+            {{ item.label }}
+          </button>
+        </div>
+      </details>
+
+      <details class="tours-page__filter-item">
+        <summary>Điểm đến</summary>
+        <div class="tours-page__filter-menu">
+          <button *ngFor="let item of destinationOptions" type="button" (click)="applyFilter(item.queryParams)">
+            {{ item.label }}
+          </button>
+        </div>
+      </details>
+
+      <details class="tours-page__filter-item">
+        <summary>Số ngày</summary>
+        <div class="tours-page__filter-menu">
+          <button *ngFor="let item of durationOptions" type="button" (click)="applyFilter(item.queryParams)">
+            {{ item.label }}
+          </button>
+        </div>
+      </details>
+
+      <details class="tours-page__filter-item">
+        <summary>Số người</summary>
+        <div class="tours-page__filter-menu">
+          <button *ngFor="let item of peopleOptions" type="button" (click)="applyFilter(item.queryParams)">
+            {{ item.label }}
+          </button>
+        </div>
+      </details>
+
+      <details class="tours-page__filter-item tours-page__filter-item--sort">
+        <summary>Lọc theo</summary>
+        <div class="tours-page__filter-menu">
+          <button *ngFor="let item of sortOptions" type="button" (click)="applyFilter(item.queryParams)">
+            {{ item.label }}
+          </button>
+        </div>
+      </details>
+
+      <button type="button" class="tours-page__clear" (click)="clearFilters()">Xóa lọc</button>
+    </div>
+
+    <header class="tours-page__header">
+      <div>
+        <h2>{{ pageTitle }}</h2>
+        <p *ngIf="totalElements">{{ totalElements }} tour phù hợp</p>
+      </div>
+    </header>
+
+    <div class="tours-page__state" *ngIf="loading">Đang tải danh sách tour...</div>
+    <div class="tours-page__state tours-page__state--error" *ngIf="errorMessage">
+      {{ errorMessage }}
+    </div>
+
+    <div class="tours-page__grid" *ngIf="tours.length; else emptyTours">
+      <app-tour-card *ngFor="let tour of tours" [tour]="tour" />
+    </div>
+
+    <ng-template #emptyTours>
+      <div class="tours-page__state" *ngIf="!loading && !errorMessage">
+        Chưa có tour phù hợp với bộ lọc hiện tại.
+      </div>
+    </ng-template>
+
+    <div class="tours-page__more" *ngIf="hasMore">
+      <button type="button" (click)="loadMore()">Xem thêm</button>
+    </div>
+
+    <section class="tours-page__detail">
+      <h2>Đánh Giá Chi Tiết</h2>
+      <p>
+        VoyageViet chọn lọc các hành trình có lịch trình rõ ràng, dịch vụ ổn định và mức giá minh bạch.
+        Bạn có thể dùng bộ lọc phía trên để nhanh chóng tìm tour phù hợp với ngân sách, thời lượng và điểm đến.
+      </p>
+      <img src="/hero/bg-home.png" alt="Khám phá tour cùng VoyageViet" />
+      <button type="button" (click)="clearFilters()">Khám phá thêm</button>
+    </section>
   </div>
 </section>

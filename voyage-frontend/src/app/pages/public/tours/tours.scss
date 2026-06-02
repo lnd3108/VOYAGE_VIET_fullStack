@@ -1,0 +1,355 @@
+$primary: #1f6f68;
+$primary-dark: #14534f;
+$secondary: #2f8f84;
+$bg: #f8faf9;
+$muted: #64748b;
+$border: #e8e8e8;
+$danger: #da0808;
+
+.tours-page {
+  background: $bg;
+  padding: 28px 0 64px;
+
+  &__container {
+    width: min(1200px, calc(100% - 32px));
+    margin: 0 auto;
+  }
+
+  &__breadcrumb {
+    margin-bottom: 14px;
+    color: #8a8f98;
+    font-size: 12px;
+    font-weight: 800;
+    text-transform: uppercase;
+  }
+
+  &__banner {
+    position: relative;
+    min-height: 220px;
+    overflow: hidden;
+    border-radius: 8px;
+    background: $primary-dark;
+
+    img {
+      width: 100%;
+      height: 100%;
+      min-height: 220px;
+      object-fit: cover;
+      opacity: 0.72;
+    }
+  }
+
+  &__banner-copy {
+    position: absolute;
+    left: 32px;
+    bottom: 28px;
+    max-width: 560px;
+    color: #fff;
+
+    span {
+      font-size: 13px;
+      font-weight: 900;
+      text-transform: uppercase;
+    }
+
+    h1 {
+      margin: 6px 0 0;
+      font-size: 34px;
+      line-height: 1.15;
+    }
+  }
+
+  &__chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px 14px;
+    margin-top: 14px;
+
+    &--image {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+    }
+  }
+
+  &__chip {
+    min-height: 36px;
+    padding: 0 14px;
+    border: 1px solid $border;
+    border-radius: 7px;
+    background: #fff;
+    color: #6b7280;
+    font-weight: 800;
+    cursor: pointer;
+
+    &--active {
+      border-color: $primary;
+      background: $primary;
+      color: #fff;
+    }
+
+    &--image {
+      min-height: 64px;
+      color: #fff;
+      background:
+        linear-gradient(rgba(20, 83, 79, 0.25), rgba(20, 83, 79, 0.45)),
+        url('/hero/bg-home.png') center / cover;
+      font-size: 18px;
+    }
+  }
+
+  &__filters {
+    position: relative;
+    z-index: 2;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: 18px;
+    padding: 10px 12px;
+    border: 1px solid $border;
+    border-radius: 8px;
+    background: #fff;
+    box-shadow: 0 3px 8px rgba(15, 23, 42, 0.08);
+
+    strong {
+      flex: 0 0 auto;
+      color: $primary;
+    }
+  }
+
+  &__filter-item {
+    position: relative;
+    flex: 0 0 auto;
+
+    summary {
+      min-height: 36px;
+      padding: 8px 10px;
+      border-radius: 6px;
+      color: #202733;
+      list-style: none;
+      cursor: pointer;
+    }
+
+    summary::-webkit-details-marker {
+      display: none;
+    }
+
+    summary::after {
+      content: '⌄';
+      margin-left: 6px;
+      color: $secondary;
+    }
+
+    &[open] summary::after {
+      content: '⌃';
+    }
+
+    &[open] {
+      summary {
+        color: $danger;
+      }
+    }
+
+    &--sort {
+      margin-left: auto;
+      border-left: 1px solid $border;
+      padding-left: 10px;
+    }
+  }
+
+  &__filter-menu {
+    position: absolute;
+    top: calc(100% + 8px);
+    left: 0;
+    z-index: 5;
+    min-width: 180px;
+    overflow: hidden;
+    border-radius: 8px;
+    background: #fff;
+    box-shadow: 0 14px 30px rgba(15, 23, 42, 0.16);
+
+    button {
+      display: block;
+      width: 100%;
+      padding: 9px 12px;
+      border: 0;
+      background: #fff;
+      color: $primary;
+      text-align: left;
+      white-space: nowrap;
+      cursor: pointer;
+
+      &:hover {
+        background: #eefaf7;
+      }
+    }
+  }
+
+  &__clear {
+    border: 0;
+    background: transparent;
+    color: $muted;
+    font-weight: 800;
+    cursor: pointer;
+  }
+
+  &__header {
+    margin-top: 44px;
+
+    h2 {
+      margin: 0;
+      color: $primary;
+      font-size: 32px;
+      line-height: 1.2;
+    }
+
+    p {
+      margin: 6px 0 0;
+      color: $muted;
+      font-weight: 700;
+    }
+  }
+
+  &__grid {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 24px;
+    margin-top: 20px;
+  }
+
+  &__state {
+    margin-top: 18px;
+    padding: 18px;
+    border: 1px dashed rgba(31, 111, 104, 0.28);
+    border-radius: 8px;
+    background: #fff;
+    color: $primary;
+    font-weight: 800;
+    text-align: center;
+
+    &--error {
+      border-color: rgba(218, 8, 8, 0.2);
+      color: $danger;
+    }
+  }
+
+  &__more {
+    margin-top: 36px;
+    text-align: center;
+
+    button {
+      min-height: 44px;
+      padding: 0 24px;
+      border: 2px solid $primary;
+      border-radius: 7px;
+      background: #fff;
+      color: $primary;
+      font-size: 18px;
+      font-weight: 800;
+      cursor: pointer;
+    }
+  }
+
+  &__detail {
+    margin-top: 56px;
+    padding: 24px;
+    border-radius: 8px;
+    background: #fff;
+    box-shadow: 0 2px 8px rgba(15, 23, 42, 0.08);
+
+    h2 {
+      margin: 0 0 12px;
+      color: $primary;
+      font-size: 22px;
+    }
+
+    p {
+      margin: 0 0 20px;
+      color: #172033;
+      line-height: 1.65;
+    }
+
+    img {
+      width: 100%;
+      max-height: 520px;
+      border-radius: 8px;
+      object-fit: cover;
+    }
+
+    button {
+      display: block;
+      min-height: 42px;
+      margin: 22px auto 0;
+      padding: 0 22px;
+      border: 2px solid $primary;
+      border-radius: 7px;
+      background: #fff;
+      color: $primary;
+      font-size: 16px;
+      font-weight: 800;
+    }
+  }
+}
+
+@media (max-width: 1024px) {
+  .tours-page {
+    &__chips--image,
+    &__grid {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    &__filters {
+      overflow-x: auto;
+    }
+  }
+}
+
+@media (max-width: 640px) {
+  .tours-page {
+    padding-top: 18px;
+
+    &__banner,
+    &__banner img {
+      min-height: 170px;
+    }
+
+    &__banner-copy {
+      left: 18px;
+      right: 18px;
+      bottom: 18px;
+
+      h1 {
+        font-size: 24px;
+      }
+    }
+
+    &__chips {
+      flex-wrap: nowrap;
+      overflow-x: auto;
+      padding-bottom: 4px;
+
+      &--image {
+        display: flex;
+      }
+    }
+
+    &__chip {
+      flex: 0 0 auto;
+
+      &--image {
+        width: 220px;
+      }
+    }
+
+    &__grid {
+      grid-template-columns: 1fr;
+    }
+
+    &__header h2 {
+      font-size: 26px;
+    }
+
+    &__detail {
+      padding: 18px;
+    }
+  }
+}
