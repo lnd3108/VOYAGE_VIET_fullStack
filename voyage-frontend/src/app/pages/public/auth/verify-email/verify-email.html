@@ -1,0 +1,38 @@
+<section class="verify-email">
+  <div class="verify-email__container">
+    <nav class="verify-email__breadcrumb">
+      <a routerLink="/">HOME</a>
+      <span>XÁC THỰC EMAIL</span>
+    </nav>
+
+    <article class="verify-email__card">
+      <div
+        class="verify-email__icon"
+        [ngClass]="'verify-email__icon--' + status()"
+        aria-hidden="true"
+      >
+        <span *ngIf="status() === 'loading'"></span>
+        <span *ngIf="status() === 'success'">✓</span>
+        <span *ngIf="status() === 'error'">!</span>
+      </div>
+
+      <h1 class="verify-email__title">{{ title }}</h1>
+      <p class="verify-email__subtitle">{{ subtitle }}</p>
+
+      <div class="verify-email__message" *ngIf="status() === 'success'">
+        Xác thực email thành công. Bạn có thể đăng nhập và sử dụng tài khoản.
+      </div>
+
+      <div class="verify-email__message verify-email__message--error" *ngIf="status() === 'error'">
+        {{ message() }}
+      </div>
+
+      <div class="verify-email__actions" *ngIf="status() !== 'loading'">
+        <a class="verify-email__button" routerLink="/login">
+          {{ status() === 'success' ? 'Đăng nhập ngay' : 'Đăng nhập' }}
+        </a>
+        <a class="verify-email__link" routerLink="/">Về trang chủ</a>
+      </div>
+    </article>
+  </div>
+</section>

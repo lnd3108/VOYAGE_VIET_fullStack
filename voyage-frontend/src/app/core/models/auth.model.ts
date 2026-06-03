@@ -22,6 +22,10 @@ export interface ResetPasswordRequest {
   confirmPassword: string;
 }
 
+export interface VerifyEmailRequest {
+  token: string;
+}
+
 export interface LoginResponse {
   accessToken: string;
   tokenType: string;

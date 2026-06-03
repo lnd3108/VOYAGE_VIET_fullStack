@@ -825,3 +825,65 @@ Thời gian cập nhật: 2026-06-03 09:48:40 +07:00
 - Backend hiện chưa có SMTP thật nên Forgot Password chỉ hiển thị hướng dẫn kiểm tra email; token reset có thể đang được backend log ở server.
 - Reset Password không tự đăng nhập sau khi đổi mật khẩu để tránh lưu nhầm token reset như access token.
 - Hai component auth mới đặt explicit `standalone: true` vì các lỗi trước đó liên quan component có `imports` nhưng chưa được nhận diện standalone.
+
+## Cập Nhật: UI Xác Thực Email
+
+Thời gian cập nhật: 2026-06-03 10:04:23 +07:00
+
+### File Đã Sửa/Tạo Mới
+
+- `src/app/app.routes.ts`
+- `src/app/core/auth/auth.service.ts`
+- `src/app/core/models/auth.model.ts`
+- `src/app/pages/public/auth/verify-email/verify-email.ts`
+- `src/app/pages/public/auth/verify-email/verify-email.html`
+- `src/app/pages/public/auth/verify-email/verify-email.scss`
+- `VOYAGE_FRONTEND_AUDIT_REPORT.md`
+
+### Đầu Việc Đã Làm
+
+- Thêm route public `/verify-email` dưới PublicLayout, không authGuard.
+- Tạo component standalone `VerifyEmail`.
+- Bổ sung model request xác thực email.
+- Bổ sung method API trong `AuthService`.
+- Không sửa login/register flow, forgot/reset password, profile, tours, booking, wishlist, admin routes hoặc PublicLayout.
+
+### Chức Năng Đã Thêm/Sửa
+
+- `/verify-email` đọc `token` từ query params.
+- Nếu thiếu token, không gọi API và hiển thị error card.
+- Nếu có token, component gọi verify email một lần trong `ngOnInit`.
+- Hiển thị đầy đủ trạng thái:
+  - loading: đang xác thực email
+  - success: xác thực email thành công
+  - error: link không hợp lệ/hết hạn hoặc lỗi backend
+- Có nút điều hướng:
+  - Đăng nhập / Đăng nhập ngay
+  - Về trang chủ
+- Không tự đăng nhập sau verify email.
+- Không lưu verify token vào localStorage.
+- UI dùng card trắng, border `#E8E8E8`, theme teal/green, không dùng màu xanh cũ `#004FA8`.
+
+### API Đã Nối
+
+- `AuthService.verifyEmail(token)` gọi `POST /api/auth/verify-email`.
+- Payload:
+  - `token`
+
+### Kết Quả Build/Test
+
+- `npx ng build --configuration development`: pass.
+- `npm run build`: pass.
+
+### Warning/Lỗi Còn Lại
+
+- Initial bundle vẫn vượt warning budget: budget 500.00 kB, total 846.81 kB.
+- `src/app/layouts/public-layout/public-layout.scss` vẫn vượt warning budget: 9.99 kB.
+- `src/app/pages/public/home/components/home-hero/home-hero.scss` vẫn vượt warning budget: 9.88 kB.
+- Không có lỗi compile sau bước này.
+
+### Ghi Chú Kỹ Thuật Và Rủi Ro
+
+- Verify token chỉ được đọc từ query params và gửi một lần sang backend; không lưu vào browser storage.
+- Backend email verify token đến từ email hoặc log server, frontend không có flow gửi lại verify email trong bước này vì chưa có API resend.
+- Nếu user đang đăng nhập sẵn, trang verify vẫn không tự refresh `currentUser`; profile sẽ phản ánh `emailVerified` khi gọi lại `/users/me`.

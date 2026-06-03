@@ -10,6 +10,7 @@ import { Login } from './pages/public/auth/login/login';
 import { Register } from './pages/public/auth/register/register';
 import { ForgotPassword } from './pages/public/auth/forgot-password/forgot-password';
 import { ResetPassword } from './pages/public/auth/reset-password/reset-password';
+import { VerifyEmail } from './pages/public/auth/verify-email/verify-email';
 import { BookingLookup } from './pages/public/booking-lookup/booking-lookup';
 import { BookingCheckout } from './pages/public/booking-checkout/booking-checkout';
 import { BookingSuccess } from './pages/public/booking-success/booking-success';
@@ -70,6 +71,11 @@ export const routes: Routes = [
         path: 'reset-password',
         component: ResetPassword,
         title: 'Đặt lại mật khẩu - VoyageViet',
+      },
+      {
+        path: 'verify-email',
+        component: VerifyEmail,
+        title: 'Xác thực email - VoyageViet',
       },
       {
         path: 'booking-lookup',

@@ -10,6 +10,7 @@ import {
   LoginResponse,
   RegisterRequest,
   ResetPasswordRequest,
+  VerifyEmailRequest,
 } from '../models/auth.model';
 import { RoleCode, UserResponse } from '../models/user.model';
 
@@ -48,6 +49,11 @@ export class AuthService {
 
   resetPassword(request: ResetPasswordRequest) {
     return this.http.post<ApiResponse<unknown>>(`${this.apiUrl}/auth/reset-password`, request);
+  }
+
+  verifyEmail(token: string) {
+    const request: VerifyEmailRequest = { token };
+    return this.http.post<ApiResponse<unknown>>(`${this.apiUrl}/auth/verify-email`, request);
   }
 
   me() {
