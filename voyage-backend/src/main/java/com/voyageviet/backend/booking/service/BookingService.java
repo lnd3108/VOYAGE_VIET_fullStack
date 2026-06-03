@@ -6,6 +6,7 @@ import com.voyageviet.backend.booking.dto.BookingCreateRequest;
 import com.voyageviet.backend.booking.dto.BookingResponse;
 import com.voyageviet.backend.booking.dto.BookingStatusUpdateRequest;
 import com.voyageviet.backend.booking.entity.Booking;
+import com.voyageviet.backend.booking.entity.BookingPaymentStatus;
 import com.voyageviet.backend.booking.entity.BookingStatus;
 import com.voyageviet.backend.booking.repository.BookingRepository;
 import com.voyageviet.backend.common.exception.BusinessException;
@@ -13,6 +14,7 @@ import com.voyageviet.backend.common.exception.ErrorCode;
 import com.voyageviet.backend.common.paging.PageResponse;
 import com.voyageviet.backend.feature.entity.FeatureCode;
 import com.voyageviet.backend.feature.service.FeatureGuardService;
+import com.voyageviet.backend.promotion.service.PromotionService;
 import com.voyageviet.backend.tour.entity.Tour;
 import com.voyageviet.backend.tour.entity.TourSchedule;
 import com.voyageviet.backend.tour.entity.TourScheduleStatus;
@@ -51,6 +53,7 @@ public class BookingService {
     private final UserRepository userRepository;
     private final FeatureGuardService featureGuardService;
     private final AuditLogService auditLogService;
+    private final PromotionService promotionService;
 
     @Transactional
     public BookingResponse createBooking(Authentication authentication, BookingCreateRequest request) {
@@ -100,9 +103,23 @@ public class BookingService {
         BigDecimal priceChild = defaultMoney(schedule.getPriceChild());
         BigDecimal priceInfant = defaultMoney(schedule.getPriceInfant());
         BigDecimal singleSupplement = defaultMoney(schedule.getSingleSupplement());
-        BigDecimal totalAmount = priceAdult.multiply(BigDecimal.valueOf(adultCount))
+        BigDecimal originalAmount = priceAdult.multiply(BigDecimal.valueOf(adultCount))
                 .add(priceChild.multiply(BigDecimal.valueOf(childCount)))
                 .add(priceInfant.multiply(BigDecimal.valueOf(infantCount)));
+        BigDecimal discountAmount = BigDecimal.ZERO;
+        BigDecimal totalAmount = originalAmount;
+        PromotionService.ApplyPromotionResult promotionResult = null;
+
+        if (request.promoCode() != null && !request.promoCode().isBlank()) {
+            promotionResult = promotionService.applyPromotionForBooking(
+                    request.promoCode(),
+                    originalAmount,
+                    tour.getId(),
+                    user.getId()
+            );
+            discountAmount = promotionResult.discountAmount();
+            totalAmount = promotionResult.finalAmount();
+        }
 
         schedule.setBookedSeats(currentBookedSeats + totalPeople);
         if (schedule.getBookedSeats() >= schedule.getMaxSeats()) {
@@ -128,14 +145,27 @@ public class BookingService {
                 .priceChildSnapshot(priceChild)
                 .priceInfantSnapshot(priceInfant)
                 .singleSupplementSnapshot(singleSupplement)
+                .promotion(promotionResult == null ? null : promotionResult.promotion())
+                .promoCodeSnapshot(promotionResult == null ? null : promotionResult.code())
+                .originalAmount(originalAmount)
+                .discountAmount(discountAmount)
                 .totalAmount(totalAmount)
                 .status(BookingStatus.PENDING)
+                .paymentStatus(BookingPaymentStatus.UNPAID)
                 .note(trimToNull(request.note()))
                 .build();
 
         try {
             scheduleRepository.saveAndFlush(schedule);
             Booking savedBooking = bookingRepository.save(booking);
+            if (promotionResult != null) {
+                promotionService.recordPromotionUsage(
+                        promotionResult.promotion(),
+                        user,
+                        savedBooking,
+                        promotionResult.discountAmount()
+                );
+            }
             return toResponse(savedBooking);
         } catch (ObjectOptimisticLockingFailureException ex) {
             throw new BusinessException(ErrorCode.CONFLICT, "Có người vừa đặt lịch này, vui lòng thử lại.");
@@ -306,10 +336,13 @@ public class BookingService {
                 booking.getPriceChildSnapshot(),
                 booking.getPriceInfantSnapshot(),
                 booking.getSingleSupplementSnapshot(),
+                booking.getOriginalAmount(),
+                booking.getDiscountAmount(),
                 booking.getTotalAmount(),
+                booking.getPromoCodeSnapshot(),
                 booking.getStatus(),
                 booking.getNote(),
-                null,
+                booking.getPaymentStatus() == null ? BookingPaymentStatus.UNPAID.name() : booking.getPaymentStatus().name(),
 
                 booking.getCreatedAt(),
                 booking.getUpdatedAt()

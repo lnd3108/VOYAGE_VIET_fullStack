@@ -1,6 +1,7 @@
 package com.voyageviet.backend.booking.entity;
 
 import com.voyageviet.backend.common.entity.BaseEntity;
+import com.voyageviet.backend.promotion.entity.Promotion;
 import com.voyageviet.backend.tour.entity.Tour;
 import com.voyageviet.backend.tour.entity.TourSchedule;
 import com.voyageviet.backend.user.entity.User;
@@ -23,7 +24,9 @@ import java.time.LocalDate;
                 @Index(name = "IDX_BOOKINGS_TOUR_ID", columnList = "TOUR_ID"),
                 @Index(name = "IDX_BOOKINGS_SCHEDULE_ID", columnList = "SCHEDULE_ID"),
                 @Index(name = "IDX_BOOKINGS_CODE", columnList = "BOOKING_CODE"),
-                @Index(name = "IDX_BOOKINGS_STATUS", columnList = "STATUS")
+                @Index(name = "IDX_BOOKINGS_STATUS", columnList = "STATUS"),
+                @Index(name = "IDX_BOOKINGS_PAYMENT_STATUS", columnList = "PAYMENT_STATUS"),
+                @Index(name = "IDX_BOOKINGS_PROMOTION_ID", columnList = "PROMOTION_ID")
         },
         uniqueConstraints = {
                 @UniqueConstraint(name = "UK_BOOKINGS_CODE", columnNames = "BOOKING_CODE")
@@ -96,6 +99,20 @@ public class Booking extends BaseEntity {
     @Column(name = "SINGLE_SUPPLEMENT_SNAPSHOT", precision = 15, scale = 2)
     private BigDecimal singleSupplementSnapshot;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "PROMOTION_ID")
+    private Promotion promotion;
+
+    @Column(name = "PROMO_CODE_SNAPSHOT", length = 50)
+    private String promoCodeSnapshot;
+
+    @Column(name = "ORIGINAL_AMOUNT", precision = 15, scale = 2)
+    private BigDecimal originalAmount;
+
+    @Builder.Default
+    @Column(name = "DISCOUNT_AMOUNT", nullable = false, precision = 15, scale = 2)
+    private BigDecimal discountAmount = BigDecimal.ZERO;
+
     @Column(name = "TOTAL_AMOUNT", nullable = false, precision = 15, scale = 2)
     private BigDecimal totalAmount;
 
@@ -103,6 +120,11 @@ public class Booking extends BaseEntity {
     @Enumerated(EnumType.STRING)
     @Column(name = "STATUS", nullable = false, length = 30)
     private BookingStatus status = BookingStatus.PENDING;
+
+    @Builder.Default
+    @Enumerated(EnumType.STRING)
+    @Column(name = "PAYMENT_STATUS", nullable = false, length = 30)
+    private BookingPaymentStatus paymentStatus = BookingPaymentStatus.UNPAID;
 
     @Column(name = "NOTE", length = 1000)
     private String note;

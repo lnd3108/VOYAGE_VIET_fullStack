@@ -105,4 +105,7 @@ public interface BookingRepository extends JpaRepository<Booking, Long> {
     List<Booking> findByScheduleId(Long scheduleId);
 
     boolean existsByBookingCode(String bookingCode);
+
+    @EntityGraph(attributePaths = {"user", "tour", "schedule"})
+    Optional<Booking> findByBookingCode(String bookingCode);
 }

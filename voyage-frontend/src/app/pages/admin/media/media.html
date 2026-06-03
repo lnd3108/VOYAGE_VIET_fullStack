@@ -1,6 +1,145 @@
-<app-admin-page-placeholder
-  title="Quản lý media"
-  description="Upload, quản lý và xóa ảnh tour, ảnh điểm đến, ảnh danh mục thông qua Cloudinary."
-  primaryBadge="Media"
-  secondaryBadge="Upload later"
-/>
+<section class="admin-media">
+  <header class="admin-media__header">
+    <div>
+      <p class="admin-media__eyebrow">Admin Media</p>
+      <h1>Quản lý Media</h1>
+      <p>Upload ảnh lên Cloudinary và sử dụng URL cho danh mục, điểm đến, tour</p>
+    </div>
+
+    <div class="admin-media__summary">
+      <strong>{{ totalElements }}</strong>
+      <span>media đã upload</span>
+    </div>
+  </header>
+
+  <div class="admin-media__notice admin-media__notice--success" *ngIf="successMessage">
+    {{ successMessage }}
+  </div>
+
+  <div class="admin-media__error" *ngIf="errorMessage">
+    <p>{{ errorMessage }}</p>
+    <button type="button" *ngIf="!uploading && !deletingId" (click)="retry()">Thử lại</button>
+  </div>
+
+  <section class="admin-media__upload">
+    <div class="admin-media__upload-copy">
+      <span>Upload Cloudinary</span>
+      <h2>Thêm ảnh mới</h2>
+      <p>Frontend gửi file về backend, backend upload Cloudinary và trả URL để dùng lại ở các màn admin sau.</p>
+    </div>
+
+    <label class="admin-media__dropzone" for="admin-media-file">
+      <input
+        #fileInput
+        id="admin-media-file"
+        type="file"
+        accept="image/png,image/jpeg,image/jpg,image/webp"
+        [disabled]="uploading"
+        (change)="onFileSelected($event)"
+      />
+
+      <span class="admin-media__dropzone-icon">IMG</span>
+      <strong>{{ selectedFile?.name || 'Chọn ảnh PNG, JPG, JPEG hoặc WEBP' }}</strong>
+      <small>Tối đa 5MB. Không lưu base64 ở frontend.</small>
+    </label>
+
+    <div class="admin-media__preview">
+      <img
+        *ngIf="previewUrl; else previewEmpty"
+        [src]="previewUrl"
+        alt="Preview ảnh upload"
+        (error)="handleImageError($event)"
+      />
+
+      <ng-template #previewEmpty>
+        <div>
+          <span>Preview</span>
+          <p>Ảnh đã chọn sẽ hiển thị tại đây trước khi upload.</p>
+        </div>
+      </ng-template>
+    </div>
+
+    <div class="admin-media__upload-actions">
+      <label>
+        Module upload
+        <select [value]="uploadModule" [disabled]="uploading" (change)="onUploadModuleChange($event)">
+          <option *ngFor="let module of uploadModuleOptions" [value]="module.value">
+            {{ module.label }}
+          </option>
+        </select>
+      </label>
+
+      <button type="button" [disabled]="uploading || !selectedFile" (click)="uploadMedia()">
+        {{ uploading ? 'Đang upload...' : 'Upload ảnh' }}
+      </button>
+    </div>
+  </section>
+
+  <section class="admin-media__filters" aria-label="Lọc media theo module">
+    <button
+      type="button"
+      *ngFor="let module of moduleOptions"
+      [ngClass]="{ 'admin-media__filter--active': selectedModule === module.value }"
+      (click)="applyModuleFilter(module.value)"
+    >
+      {{ module.label }}
+    </button>
+  </section>
+
+  <section class="admin-media__grid" *ngIf="loading">
+    <article class="admin-media__card admin-media__card--skeleton" *ngFor="let card of skeletonCards">
+      <div class="admin-media__image"></div>
+      <div class="admin-media__meta"></div>
+      <div class="admin-media__meta admin-media__meta--short"></div>
+    </article>
+  </section>
+
+  <section class="admin-media__grid" *ngIf="!loading && mediaItems.length">
+    <article class="admin-media__card" *ngFor="let item of mediaItems">
+      <div class="admin-media__image">
+        <img
+          [src]="getMediaUrl(item) || fallbackImage"
+          [alt]="item.originalFilename || item.publicId || 'Media VoyageViet'"
+          (error)="handleImageError($event)"
+        />
+        <span>{{ moduleLabel(item.module) }}</span>
+      </div>
+
+      <div class="admin-media__meta">
+        <h3>{{ item.originalFilename || item.publicId || 'Ảnh Cloudinary' }}</h3>
+        <p>{{ item.contentType || item.type || item.format || 'image' }} · {{ formatBytes(getMediaSize(item)) }}</p>
+        <p>Ngày tạo: {{ formatDate(item.createdAt) }}</p>
+      </div>
+
+      <label class="admin-media__url">
+        URL ảnh
+        <input type="text" readonly [value]="shortUrl(getMediaUrl(item))" />
+      </label>
+
+      <div class="admin-media__actions">
+        <button type="button" [disabled]="!getMediaUrl(item)" (click)="copyUrl(item)">Copy URL</button>
+        <a *ngIf="getMediaUrl(item)" [href]="getMediaUrl(item)" target="_blank" rel="noopener">Mở ảnh</a>
+        <span *ngIf="!getMediaUrl(item)" class="admin-media__action-disabled">Mở ảnh</span>
+        <button
+          type="button"
+          class="admin-media__delete"
+          [disabled]="!item.id || deletingId === item.id"
+          (click)="deleteMedia(item)"
+        >
+          {{ deletingId === item.id ? 'Đang xóa...' : 'Xóa' }}
+        </button>
+      </div>
+    </article>
+  </section>
+
+  <div class="admin-media__empty" *ngIf="!loading && !errorMessage && !mediaItems.length">
+    <strong>Chưa có media nào</strong>
+    <p>Hãy upload ảnh đầu tiên để lấy URL Cloudinary dùng cho danh mục, điểm đến hoặc tour.</p>
+  </div>
+
+  <div class="admin-media__load-more" *ngIf="!loading && hasMore">
+    <button type="button" [disabled]="loadingMore" (click)="loadMore()">
+      {{ loadingMore ? 'Đang tải...' : 'Xem thêm' }}
+    </button>
+  </div>
+</section>

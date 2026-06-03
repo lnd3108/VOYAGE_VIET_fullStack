@@ -37,6 +37,9 @@ public record BookingCreateRequest(
         @Min(value = 0, message = "Infant count must be greater than or equal to 0")
         Integer infantCount,
 
+        @Size(max = 50, message = "Promotion code must not exceed 50 characters")
+        String promoCode,
+
         @Size(max = 1000, message = "Note must not exceed 1000 characters")
         String note
 ) {
