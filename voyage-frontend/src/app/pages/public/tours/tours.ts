@@ -5,6 +5,8 @@ import { ActivatedRoute, ParamMap, Router } from '@angular/router';
 import { catchError, of, switchMap, tap } from 'rxjs';
 
 import { PublicApiService } from '../../../core/api/public-api.service';
+import { WishlistApiService } from '../../../core/api/wishlist-api.service';
+import { AuthService } from '../../../core/auth/auth.service';
 import { PageResponse } from '../../../core/models/page-response.model';
 import { TourCardResponse, TourSearchParams } from '../../../core/models/tour.model';
 import { TourCard } from '../home/components/tour-card/tour-card';
@@ -28,6 +30,8 @@ interface ToursQuery extends TourSearchParams {
 })
 export class Tours implements OnInit {
   private readonly publicApiService = inject(PublicApiService);
+  private readonly wishlistApiService = inject(WishlistApiService);
+  private readonly authService = inject(AuthService);
   private readonly activatedRoute = inject(ActivatedRoute);
   private readonly router = inject(Router);
   private readonly destroyRef = inject(DestroyRef);
@@ -40,6 +44,10 @@ export class Tours implements OnInit {
   totalElements = 0;
   totalPages = 0;
   currentFilters: ToursQuery = {};
+  wishlistedTourIds = new Set<number>();
+  wishlistLoading = false;
+  wishlistLoaded = false;
+  wishlistUpdatingTourId: number | null = null;
 
   readonly destinationChips: FilterChip[] = [
     { label: 'Hạ Long', queryParams: { keyword: 'Hạ Long' } },
@@ -99,6 +107,8 @@ export class Tours implements OnInit {
   ];
 
   ngOnInit(): void {
+    this.loadWishlistState();
+
     this.activatedRoute.queryParamMap
       .pipe(
         tap((paramMap) => {
@@ -126,6 +136,55 @@ export class Tours implements OnInit {
         this.totalPages = pageResponse.totalPages;
         this.loading = false;
       });
+  }
+
+  isTourWishlisted(tour: TourSummary): boolean {
+    return this.wishlistedTourIds.has(tour.id);
+  }
+
+  onWishlistToggle(tour: TourSummary): void {
+    if (!this.authService.isLoggedIn()) {
+      this.router.navigate(['/login'], {
+        queryParams: {
+          returnUrl: this.router.url,
+        },
+      });
+      return;
+    }
+
+    if (this.wishlistUpdatingTourId) {
+      return;
+    }
+
+    const wasWishlisted = this.wishlistedTourIds.has(tour.id);
+    const nextIds = new Set(this.wishlistedTourIds);
+
+    if (wasWishlisted) {
+      nextIds.delete(tour.id);
+    } else {
+      nextIds.add(tour.id);
+    }
+
+    this.wishlistedTourIds = nextIds;
+    this.wishlistUpdatingTourId = tour.id;
+
+    this.wishlistApiService.toggleWishlist(tour.id).subscribe({
+      next: () => {
+        this.wishlistUpdatingTourId = null;
+      },
+      error: () => {
+        const rollbackIds = new Set(this.wishlistedTourIds);
+
+        if (wasWishlisted) {
+          rollbackIds.add(tour.id);
+        } else {
+          rollbackIds.delete(tour.id);
+        }
+
+        this.wishlistedTourIds = rollbackIds;
+        this.wishlistUpdatingTourId = null;
+      },
+    });
   }
 
   get pageTitle(): string {
@@ -225,6 +284,75 @@ export class Tours implements OnInit {
       page: filters.page,
       size: filters.size,
     }) as TourSearchParams;
+  }
+
+  private loadWishlistState(): void {
+    if (!this.authService.isLoggedIn() || this.wishlistLoading || this.wishlistLoaded) {
+      return;
+    }
+
+    this.wishlistLoading = true;
+
+    this.wishlistApiService
+      .getMyWishlist({ page: 0, size: 100, sortBy: 'createdAt', sortDir: 'desc' })
+      .pipe(catchError(() => of(null)))
+      .subscribe((response) => {
+        this.wishlistedTourIds = this.extractWishlistTourIds(response);
+        this.wishlistLoading = false;
+        this.wishlistLoaded = true;
+      });
+  }
+
+  private extractWishlistTourIds(response: unknown): Set<number> {
+    const ids = this.extractWishlistItems(response)
+      .map((item) => this.getWishlistTourId(item))
+      .filter((id): id is number => typeof id === 'number');
+
+    return new Set(ids);
+  }
+
+  private extractWishlistItems(response: unknown): unknown[] {
+    if (Array.isArray(response)) {
+      return response;
+    }
+
+    if (!this.isRecord(response)) {
+      return [];
+    }
+
+    const data = response['data'];
+
+    if (Array.isArray(data)) {
+      return data;
+    }
+
+    if (this.isRecord(data) && Array.isArray(data['content'])) {
+      return data['content'];
+    }
+
+    if (Array.isArray(response['content'])) {
+      return response['content'];
+    }
+
+    return [];
+  }
+
+  private getWishlistTourId(item: unknown): number | undefined {
+    if (!this.isRecord(item)) {
+      return undefined;
+    }
+
+    if (typeof item['tourId'] === 'number') {
+      return item['tourId'];
+    }
+
+    if (this.isRecord(item['tour']) && typeof item['tour']['id'] === 'number') {
+      return item['tour']['id'];
+    }
+
+    return typeof item['id'] === 'number' && typeof item['title'] === 'string' && typeof item['slug'] === 'string'
+      ? item['id']
+      : undefined;
   }
 
   private extractPage(response: unknown): PageResponse<TourSummary> {

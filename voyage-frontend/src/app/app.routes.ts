@@ -8,9 +8,14 @@ import { Tours } from './pages/public/tours/tours';
 import { TourDetail } from './pages/public/tour-detail/tour-detail';
 import { Login } from './pages/public/auth/login/login';
 import { Register } from './pages/public/auth/register/register';
+import { ForgotPassword } from './pages/public/auth/forgot-password/forgot-password';
+import { ResetPassword } from './pages/public/auth/reset-password/reset-password';
 import { BookingLookup } from './pages/public/booking-lookup/booking-lookup';
+import { BookingCheckout } from './pages/public/booking-checkout/booking-checkout';
 import { BookingSuccess } from './pages/public/booking-success/booking-success';
 import { MyBookings } from './pages/public/my-bookings/my-bookings';
+import { Profile } from './pages/public/profile/profile';
+import { Wishlist } from './pages/public/wishlist/wishlist';
 
 import { Dashboard } from './pages/admin/dashboard/dashboard';
 import { AdminCategories } from './pages/admin/categories/categories';
@@ -57,14 +62,42 @@ export const routes: Routes = [
         title: 'Đăng ký - VoyageViet',
       },
       {
+        path: 'forgot-password',
+        component: ForgotPassword,
+        title: 'Quên mật khẩu - VoyageViet',
+      },
+      {
+        path: 'reset-password',
+        component: ResetPassword,
+        title: 'Đặt lại mật khẩu - VoyageViet',
+      },
+      {
         path: 'booking-lookup',
         component: BookingLookup,
         title: 'Tra cứu booking - VoyageViet',
       },
       {
+        path: 'booking/checkout',
+        component: BookingCheckout,
+        canActivate: [authGuard],
+        title: 'Thanh toán booking - VoyageViet',
+      },
+      {
         path: 'booking-success',
         component: BookingSuccess,
         title: 'Đặt tour thành công - VoyageViet',
+      },
+      {
+        path: 'wishlist',
+        component: Wishlist,
+        canActivate: [authGuard],
+        title: 'Tour yêu thích - VoyageViet',
+      },
+      {
+        path: 'profile',
+        component: Profile,
+        canActivate: [authGuard],
+        title: 'Hồ sơ cá nhân - VoyageViet',
       },
       {
         path: 'my-bookings',

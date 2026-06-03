@@ -1,7 +1,17 @@
-<section class="placeholder-page">
-  <div class="vv-container">
-    <p class="eyebrow">Booking Page</p>
+<section class="booking-success">
+  <div class="booking-success__card">
+    <p class="booking-success__eyebrow">Booking VoyageViet</p>
     <h1>Đặt tour thành công</h1>
-    <p>Route `/booking-success` đã hoạt động.</p>
+    <p>Yêu cầu đặt tour của bạn đã được tạo và đang ở trạng thái chờ xác nhận.</p>
+
+    <div class="booking-success__code" *ngIf="bookingCode || bookingId">
+      <span>Mã booking</span>
+      <strong>{{ bookingCode || bookingId }}</strong>
+    </div>
+
+    <div class="booking-success__actions">
+      <a routerLink="/my-bookings">Xem booking của tôi</a>
+      <a routerLink="/">Về trang chủ</a>
+    </div>
   </div>
 </section>

@@ -1,0 +1,110 @@
+<section class="booking-checkout">
+  <div class="booking-checkout__container">
+    <nav class="booking-checkout__breadcrumb">HOME &gt; BOOKING &gt; CHECKOUT</nav>
+
+    <header class="booking-checkout__header">
+      <h1>Xác nhận đặt tour</h1>
+      <p>Kiểm tra lịch khởi hành và nhập thông tin liên hệ trước khi giữ chỗ.</p>
+    </header>
+
+    <div class="booking-checkout__error" *ngIf="loading">Đang tải thông tin đặt tour...</div>
+
+    <div class="booking-checkout__error booking-checkout__error--danger" *ngIf="!loading && errorMessage">
+      <p>{{ errorMessage }}</p>
+      <button type="button" routerLink="/tours">Quay lại danh sách tour</button>
+    </div>
+
+    <div class="booking-checkout__error booking-checkout__error--danger" *ngIf="!loading && scheduleWarning">
+      <p>{{ scheduleWarning }}</p>
+      <button type="button" (click)="backToTour()">Quay lại chi tiết tour</button>
+    </div>
+
+    <div class="booking-checkout__layout" *ngIf="!loading && !errorMessage && tour && selectedSchedule">
+      <form class="booking-checkout__form-card" [formGroup]="form" (ngSubmit)="submit()">
+        <h2>Thông tin liên hệ</h2>
+
+        <label>
+          Họ và tên
+          <input type="text" formControlName="contactName" placeholder="Nhập họ tên người liên hệ" />
+          <span *ngIf="form.controls.contactName.touched && form.controls.contactName.invalid">
+            Vui lòng nhập họ tên.
+          </span>
+        </label>
+
+        <label>
+          Email
+          <input type="email" formControlName="contactEmail" placeholder="email@example.com" />
+          <span *ngIf="form.controls.contactEmail.touched && form.controls.contactEmail.invalid">
+            Vui lòng nhập email hợp lệ.
+          </span>
+        </label>
+
+        <label>
+          Số điện thoại
+          <input type="tel" formControlName="contactPhone" placeholder="Nhập số điện thoại" />
+          <span *ngIf="form.controls.contactPhone.touched && form.controls.contactPhone.invalid">
+            Vui lòng nhập số điện thoại.
+          </span>
+        </label>
+
+        <label>
+          Ghi chú
+          <textarea rows="4" formControlName="note" placeholder="Yêu cầu đặc biệt nếu có"></textarea>
+        </label>
+
+        <div class="booking-checkout__error booking-checkout__error--danger" *ngIf="submitErrorMessage">
+          {{ submitErrorMessage }}
+        </div>
+
+        <div class="booking-checkout__actions">
+          <button type="button" (click)="backToTour()">Quay lại tour</button>
+          <button type="submit" [disabled]="submitting">
+            {{ submitting ? 'Đang xác nhận...' : 'Xác nhận đặt tour' }}
+          </button>
+        </div>
+      </form>
+
+      <aside class="booking-checkout__summary">
+        <div class="booking-checkout__tour">
+          <img [src]="tour.thumbnailUrl || fallbackImage" [alt]="tour.title" (error)="handleImageError($event)" />
+          <div>
+            <h2>{{ tour.title }}</h2>
+            <p>Mã tour: {{ tour.id }}</p>
+          </div>
+        </div>
+
+        <div class="booking-checkout__row">
+          <span>Ngày khởi hành</span>
+          <strong>{{ formatDate(selectedSchedule.departureDate) }}</strong>
+        </div>
+        <div class="booking-checkout__row">
+          <span>Ngày về</span>
+          <strong>{{ formatDate(selectedSchedule.returnDate) }}</strong>
+        </div>
+        <div class="booking-checkout__row">
+          <span>Thời lượng</span>
+          <strong>{{ durationText }}</strong>
+        </div>
+        <div class="booking-checkout__row">
+          <span>Người lớn</span>
+          <strong>{{ adultCount }} x {{ formatCurrency(adultPrice) }}</strong>
+        </div>
+        <div class="booking-checkout__row">
+          <span>Trẻ em</span>
+          <strong>{{ childCount }} x {{ formatCurrency(childPrice) }}</strong>
+        </div>
+        <div class="booking-checkout__row">
+          <span>Em bé</span>
+          <strong>{{ infantCount }} x {{ formatCurrency(infantPrice) }}</strong>
+        </div>
+
+        <div class="booking-checkout__total">
+          <span>Tổng tiền</span>
+          <strong>{{ formatCurrency(totalPrice) }}</strong>
+        </div>
+
+        <p class="booking-checkout__notice">Booking ở trạng thái PENDING sau khi xác nhận.</p>
+      </aside>
+    </div>
+  </div>
+</section>

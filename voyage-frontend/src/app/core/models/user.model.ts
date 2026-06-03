@@ -8,9 +8,23 @@ export interface UserResponse {
   email: string;
   phone?: string;
   avatarUrl?: string;
+  avatarPublicId?: string;
   status: UserStatus;
   emailVerified: boolean;
   role: RoleCode;
   createdAt?: string;
   updatedAt?: string;
+}
+
+export type UserMeResponse = UserResponse;
+
+export interface UserProfileUpdateRequest {
+  fullName: string;
+  phone?: string;
+}
+
+export interface AvatarUploadResponse {
+  avatarUrl?: string;
+  avatarPublicId?: string;
+  user?: UserResponse;
 }

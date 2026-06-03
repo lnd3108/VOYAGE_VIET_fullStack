@@ -57,6 +57,10 @@
         </small>
       </div>
 
+      <p class="auth__switch">
+        <a routerLink="/forgot-password">Quên mật khẩu?</a>
+      </p>
+
       <div class="auth__alert auth__alert--error" *ngIf="errorMessage()">
         {{ errorMessage() }}
       </div>

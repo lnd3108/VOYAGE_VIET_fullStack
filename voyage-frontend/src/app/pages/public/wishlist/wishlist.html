@@ -1,0 +1,47 @@
+<section class="wishlist-page">
+  <div class="wishlist-page__container">
+    <nav class="wishlist-page__breadcrumb">HOME &gt; DANH SÁCH YÊU THÍCH</nav>
+
+    <header class="wishlist-page__header">
+      <div>
+        <h1>Tour yêu thích</h1>
+        <p>Lưu lại những hành trình bạn quan tâm để đặt sau</p>
+      </div>
+      <a routerLink="/tours">Khám phá tour</a>
+    </header>
+
+    <div class="wishlist-page__error wishlist-page__error--success" *ngIf="successMessage">
+      {{ successMessage }}
+    </div>
+
+    <div class="wishlist-page__error" *ngIf="errorMessage">
+      <p>{{ errorMessage }}</p>
+      <button type="button" (click)="retry()">Thử lại</button>
+    </div>
+
+    <div class="wishlist-page__grid" *ngIf="loading">
+      <div class="wishlist-page__skeleton" *ngFor="let item of [1, 2, 3, 4]"></div>
+    </div>
+
+    <div class="wishlist-page__grid" *ngIf="!loading && tours.length">
+      <app-tour-card
+        *ngFor="let tour of tours"
+        [tour]="tour"
+        [isWishlisted]="true"
+        (wishlistToggle)="removeFromWishlist($event)"
+      />
+    </div>
+
+    <div class="wishlist-page__empty" *ngIf="!loading && !tours.length && !errorMessage">
+      <h2>Bạn chưa có tour yêu thích nào</h2>
+      <p>Lưu lại các tour bạn quan tâm để dễ dàng quay lại và đặt sau.</p>
+      <a routerLink="/tours">Khám phá tour</a>
+    </div>
+
+    <div class="wishlist-page__actions" *ngIf="hasMore && !loading">
+      <button type="button" [disabled]="loadingMore" (click)="loadMore()">
+        {{ loadingMore ? 'Đang tải...' : 'Xem thêm' }}
+      </button>
+    </div>
+  </div>
+</section>

@@ -24,6 +24,42 @@
     margin: 0 0 22px;
   }
 
+  &__title-row {
+    align-items: start;
+    display: flex;
+    gap: 14px;
+    justify-content: space-between;
+  }
+
+  &__wishlist {
+    background: #fff;
+    border: 1px solid #e8e8e8;
+    border-radius: 999px;
+    color: #14534f;
+    cursor: pointer;
+    font-weight: 900;
+    margin-top: 4px;
+    padding: 11px 15px;
+    white-space: nowrap;
+
+    &--active {
+      background: #1f6f68;
+      border-color: #1f6f68;
+      color: #fff;
+    }
+
+    &:disabled {
+      cursor: not-allowed;
+      opacity: 0.65;
+    }
+  }
+
+  &__wishlist-message {
+    color: #14534f;
+    font-weight: 700;
+    margin: -12px 0 16px;
+  }
+
   &__layout {
     align-items: start;
     display: grid;

@@ -17,22 +17,28 @@
         title="Ưu đãi nổi bật"
         subtitle="Những hành trình đang được quan tâm nhất"
         [tours]="featuredTours"
+        [wishlistedTourIds]="wishlistedTourIds"
         viewMoreLink="/tours"
         variant="highlight"
+        (wishlistToggle)="onWishlistToggle($event)"
       />
 
       <app-home-tour-section
         title="Tour trong nước"
         subtitle="Khám phá những điểm đến được yêu thích tại Việt Nam"
         [tours]="domesticTours"
+        [wishlistedTourIds]="wishlistedTourIds"
         viewMoreLink="/tours"
+        (wishlistToggle)="onWishlistToggle($event)"
       />
 
       <app-home-tour-section
         title="Tour nước ngoài"
         subtitle="Các hành trình quốc tế dành cho kỳ nghỉ sắp tới"
         [tours]="internationalTours"
+        [wishlistedTourIds]="wishlistedTourIds"
         viewMoreLink="/tours"
+        (wishlistToggle)="onWishlistToggle($event)"
       />
     </div>
   </div>

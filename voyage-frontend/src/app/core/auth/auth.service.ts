@@ -4,7 +4,13 @@ import { Router } from '@angular/router';
 
 import { environment } from '../../../environments/environment';
 import { ApiResponse } from '../models/api-response.model';
-import { LoginRequest, LoginResponse, RegisterRequest } from '../models/auth.model';
+import {
+  ForgotPasswordRequest,
+  LoginRequest,
+  LoginResponse,
+  RegisterRequest,
+  ResetPasswordRequest,
+} from '../models/auth.model';
 import { RoleCode, UserResponse } from '../models/user.model';
 
 const ACCESS_TOKEN_KEY = 'voyage_viet_access_token';
@@ -33,6 +39,15 @@ export class AuthService {
 
   register(request: RegisterRequest) {
     return this.http.post<ApiResponse<UserResponse>>(`${this.apiUrl}/auth/register`, request);
+  }
+
+  forgotPassword(email: string) {
+    const request: ForgotPasswordRequest = { email };
+    return this.http.post<ApiResponse<unknown>>(`${this.apiUrl}/auth/forgot-password`, request);
+  }
+
+  resetPassword(request: ResetPasswordRequest) {
+    return this.http.post<ApiResponse<unknown>>(`${this.apiUrl}/auth/reset-password`, request);
   }
 
   me() {

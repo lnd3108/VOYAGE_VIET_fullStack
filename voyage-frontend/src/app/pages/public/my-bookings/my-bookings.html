@@ -1,7 +1,108 @@
-<section class="placeholder-page">
-  <div class="vv-container">
-    <p class="eyebrow">Booking Page</p>
-    <h1>Booking của tôi</h1>
-    <p>Route `/my-bookings` đã hoạt động và đã gắn authGuard.</p>
+<section class="my-bookings">
+  <div class="my-bookings__container">
+    <nav class="my-bookings__breadcrumb">HOME &gt; BOOKING CỦA TÔI</nav>
+
+    <header class="my-bookings__header">
+      <div>
+        <h1>Booking của tôi</h1>
+        <p>Theo dõi các tour bạn đã đặt và trạng thái xử lý</p>
+      </div>
+      <a routerLink="/tours">Khám phá tour</a>
+    </header>
+
+    <div class="my-bookings__filters">
+      <button
+        *ngFor="let filter of statusFilters"
+        type="button"
+        class="my-bookings__filter"
+        [ngClass]="{ 'my-bookings__filter--active': selectedStatus === filter.value }"
+        (click)="applyStatus(filter.value)"
+      >
+        {{ filter.label }}
+      </button>
+    </div>
+
+    <div class="my-bookings__error my-bookings__error--success" *ngIf="successMessage">
+      {{ successMessage }}
+    </div>
+
+    <div class="my-bookings__error" *ngIf="errorMessage">
+      <p>{{ errorMessage }}</p>
+      <button type="button" (click)="retry()">Thử lại</button>
+    </div>
+
+    <div class="my-bookings__list" *ngIf="loading">
+      <article class="my-bookings__card my-bookings__card--loading" *ngFor="let item of [1, 2, 3]">
+        <div class="my-bookings__image"></div>
+        <div class="my-bookings__content">
+          <span></span>
+          <span></span>
+          <span></span>
+        </div>
+      </article>
+    </div>
+
+    <div class="my-bookings__list" *ngIf="!loading && bookings.length">
+      <article class="my-bookings__card" *ngFor="let booking of bookings">
+        <img
+          class="my-bookings__image"
+          [src]="getImage(booking)"
+          [alt]="booking.tourTitle || 'VoyageViet booking'"
+          (error)="handleImageError($event)"
+        />
+
+        <div class="my-bookings__content">
+          <div class="my-bookings__top">
+            <div>
+              <span class="my-bookings__code">{{ booking.bookingCode || ('#' + booking.id) }}</span>
+              <h2>{{ booking.tourTitle || 'Tour VoyageViet' }}</h2>
+            </div>
+            <div class="my-bookings__badges">
+              <span class="my-bookings__status" [ngClass]="statusClass(booking.status)">
+                {{ statusLabel(booking.status) }}
+              </span>
+              <span class="my-bookings__status my-bookings__status--payment" *ngIf="booking.paymentStatus">
+                {{ booking.paymentStatus }}
+              </span>
+            </div>
+          </div>
+
+          <div class="my-bookings__meta">
+            <span>Ngày đi: <strong>{{ formatDate(booking.departureDate || booking.startDate) }}</strong></span>
+            <span>Ngày về: <strong>{{ formatDate(booking.returnDate) }}</strong></span>
+            <span>{{ getPeopleText(booking) }}</span>
+            <span>Liên hệ: {{ booking.contactName || 'Đang cập nhật' }} - {{ booking.contactPhone || 'Đang cập nhật' }}</span>
+            <span>Ngày đặt: {{ formatDate(booking.createdAt) }}</span>
+          </div>
+
+          <div class="my-bookings__bottom">
+            <strong class="my-bookings__price">{{ formatCurrency(getAmount(booking)) }}</strong>
+            <div class="my-bookings__actions">
+              <a *ngIf="getTourLink(booking) as tourLink" [routerLink]="tourLink">Xem tour</a>
+              <button
+                type="button"
+                *ngIf="canCancel(booking)"
+                [disabled]="cancellingId === booking.id"
+                (click)="cancelBooking(booking)"
+              >
+                {{ cancellingId === booking.id ? 'Đang hủy...' : 'Hủy booking' }}
+              </button>
+            </div>
+          </div>
+        </div>
+      </article>
+    </div>
+
+    <div class="my-bookings__empty" *ngIf="!loading && !bookings.length && !errorMessage">
+      <h2>Bạn chưa có booking nào</h2>
+      <p>Các tour đã đặt sẽ hiển thị tại đây để bạn theo dõi trạng thái xử lý.</p>
+      <a routerLink="/tours">Khám phá tour</a>
+    </div>
+
+    <div class="my-bookings__more" *ngIf="hasMore && !loading">
+      <button type="button" [disabled]="loadingMore" (click)="loadMore()">
+        {{ loadingMore ? 'Đang tải...' : 'Xem thêm' }}
+      </button>
+    </div>
   </div>
 </section>

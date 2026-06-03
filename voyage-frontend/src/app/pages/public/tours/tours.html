@@ -116,7 +116,13 @@
     </div>
 
     <div class="tours-page__grid" *ngIf="tours.length; else emptyTours">
-      <app-tour-card *ngFor="let tour of tours" [tour]="tour" />
+      <app-tour-card
+        *ngFor="let tour of tours"
+        [tour]="tour"
+        [showWishlist]="true"
+        [isWishlisted]="isTourWishlisted(tour)"
+        (wishlistToggle)="onWishlistToggle($event)"
+      />
     </div>
 
     <ng-template #emptyTours>

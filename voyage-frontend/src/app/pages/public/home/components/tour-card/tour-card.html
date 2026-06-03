@@ -1,4 +1,15 @@
 <article class="tour-card" *ngIf="tour">
+  <button
+    *ngIf="showWishlist"
+    type="button"
+    class="tour-card__wishlist"
+    [class.tour-card__wishlist--active]="isWishlisted"
+    [attr.aria-label]="isWishlisted ? 'Bỏ yêu thích' : 'Thêm vào yêu thích'"
+    (click)="toggleWishlist($event)"
+  >
+    ♥
+  </button>
+
   <a class="tour-card__link" [routerLink]="detailLink" [attr.aria-label]="tour.title">
     <div class="tour-card__media">
       <img

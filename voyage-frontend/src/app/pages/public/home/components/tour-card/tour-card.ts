@@ -1,7 +1,8 @@
 import { NgIf } from '@angular/common';
-import { Component, Input } from '@angular/core';
-import { RouterLink } from '@angular/router';
+import { Component, EventEmitter, Input, Output, inject } from '@angular/core';
+import { Router, RouterLink } from '@angular/router';
 
+import { AuthService } from '../../../../../core/auth/auth.service';
 import { TourCardResponse } from '../../../../../core/models/tour.model';
 
 @Component({
@@ -11,7 +12,13 @@ import { TourCardResponse } from '../../../../../core/models/tour.model';
   styleUrl: './tour-card.scss',
 })
 export class TourCard {
+  private readonly authService = inject(AuthService);
+  private readonly router = inject(Router);
+
   @Input({ required: true }) tour!: TourCardResponse;
+  @Input() showWishlist = true;
+  @Input() isWishlisted = false;
+  @Output() wishlistToggle = new EventEmitter<TourCardResponse>();
 
   readonly fallbackImage = '/hero/bg-home.png';
 
@@ -36,6 +43,22 @@ export class TourCard {
     };
 
     return this.tour.status ? labels[this.tour.status] : null;
+  }
+
+  toggleWishlist(event: MouseEvent): void {
+    event.preventDefault();
+    event.stopPropagation();
+
+    if (!this.authService.isLoggedIn()) {
+      this.router.navigate(['/login'], {
+        queryParams: {
+          returnUrl: this.router.url,
+        },
+      });
+      return;
+    }
+
+    this.wishlistToggle.emit(this.tour);
   }
 
   formatPrice(price: number): string {

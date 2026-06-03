@@ -4,6 +4,7 @@
 }
 
 .tour-card {
+  position: relative;
   height: 100%;
   overflow: hidden;
   border: 1px solid rgba(31, 111, 104, 0.12);
@@ -19,6 +20,34 @@
     border-color: rgba(31, 111, 104, 0.28);
     box-shadow: 0 14px 30px rgba(15, 23, 42, 0.14);
     transform: translateY(-3px);
+  }
+
+  &__wishlist {
+    position: absolute;
+    z-index: 3;
+    top: 10px;
+    right: 10px;
+    width: 34px;
+    height: 34px;
+    border: 1px solid rgba(31, 111, 104, 0.18);
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.94);
+    color: #64748b;
+    cursor: pointer;
+    font-size: 18px;
+    font-weight: 900;
+    line-height: 1;
+    transition:
+      background 180ms ease,
+      color 180ms ease,
+      transform 180ms ease;
+
+    &:hover,
+    &--active {
+      background: #1f6f68;
+      color: #ffffff;
+      transform: scale(1.05);
+    }
   }
 
   &__link {

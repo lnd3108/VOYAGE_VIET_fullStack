@@ -1,5 +1,5 @@
 import { NgClass, NgFor, NgIf } from '@angular/common';
-import { Component, Input } from '@angular/core';
+import { Component, EventEmitter, Input, Output } from '@angular/core';
 import { RouterLink } from '@angular/router';
 
 import { TourCardResponse } from '../../../../../core/models/tour.model';
@@ -20,4 +20,13 @@ export class HomeTourSection {
   @Input() viewMoreLink = '/tours';
   @Input() variant: HomeTourSectionVariant = 'default';
   @Input() showViewMore = true;
+  @Input() wishlistedTourIds: Set<number> | number[] = [];
+  @Input() showWishlist = true;
+  @Output() wishlistToggle = new EventEmitter<TourCardResponse>();
+
+  isTourWishlisted(tour: TourCardResponse): boolean {
+    return this.wishlistedTourIds instanceof Set
+      ? this.wishlistedTourIds.has(tour.id)
+      : this.wishlistedTourIds.includes(tour.id);
+  }
 }

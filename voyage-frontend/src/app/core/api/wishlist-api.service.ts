@@ -4,30 +4,29 @@ import { inject, Injectable } from '@angular/core';
 import { environment } from '../../../environments/environment';
 import { ApiResponse } from '../models/api-response.model';
 import { PageResponse } from '../models/page-response.model';
-import { BookingCreateRequest, BookingListParams, BookingResponse } from '../models/booking.model';
+import { WishlistItem, WishlistListParams, WishlistToggleResponse } from '../models/wishlist.model';
 
 @Injectable({
   providedIn: 'root',
 })
-export class BookingApiService {
+export class WishlistApiService {
   private readonly http = inject(HttpClient);
   private readonly apiUrl = environment.apiUrl;
 
-  createBooking(request: BookingCreateRequest) {
-    return this.http.post<ApiResponse<BookingResponse>>(`${this.apiUrl}/bookings`, request);
-  }
-
-  getMyBookings(params: BookingListParams = {}) {
-    return this.http.get<ApiResponse<PageResponse<BookingResponse> | BookingResponse[]>>(
-      `${this.apiUrl}/bookings/me`,
+  getMyWishlist(params: WishlistListParams = {}) {
+    return this.http.get<ApiResponse<PageResponse<WishlistItem> | WishlistItem[]>>(
+      `${this.apiUrl}/users/me/wishlist`,
       {
         params: this.buildParams(params),
       },
     );
   }
 
-  cancelBooking(id: number) {
-    return this.http.patch<ApiResponse<BookingResponse>>(`${this.apiUrl}/bookings/${id}/cancel`, {});
+  toggleWishlist(tourId: number) {
+    return this.http.post<ApiResponse<WishlistToggleResponse | WishlistItem>>(
+      `${this.apiUrl}/users/me/wishlist/${tourId}`,
+      {},
+    );
   }
 
   private buildParams(params: object): HttpParams {

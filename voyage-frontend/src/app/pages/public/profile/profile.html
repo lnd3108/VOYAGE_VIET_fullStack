@@ -1,0 +1,123 @@
+<section class="profile-page">
+  <div class="profile-page__container">
+    <nav class="profile-page__breadcrumb">HOME &gt; HỒ SƠ CÁ NHÂN</nav>
+
+    <header class="profile-page__header">
+      <h1>Hồ sơ cá nhân</h1>
+      <p>Quản lý thông tin tài khoản VoyageViet của bạn</p>
+    </header>
+
+    <div class="profile-page__error" *ngIf="loading">Đang tải hồ sơ cá nhân...</div>
+
+    <div class="profile-page__error profile-page__error--danger" *ngIf="!loading && errorMessage">
+      <p>{{ errorMessage }}</p>
+      <button type="button" (click)="loadProfile()">Thử lại</button>
+    </div>
+
+    <div class="profile-page__message" *ngIf="successMessage">{{ successMessage }}</div>
+
+    <div class="profile-page__layout" *ngIf="!loading && user as userData">
+      <aside>
+        <section class="profile-page__card">
+          <div class="profile-page__avatar">
+            <img
+              class="profile-page__avatar-image"
+              [src]="avatarPreviewUrl || fallbackAvatar"
+              [alt]="userData.fullName"
+              (error)="handleAvatarError($event)"
+            />
+            <div class="profile-page__avatar-actions">
+              <label>
+                {{ uploadingAvatar ? 'Đang upload...' : 'Đổi ảnh đại diện' }}
+                <input
+                  type="file"
+                  accept="image/png,image/jpeg,image/jpg,image/webp"
+                  [disabled]="uploadingAvatar"
+                  (change)="uploadAvatar($event)"
+                />
+              </label>
+              <small>PNG, JPG, JPEG hoặc WEBP. Tối đa 5MB.</small>
+            </div>
+          </div>
+
+          <h2>{{ userData.fullName }}</h2>
+          <p>{{ userData.email }}</p>
+
+          <div class="profile-page__chips">
+            <span class="profile-page__status" [ngClass]="statusClass(userData.status)">
+              {{ statusLabel(userData.status) }}
+            </span>
+            <span class="profile-page__status profile-page__status--role">{{ roleLabel(userData.role) }}</span>
+            <span
+              class="profile-page__status"
+              [ngClass]="userData.emailVerified ? 'profile-page__status--verified' : 'profile-page__status--unverified'"
+            >
+              {{ userData.emailVerified ? 'Đã xác thực email' : 'Chưa xác thực email' }}
+            </span>
+          </div>
+
+          <div class="profile-page__meta">
+            <span>Ngày tạo tài khoản</span>
+            <strong>{{ formatDate(userData.createdAt) }}</strong>
+          </div>
+          <div class="profile-page__meta">
+            <span>Cập nhật gần nhất</span>
+            <strong>{{ formatDate(userData.updatedAt) }}</strong>
+          </div>
+        </section>
+
+        <section class="profile-page__quick-links">
+          <h3>Liên kết nhanh</h3>
+          <a routerLink="/my-bookings">Booking của tôi</a>
+          <a routerLink="/tours">Khám phá tour</a>
+          <a routerLink="/">Trang chủ</a>
+        </section>
+      </aside>
+
+      <form class="profile-page__form" [formGroup]="form" (ngSubmit)="saveProfile()">
+        <h2>Cập nhật thông tin</h2>
+
+        <label class="profile-page__field">
+          Họ và tên
+          <input type="text" formControlName="fullName" placeholder="Nhập họ và tên" />
+          <span *ngIf="form.controls.fullName.touched && form.controls.fullName.invalid">
+            Họ tên phải có ít nhất 2 ký tự.
+          </span>
+        </label>
+
+        <label class="profile-page__field">
+          Email
+          <input type="email" formControlName="email" readonly />
+          <small>Email không thể thay đổi.</small>
+        </label>
+
+        <label class="profile-page__field">
+          Số điện thoại
+          <input type="tel" formControlName="phone" placeholder="Nhập số điện thoại" />
+          <span *ngIf="form.controls.phone.touched && form.controls.phone.invalid">
+            Số điện thoại chưa hợp lệ.
+          </span>
+        </label>
+
+        <div class="profile-page__readonly">
+          <div>
+            <span>Vai trò</span>
+            <strong>{{ roleLabel(userData.role) }}</strong>
+          </div>
+          <div>
+            <span>Trạng thái</span>
+            <strong>{{ statusLabel(userData.status) }}</strong>
+          </div>
+        </div>
+
+        <div class="profile-page__actions">
+          <button type="submit" [disabled]="saving">
+            {{ saving ? 'Đang lưu...' : 'Lưu thay đổi' }}
+          </button>
+          <a routerLink="/">Về trang chủ</a>
+          <a routerLink="/my-bookings">Xem booking của tôi</a>
+        </div>
+      </form>
+    </div>
+  </div>
+</section>

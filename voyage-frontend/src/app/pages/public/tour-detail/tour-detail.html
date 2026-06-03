@@ -12,7 +12,19 @@
         HOME &gt; {{ tourData.categoryName || 'TOUR' }} &gt; {{ tourData.title }}
       </nav>
 
-      <h1 class="tour-detail__title">{{ tourData.title }}</h1>
+      <div class="tour-detail__title-row">
+        <h1 class="tour-detail__title">{{ tourData.title }}</h1>
+        <button
+          type="button"
+          class="tour-detail__wishlist"
+          [class.tour-detail__wishlist--active]="isWishlisted"
+          [disabled]="wishlistLoading"
+          (click)="toggleWishlist()"
+        >
+          {{ isWishlisted ? '♥ Đã yêu thích' : '♡ Yêu thích' }}
+        </button>
+      </div>
+      <p class="tour-detail__wishlist-message" *ngIf="wishlistMessage">{{ wishlistMessage }}</p>
 
       <div class="tour-detail__layout">
         <main class="tour-detail__main">

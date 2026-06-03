@@ -5,6 +5,8 @@ import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { catchError, forkJoin, map, of, switchMap, tap } from 'rxjs';
 
 import { PublicApiService } from '../../../core/api/public-api.service';
+import { WishlistApiService } from '../../../core/api/wishlist-api.service';
+import { AuthService } from '../../../core/auth/auth.service';
 import { PageResponse } from '../../../core/models/page-response.model';
 import { ReviewResponse } from '../../../core/models/review.model';
 import {
@@ -14,6 +16,7 @@ import {
   TourScheduleResponse,
   TourSearchParams,
 } from '../../../core/models/tour.model';
+import { WishlistItem } from '../../../core/models/wishlist.model';
 import { TourCard } from '../home/components/tour-card/tour-card';
 
 type PriceTabId = 'included' | 'excluded' | 'surcharge' | 'policy' | 'note';
@@ -28,6 +31,8 @@ export class TourDetail implements OnInit {
   private readonly activatedRoute = inject(ActivatedRoute);
   private readonly router = inject(Router);
   private readonly publicApiService = inject(PublicApiService);
+  private readonly wishlistApiService = inject(WishlistApiService);
+  private readonly authService = inject(AuthService);
   private readonly destroyRef = inject(DestroyRef);
 
   readonly fallbackImage = '/hero/bg-home.png';
@@ -55,6 +60,9 @@ export class TourDetail implements OnInit {
   childCount = 0;
   infantCount = 0;
   showFullDescription = false;
+  isWishlisted = false;
+  wishlistLoading = false;
+  wishlistMessage = '';
 
   ngOnInit(): void {
     this.activatedRoute.paramMap
@@ -70,6 +78,8 @@ export class TourDetail implements OnInit {
           this.itinerary = [];
           this.relatedTours = [];
           this.selectedSchedule = null;
+          this.isWishlisted = false;
+          this.wishlistMessage = '';
         }),
         switchMap((slug) => {
           if (!slug) {
@@ -122,6 +132,7 @@ export class TourDetail implements OnInit {
           this.relatedTours = this.extractList<TourCardResponse>(response.related)
             .filter((tour) => tour.slug !== response.tour.slug)
             .slice(0, 4);
+          this.loadWishlistState(response.tour.id);
         }
 
         this.loading = false;
@@ -233,8 +244,58 @@ export class TourDetail implements OnInit {
       return;
     }
 
-    this.bookingMessage = 'Chức năng đặt tour sẽ được nối ở bước tiếp theo.';
-    // TODO: Navigate to the booking checkout route when that route is available.
+    const scheduleId = this.getScheduleId(this.selectedSchedule);
+
+    if (!this.tour || !scheduleId) {
+      this.bookingMessage = 'Chưa có lịch khởi hành khả dụng để đặt tour.';
+      return;
+    }
+
+    if (this.adultCount + this.childCount + this.infantCount <= 0) {
+      this.bookingMessage = 'Vui lòng chọn số khách trước khi đặt tour.';
+      return;
+    }
+
+    this.router.navigate(['/booking/checkout'], {
+      queryParams: {
+        tourSlug: this.tour.slug,
+        tourId: this.tour.id,
+        scheduleId,
+        adultCount: this.adultCount,
+        childCount: this.childCount,
+        infantCount: this.infantCount,
+      },
+    });
+  }
+
+  toggleWishlist(): void {
+    if (!this.tour) {
+      return;
+    }
+
+    if (!this.authService.isLoggedIn()) {
+      this.router.navigate(['/login'], {
+        queryParams: {
+          returnUrl: this.router.url,
+        },
+      });
+      return;
+    }
+
+    this.wishlistLoading = true;
+    this.wishlistMessage = '';
+
+    this.wishlistApiService.toggleWishlist(this.tour.id).subscribe({
+      next: () => {
+        this.isWishlisted = !this.isWishlisted;
+        this.wishlistMessage = this.isWishlisted ? 'Đã thêm vào yêu thích.' : 'Đã bỏ khỏi yêu thích.';
+        this.wishlistLoading = false;
+      },
+      error: (error) => {
+        this.wishlistMessage = error?.error?.message || 'Không thể cập nhật yêu thích. Vui lòng thử lại sau.';
+        this.wishlistLoading = false;
+      },
+    });
   }
 
   scrollTo(sectionId: string): void {
@@ -334,6 +395,27 @@ export class TourDetail implements OnInit {
       categorySlug: tour.categorySlug || undefined,
       destinationSlug: tour.destinationSlug || undefined,
     };
+  }
+
+  private loadWishlistState(tourId: number): void {
+    if (!this.authService.isLoggedIn()) {
+      return;
+    }
+
+    this.wishlistApiService
+      .getMyWishlist({ page: 0, size: 100, sortBy: 'createdAt', sortDir: 'desc' })
+      .pipe(
+        catchError(() => of(null)),
+        takeUntilDestroyed(this.destroyRef),
+      )
+      .subscribe((response) => {
+        const items = this.extractList<WishlistItem>(response);
+
+        this.isWishlisted = items.some((item) => {
+          const itemTourId = item.tourId ?? item.tour?.id ?? (this.isRecord(item) ? this.parseNumber(item['id']) : undefined);
+          return itemTourId === tourId;
+        });
+      });
   }
 
   private extractData<T>(response: unknown): T | null {

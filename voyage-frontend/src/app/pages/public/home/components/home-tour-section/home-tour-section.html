@@ -27,6 +27,9 @@
     <app-tour-card
       *ngFor="let tour of tours"
       [tour]="tour"
+      [showWishlist]="showWishlist"
+      [isWishlisted]="isTourWishlisted(tour)"
+      (wishlistToggle)="wishlistToggle.emit($event)"
     />
   </div>
 
