@@ -1,0 +1,150 @@
+<section class="admin-tour-schedules">
+  <header class="admin-tour-schedules__header">
+    <div>
+      <p>Tour schedules</p>
+      <h2>Lịch khởi hành</h2>
+      <span>Quản lý ngày đi, ngày về, giá và số chỗ theo từng lịch</span>
+    </div>
+    <button type="button" *ngIf="isEditMode && tourId" (click)="openCreateForm()">Thêm lịch khởi hành</button>
+  </header>
+
+  <section class="admin-tour-schedules__notice" *ngIf="!isEditMode || !tourId">
+    <strong>Vui lòng lưu tour trước khi quản lý lịch khởi hành.</strong>
+    <p>Lịch khởi hành cần tour id từ backend. Sau khi tạo tour, quay lại màn sửa để thêm lịch.</p>
+  </section>
+
+  <ng-container *ngIf="isEditMode && tourId">
+    <div class="admin-tour-schedules__notice" *ngIf="schedulesSuccessMessage">{{ schedulesSuccessMessage }}</div>
+
+    <div class="admin-tour-schedules__error" *ngIf="schedulesErrorMessage">
+      <p>{{ schedulesErrorMessage }}</p>
+      <button type="button" *ngIf="!schedulesSaving" (click)="loadSchedules()">Thử lại</button>
+    </div>
+
+    <section class="admin-tour-schedules__form" *ngIf="isScheduleFormOpen">
+      <div class="admin-tour-schedules__form-head">
+        <div>
+          <span>{{ editingScheduleId ? 'Cập nhật lịch' : 'Thêm lịch mới' }}</span>
+          <h3>{{ editingScheduleId ? 'Sửa lịch khởi hành' : 'Thông tin lịch khởi hành' }}</h3>
+        </div>
+        <button type="button" [disabled]="schedulesSaving" (click)="closeForm()">Đóng</button>
+      </div>
+
+      <div class="admin-tour-schedules__grid">
+        <label>
+          Ngày khởi hành
+          <input type="date" [(ngModel)]="form.departureDate" />
+        </label>
+
+        <label>
+          Ngày về
+          <input type="date" [(ngModel)]="form.returnDate" />
+        </label>
+
+        <label>
+          Giá người lớn
+          <input type="number" min="0" [(ngModel)]="form.priceAdult" />
+        </label>
+
+        <label>
+          Giá trẻ em
+          <input type="number" min="0" [(ngModel)]="form.priceChild" />
+        </label>
+
+        <label>
+          Giá em bé
+          <input type="number" min="0" [(ngModel)]="form.priceInfant" />
+        </label>
+
+        <label>
+          Số chỗ tối đa
+          <input type="number" min="1" [(ngModel)]="form.maxSeats" />
+        </label>
+
+        <label>
+          Trạng thái
+          <select [(ngModel)]="form.status">
+            <option *ngFor="let option of statusOptions" [ngValue]="option.value">{{ option.label }}</option>
+          </select>
+        </label>
+
+        <label class="admin-tour-schedules__field--wide">
+          Ghi chú
+          <textarea rows="3" [(ngModel)]="form.notes" placeholder="Ghi chú nội bộ cho lịch khởi hành"></textarea>
+        </label>
+      </div>
+
+      <div class="admin-tour-schedules__actions admin-tour-schedules__actions--form">
+        <button type="button" [disabled]="schedulesSaving" (click)="saveForm()">
+          {{ schedulesSaving ? 'Đang lưu...' : 'Lưu lịch' }}
+        </button>
+        <button type="button" [disabled]="schedulesSaving" (click)="closeForm()">Hủy</button>
+      </div>
+    </section>
+
+    <div class="admin-tour-schedules__table" *ngIf="!schedulesLoading && schedules.length">
+      <div class="admin-tour-schedules__row admin-tour-schedules__row--head">
+        <span>Ngày đi/về</span>
+        <span>Giá</span>
+        <span>Số chỗ</span>
+        <span>Trạng thái</span>
+        <span>Ghi chú</span>
+        <span>Hành động</span>
+      </div>
+
+      <div class="admin-tour-schedules__row" *ngFor="let schedule of schedules; trackBy: trackSchedule">
+        <div data-label="Ngày đi/về">
+          <strong>{{ formatDate(schedule.departureDate) }}</strong>
+          <span>Về: {{ formatDate(schedule.returnDate) }}</span>
+        </div>
+
+        <div class="admin-tour-schedules__price" data-label="Giá">
+          <strong>{{ formatMoney(schedule.priceAdult) }}</strong>
+          <span>Trẻ em: {{ formatMoney(schedule.priceChild) }}</span>
+          <span>Em bé: {{ formatMoney(schedule.priceInfant) }}</span>
+        </div>
+
+        <div class="admin-tour-schedules__seats" data-label="Số chỗ">
+          <strong>{{ getRemainingSeats(schedule) }} còn lại</strong>
+          <span>Tối đa: {{ schedule.maxSeats || 0 }}</span>
+          <span>Đã booking: {{ schedule.bookedSeats || 0 }}</span>
+        </div>
+
+        <div data-label="Trạng thái">
+          <span class="admin-tour-schedules__status" [ngClass]="statusClass(schedule.status)">{{ statusLabel(schedule.status) }}</span>
+          <select [value]="schedule.status || 'OPEN'" [disabled]="schedulesUpdatingStatusId === schedule.id" (change)="updateStatusInput(schedule, $event)">
+            <option *ngFor="let option of statusOptions" [value]="option.value">{{ option.label }}</option>
+          </select>
+        </div>
+
+        <div data-label="Ghi chú">
+          <span>{{ scheduleNotes(schedule) || 'Không có ghi chú' }}</span>
+          <small *ngIf="(schedule.bookedSeats || 0) > 0">Lịch đã có booking, cần cẩn trọng khi chỉnh giá/số chỗ.</small>
+        </div>
+
+        <div class="admin-tour-schedules__actions" data-label="Hành động">
+          <button type="button" [disabled]="schedulesSaving || !canEditSchedule(schedule)" (click)="openEditForm(schedule)">Sửa</button>
+          <button
+            type="button"
+            class="admin-tour-schedules__danger"
+            [disabled]="schedulesDeletingId === schedule.id"
+            (click)="deleteSchedule(schedule)"
+          >
+            {{ schedulesDeletingId === schedule.id ? 'Đang xóa...' : 'Xóa' }}
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <div class="admin-tour-schedules__table" *ngIf="schedulesLoading">
+      <div class="admin-tour-schedules__row admin-tour-schedules__row--skeleton"></div>
+      <div class="admin-tour-schedules__row admin-tour-schedules__row--skeleton"></div>
+    </div>
+
+    <section class="admin-tour-schedules__empty" *ngIf="!schedulesLoading && !schedules.length && !schedulesErrorMessage">
+      <strong>Tour chưa có lịch khởi hành</strong>
+      <p>Thêm lịch đầu tiên để tour có ngày đi, giá theo lịch và số chỗ cho booking.</p>
+      <button type="button" (click)="openCreateForm()">Thêm lịch khởi hành</button>
+    </section>
+  </ng-container>
+</section>

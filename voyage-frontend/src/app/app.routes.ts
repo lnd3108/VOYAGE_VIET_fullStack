@@ -18,17 +18,6 @@ import { MyBookings } from './pages/public/my-bookings/my-bookings';
 import { Profile } from './pages/public/profile/profile';
 import { Wishlist } from './pages/public/wishlist/wishlist';
 
-import { Dashboard } from './pages/admin/dashboard/dashboard';
-import { AdminCategories } from './pages/admin/categories/categories';
-import { AdminDestinations } from './pages/admin/destinations/destinations';
-import { AdminTours } from './pages/admin/tours/tours';
-import { AdminBookings } from './pages/admin/bookings/bookings';
-import { AdminUsers } from './pages/admin/users/users';
-import { AdminReviews } from './pages/admin/reviews/reviews';
-import { AdminMedia } from './pages/admin/media/media';
-import { AdminFeatures } from './pages/admin/features/features';
-import { AdminAuditLogs } from './pages/admin/audit-logs/audit-logs';
-
 import { authGuard } from './core/guards/auth.guard';
 import { adminGuard } from './core/guards/admin.guard';
 
@@ -120,52 +109,62 @@ export const routes: Routes = [
     children: [
       {
         path: '',
-        component: Dashboard,
+        loadComponent: () => import('./pages/admin/dashboard/dashboard').then((m) => m.Dashboard),
         title: 'Admin Dashboard - VoyageViet',
       },
       {
         path: 'categories',
-        component: AdminCategories,
+        loadComponent: () => import('./pages/admin/categories/categories').then((m) => m.AdminCategories),
         title: 'Quản lý danh mục - VoyageViet',
       },
       {
         path: 'destinations',
-        component: AdminDestinations,
+        loadComponent: () => import('./pages/admin/destinations/destinations').then((m) => m.AdminDestinations),
         title: 'Quản lý điểm đến - VoyageViet',
       },
       {
+        path: 'tours/new',
+        loadComponent: () => import('./pages/admin/tours/tour-form/tour-form').then((m) => m.TourForm),
+        title: 'Thêm tour mới - VoyageViet',
+      },
+      {
+        path: 'tours/:id/edit',
+        loadComponent: () => import('./pages/admin/tours/tour-form/tour-form').then((m) => m.TourForm),
+        title: 'Cập nhật tour - VoyageViet',
+      },
+      {
         path: 'tours',
-        component: AdminTours,
+        loadComponent: () => import('./pages/admin/tours/tours').then((m) => m.AdminTours),
         title: 'Quản lý tour - VoyageViet',
       },
       {
         path: 'bookings',
-        component: AdminBookings,
+        loadComponent: () => import('./pages/admin/bookings/bookings').then((m) => m.AdminBookings),
         title: 'Quản lý booking - VoyageViet',
       },
       {
         path: 'users',
-        component: AdminUsers,
+        loadComponent: () => import('./pages/admin/users/users').then((m) => m.AdminUsers),
         title: 'Quản lý người dùng - VoyageViet',
       },
       {
         path: 'reviews',
-        component: AdminReviews,
+        loadComponent: () => import('./pages/admin/reviews/reviews').then((m) => m.AdminReviews),
         title: 'Quản lý đánh giá - VoyageViet',
       },
       {
         path: 'media',
-        component: AdminMedia,
+        loadComponent: () => import('./pages/admin/media/media').then((m) => m.AdminMedia),
         title: 'Quản lý media - VoyageViet',
       },
       {
         path: 'features',
-        component: AdminFeatures,
+        loadComponent: () => import('./pages/admin/features/features').then((m) => m.AdminFeatures),
         title: 'Quản lý tính năng - VoyageViet',
       },
       {
         path: 'audit-logs',
-        component: AdminAuditLogs,
+        loadComponent: () => import('./pages/admin/audit-logs/audit-logs').then((m) => m.AdminAuditLogs),
         title: 'Nhật ký hệ thống - VoyageViet',
       },
     ],

@@ -1,6 +1,245 @@
-<app-admin-page-placeholder
-  title="Quản lý tour"
-  description="Quản lý danh sách tour, giá tour, điểm đến, danh mục, số ghế, trạng thái xuất bản và ảnh đại diện tour."
-  primaryBadge="Tours"
-  secondaryBadge="CRUD later"
-/>
+<section class="admin-tours">
+  <header class="admin-tours__header">
+    <div>
+      <p class="admin-tours__eyebrow">Admin Tours</p>
+      <h1>Quản lý tour</h1>
+      <p>Quản lý danh sách tour, trạng thái xuất bản và ảnh đại diện</p>
+    </div>
+
+    <div class="admin-tours__actions">
+      <a routerLink="/admin/media">Mở Media</a>
+      <button type="button" routerLink="/admin/tours/new">Thêm tour</button>
+    </div>
+  </header>
+
+  <section class="admin-tours__stats">
+    <article>
+      <span>Tổng tour</span>
+      <strong>{{ stats.total }}</strong>
+    </article>
+    <article>
+      <span>Đã xuất bản</span>
+      <strong>{{ stats.published }}</strong>
+    </article>
+    <article>
+      <span>Nháp</span>
+      <strong>{{ stats.draft }}</strong>
+    </article>
+    <article>
+      <span>Hết chỗ</span>
+      <strong>{{ stats.soldOut }}</strong>
+    </article>
+  </section>
+
+  <div class="admin-tours__notice" *ngIf="successMessage">{{ successMessage }}</div>
+
+  <div class="admin-tours__error" *ngIf="errorMessage">
+    <p>{{ errorMessage }}</p>
+    <button type="button" *ngIf="!loading && !saving" (click)="loadTours()">Thử lại</button>
+  </div>
+
+  <section class="admin-tours__toolbar">
+    <label>
+      Tìm kiếm
+      <input type="search" [value]="keyword" placeholder="Tìm title, slug, danh mục, điểm đến" (input)="updateKeyword($event)" />
+    </label>
+
+    <label>
+      Trạng thái
+      <select [value]="statusFilter" (change)="updateStatusFilter($event)">
+        <option *ngFor="let option of statusFilters" [value]="option.value">{{ option.label }}</option>
+      </select>
+    </label>
+
+    <label>
+      Featured
+      <select [value]="featuredFilter" (change)="updateFeaturedFilter($event)">
+        <option *ngFor="let option of featuredFilters" [value]="option.value">{{ option.label }}</option>
+      </select>
+    </label>
+
+    <label>
+      Danh mục
+      <select [value]="categoryFilter" (change)="updateCategoryFilter($event)">
+        <option value="ALL">Tất cả danh mục</option>
+        <option *ngFor="let option of categoryOptions" [value]="option.value">{{ option.label }}</option>
+      </select>
+    </label>
+
+    <label>
+      Điểm đến
+      <select [value]="destinationFilter" (change)="updateDestinationFilter($event)">
+        <option value="ALL">Tất cả điểm đến</option>
+        <option *ngFor="let option of destinationOptions" [value]="option.value">{{ option.label }}</option>
+      </select>
+    </label>
+
+    <label>
+      Sắp xếp
+      <select [value]="sortOption" (change)="updateSortOption($event)">
+        <option *ngFor="let option of sortOptions" [value]="option.value">{{ option.label }}</option>
+      </select>
+    </label>
+
+    <div>
+      <strong>{{ filteredTours.length }}</strong>
+      <span>/ {{ tours.length }} tour</span>
+    </div>
+  </section>
+
+  <section class="admin-tours__table" *ngIf="loading">
+    <div class="admin-tours__row admin-tours__row--skeleton" *ngFor="let item of [1, 2, 3, 4, 5]"></div>
+  </section>
+
+  <section class="admin-tours__table" *ngIf="!loading && filteredTours.length">
+    <div class="admin-tours__table-head">
+      <span>Thumbnail</span>
+      <span>Tên tour</span>
+      <span>Category/Destination</span>
+      <span>Giá</span>
+      <span>Thời lượng</span>
+      <span>Số chỗ</span>
+      <span>Featured</span>
+      <span>Status</span>
+      <span>Cập nhật</span>
+      <span>Hành động</span>
+    </div>
+
+    <article class="admin-tours__row" *ngFor="let tour of filteredTours">
+      <div class="admin-tours__thumbnail" data-label="Thumbnail">
+        <img [src]="getThumbnail(tour)" [alt]="tour.title || 'Tour'" (error)="handleImageError($event)" />
+      </div>
+
+      <div data-label="Tên tour">
+        <strong>{{ tour.title || 'Chưa đặt tên' }}</strong>
+        <small>{{ tour.slug || 'dang-cap-nhat' }}</small>
+        <small>{{ tour.departureLocation || 'Chưa có điểm khởi hành' }}</small>
+      </div>
+
+      <div data-label="Category/Destination">
+        <strong>{{ tour.categoryName || 'Chưa có danh mục' }}</strong>
+        <small>{{ tour.destinationName || 'Chưa có điểm đến' }}</small>
+      </div>
+
+      <div class="admin-tours__price" data-label="Giá">
+        <strong>{{ priceText(tour) }}</strong>
+        <small *ngIf="originalPriceText(tour)">{{ originalPriceText(tour) }}</small>
+      </div>
+
+      <div data-label="Thời lượng">{{ durationText(tour) }}</div>
+      <div data-label="Số chỗ">{{ seatsText(tour) }}</div>
+
+      <div data-label="Featured">
+        <span class="admin-tours__featured" [ngClass]="{ 'admin-tours__featured--on': tour.featured }">
+          {{ tour.featured ? 'Nổi bật' : 'Thường' }}
+        </span>
+      </div>
+
+      <div data-label="Status">
+        <span class="admin-tours__status" [ngClass]="statusClass(tour.status)">{{ statusLabel(tour.status) }}</span>
+      </div>
+
+      <div data-label="Cập nhật">{{ formatDate(tour.updatedAt || tour.createdAt) }}</div>
+
+      <div class="admin-tours__row-actions" data-label="Hành động" (click)="$event.stopPropagation()">
+        <div class="admin-tours__actions-menu">
+          <button
+            type="button"
+            class="admin-tours__action-trigger"
+            aria-label="Mở menu thao tác tour"
+            [attr.aria-expanded]="isActionMenuOpen(tour)"
+            [disabled]="!tour.id"
+            (click)="toggleActionMenu(tour, $event)"
+          >
+            ⋮
+          </button>
+
+          <div class="admin-tours__action-dropdown" *ngIf="isActionMenuOpen(tour)">
+            <button type="button" class="admin-tours__action-item" (click)="closeActionMenu(); openTourSummary(tour)">
+              Xem nhanh
+            </button>
+            <button type="button" class="admin-tours__action-item" [disabled]="!tour.id" [routerLink]="['/admin/tours', tour.id, 'edit']" (click)="closeActionMenu()">
+              Sửa
+            </button>
+            <button type="button" class="admin-tours__action-item" [disabled]="!tour.slug" (click)="closeActionMenu(); openPublicTour(tour)">
+              Xem public
+            </button>
+            <button type="button" class="admin-tours__action-item" (click)="closeActionMenu(); openThumbnailPanel(tour)">
+              Cập nhật ảnh
+            </button>
+            <button
+              type="button"
+              class="admin-tours__action-item"
+              [disabled]="publishingId === tour.id || checklistLoadingId === tour.id"
+              (click)="closeActionMenu(); publishTour(tour)"
+            >
+              {{ publishingId === tour.id ? 'Đang publish...' : checklistLoadingId === tour.id ? 'Đang check...' : 'Publish / Kiểm tra xuất bản' }}
+            </button>
+
+            <div class="admin-tours__action-group">
+              <span>Đổi trạng thái</span>
+              <button
+                type="button"
+                class="admin-tours__action-item"
+                *ngFor="let option of statusOptions"
+                [disabled]="statusValue(tour) === option.value || updatingStatusId === tour.id || publishingId === tour.id || checklistLoadingId === tour.id"
+                (click)="changeStatusFromMenu(tour, option.value)"
+              >
+                {{ option.label }}
+              </button>
+            </div>
+
+            <button type="button" class="admin-tours__action-item admin-tours__action-item--danger" [disabled]="deletingId === tour.id" (click)="closeActionMenu(); deleteTour(tour)">
+              {{ deletingId === tour.id ? 'Đang xóa...' : 'Xóa' }}
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div class="admin-tours__inline-panel" *ngIf="selectedTour?.id === tour.id">
+        <h3>Thông tin nhanh</h3>
+        <p>{{ tour.shortDescription || tour.description || 'Tour chưa có mô tả ngắn.' }}</p>
+        <div class="admin-tours__summary-meta">
+          <span>Lịch: {{ tour.scheduleCount ?? 0 }}</span>
+          <span>Ảnh gallery: {{ tour.imageCount ?? 0 }}</span>
+          <span>Lịch trình: {{ tour.itineraryCount ?? 0 }}</span>
+        </div>
+      </div>
+
+      <div class="admin-tours__inline-panel" *ngIf="thumbnailTour?.id === tour.id">
+        <div class="admin-tours__inline-head">
+          <h3>Cập nhật thumbnail</h3>
+          <a routerLink="/admin/media">Mở Media</a>
+        </div>
+        <label>
+          URL ảnh Cloudinary
+          <input type="url" [value]="thumbnailUrlInput" placeholder="Dán URL ảnh từ /admin/media" (input)="updateThumbnailInput($event)" />
+        </label>
+        <div class="admin-tours__thumbnail-preview">
+          <img *ngIf="thumbnailPreviewUrl(); else noThumbnailPreview" [src]="thumbnailPreviewUrl()" alt="Preview thumbnail tour" (error)="handleImageError($event)" />
+          <ng-template #noThumbnailPreview>
+            <div>Chưa có URL ảnh. Mở Media để lấy URL Cloudinary.</div>
+          </ng-template>
+        </div>
+        <div class="admin-tours__panel-actions">
+          <button type="button" [disabled]="saving" (click)="saveThumbnail()">{{ saving ? 'Đang lưu...' : 'Lưu thumbnail' }}</button>
+          <button type="button" (click)="openThumbnailPanel(tour)">Đóng</button>
+        </div>
+      </div>
+
+      <div class="admin-tours__checklist" *ngIf="checklistTourId === tour.id && (checklistMessage || checklistItems.length || checklistLoadingId === tour.id)">
+        <h3>Publish checklist</h3>
+        <p>{{ checklistLoadingId === tour.id ? 'Đang kiểm tra checklist...' : checklistMessage }}</p>
+        <ul *ngIf="checklistItems.length">
+          <li *ngFor="let item of checklistItems">{{ item }}</li>
+        </ul>
+      </div>
+    </article>
+  </section>
+
+  <div class="admin-tours__empty" *ngIf="!loading && !filteredTours.length && !errorMessage">
+    <strong>Chưa có tour nào</strong>
+    <p>Tạo tour mới ở bước wizard tiếp theo hoặc thay đổi bộ lọc để xem kết quả khác.</p>
+    <button type="button" routerLink="/admin/tours/new">Thêm tour</button>
+  </div>
+</section>

@@ -802,3 +802,176 @@ Kết quả: `BUILD SUCCESS`.
 - Public promo banner nếu cần.
 - Rule điều chỉnh refund/payment khi booking dùng promotion nếu sau này hoàn tiền.
 - Audit log chi tiết cho promotion create/update/status/delete nếu cần.
+
+## 12. Cập Nhật 04/06/2026 — Phase 5: Notifications / Thông Báo In-App
+
+### 12.1 Mục Tiêu Phase
+
+Triển khai module Notifications/Thông báo in-app cho VoyageViet, gồm lưu notification trong DB, API user quản lý thông báo, unread count, mark read/read-all/delete, cấu hình WebSocket STOMP cơ bản để server push realtime và tích hợp event hook nhẹ từ Booking/Payment/Review.
+
+Không làm frontend, không làm support chat, không làm email/push mobile/browser notification và không thay đổi flow Payment/Promotion/Booking hiện có ngoài việc gọi hook notification an toàn.
+
+### 12.2 File Đã Thêm
+
+| File | Nội dung |
+|---|---|
+| `src/main/java/com/voyageviet/backend/notification/entity/Notification.java` | Entity/table `NOTIFICATIONS`, lưu thông báo theo user. |
+| `src/main/java/com/voyageviet/backend/notification/entity/NotificationType.java` | Enum loại thông báo. |
+| `src/main/java/com/voyageviet/backend/notification/dto/NotificationResponse.java` | DTO response notification cho user/API/WebSocket payload. |
+| `src/main/java/com/voyageviet/backend/notification/dto/UnreadCountResponse.java` | DTO response unread count. |
+| `src/main/java/com/voyageviet/backend/notification/repository/NotificationRepository.java` | Repository query notification theo user/read state, count unread, bulk mark-all-read. |
+| `src/main/java/com/voyageviet/backend/notification/service/NotificationService.java` | Service notification API, tạo notification nội bộ, serialize/parse JSON data, push realtime. |
+| `src/main/java/com/voyageviet/backend/notification/service/NotificationEventPublisher.java` | Wrapper event hook cho Booking/Payment/Review, catch lỗi notification để không rollback nghiệp vụ chính. |
+| `src/main/java/com/voyageviet/backend/notification/controller/NotificationController.java` | User notification APIs tại `/api/notifications`. |
+| `src/main/java/com/voyageviet/backend/common/config/WebSocketConfig.java` | STOMP WebSocket config endpoint `/ws`, broker `/topic`, `/queue`. |
+
+Không xóa file nào.
+
+### 12.3 File Đã Sửa
+
+| File | Nội dung sửa |
+|---|---|
+| `pom.xml` | Thêm dependency `spring-boot-starter-websocket`. |
+| `src/main/java/com/voyageviet/backend/common/config/SecurityConfig.java` | Permit `/ws/**` handshake, giữ nguyên rule API cũ. |
+| `src/main/java/com/voyageviet/backend/common/exception/ErrorCode.java` | Thêm `NOTIFICATION_NOT_FOUND`, `NOTIFICATION_FORBIDDEN`. |
+| `src/main/java/com/voyageviet/backend/booking/service/BookingService.java` | Tạo notification khi booking created, user/admin cancelled, admin confirmed. |
+| `src/main/java/com/voyageviet/backend/payment/service/PaymentService.java` | Tạo notification khi VNPay IPN/mock success/failed và refund skeleton thành công. |
+| `src/main/java/com/voyageviet/backend/review/service/ReviewService.java` | Tạo notification khi admin đổi review sang `ACTIVE` hoặc `HIDDEN`. |
+| `BACKEND_API_REPORT.md` | Cập nhật Phase 5 Notifications/Thông báo in-app. |
+
+### 12.4 Entity/Table Mới
+
+| Bảng | Entity | Cột/chỉ mục chính |
+|---|---|---|
+| `NOTIFICATIONS` | `Notification` | `ID`, `USER_ID`, `TYPE`, `TITLE`, `BODY`, `DATA` CLOB JSON, `IS_READ`, `READ_AT`, `CREATED_AT`, `UPDATED_AT`; index `IDX_NOTIFICATIONS_USER_READ_CREATED (USER_ID, IS_READ, CREATED_AT)`, `IDX_NOTIFICATIONS_USER_CREATED (USER_ID, CREATED_AT)`. |
+
+Ghi chú Oracle/local: project đang dùng `spring.jpa.hibernate.ddl-auto=update`, nên entity JPA đủ cho local. `IS_READ` dùng Boolean JPA mapping, `DATA` dùng `@Lob` text/CLOB.
+
+### 12.5 Enum Mới
+
+| Enum | Giá trị |
+|---|---|
+| `NotificationType` | `BOOKING_CREATED`, `BOOKING_CONFIRMED`, `BOOKING_CANCELLED`, `PAYMENT_SUCCESS`, `PAYMENT_FAILED`, `PAYMENT_REFUNDED`, `REVIEW_APPROVED`, `REVIEW_REJECTED`, `SYSTEM` |
+
+Review hiện dùng `ReviewStatus.ACTIVE/HIDDEN`, phase này map `ACTIVE -> REVIEW_APPROVED`, `HIDDEN -> REVIEW_REJECTED`.
+
+### 12.6 DTO Mới
+
+| DTO | Mục đích |
+|---|---|
+| `NotificationResponse` | Trả `id`, `type`, `title`, `body`, `data`, `read`, `readAt`, `createdAt`. `data` parse từ JSON string sang object nếu hợp lệ. |
+| `UnreadCountResponse` | Trả `{ count }`. |
+
+Không expose public create-notification request DTO trong phase này; notification được tạo qua service nội bộ.
+
+### 12.7 Repository/Service/Controller Mới
+
+| Loại | Tên | Ghi chú |
+|---|---|---|
+| Repository | `NotificationRepository` | `findByUserId`, `findByUserIdAndIsRead`, `countByUserIdAndIsReadFalse`, `findByIdAndUserId`, `markAllReadByUserId`. |
+| Service | `NotificationService` | Query notification, unread count, mark read/read-all/delete, create notification, JSON helper, realtime push. |
+| Service | `NotificationEventPublisher` | Hook nghiệp vụ booking/payment/review, catch/log lỗi notification. |
+| Controller | `NotificationController` | 5 API notification cho authenticated user. |
+| Config | `WebSocketConfig` | STOMP endpoint `/ws`, broker `/topic` và `/queue`, application prefix `/app`, user prefix `/user`. |
+
+### 12.8 API Mới
+
+| Method | Endpoint | Quyền | Chức năng | Payload/query chính |
+|---|---|---|---|---|
+| GET | `/api/notifications` | Authenticated | Lấy danh sách notification của user hiện tại, có filter read state và paging | `isRead=true/false/all`, `page`, `size`, `sortBy`, `sortDir`; default `createdAt desc` |
+| GET | `/api/notifications/unread-count` | Authenticated | Lấy số notification chưa đọc của user hiện tại | Không |
+| PATCH | `/api/notifications/{id}/read` | Authenticated | Đánh dấu một notification đã đọc, idempotent nếu đã đọc | `id` |
+| POST | `/api/notifications/read-all` | Authenticated | Đánh dấu toàn bộ notification chưa đọc của user hiện tại là đã đọc bằng bulk update | Không |
+| DELETE | `/api/notifications/{id}` | Authenticated | Xóa notification thuộc user hiện tại | `id` |
+
+Response vẫn bọc bằng `ApiResponse` chung: `success`, `message`, `data`, `timestamp`. Paging vẫn dùng `PageResponse` chung.
+
+### 12.9 API/Service Cũ Đã Chỉnh Sửa
+
+| API/Service | Thay đổi |
+|---|---|
+| `BookingService.createBooking` | Sau khi booking save thành công, tạo notification `BOOKING_CREATED` cho user. |
+| `BookingService.cancelMyBooking` | Sau khi user hủy booking thành công, tạo notification `BOOKING_CANCELLED`. |
+| `BookingService.updateBookingStatus` | Khi admin đổi status sang `CONFIRMED`, tạo `BOOKING_CONFIRMED`; khi đổi sang `CANCELLED`, tạo `BOOKING_CANCELLED`. |
+| `PaymentService.handleVnpayIpn` | Sau IPN final save, tạo `PAYMENT_SUCCESS` hoặc `PAYMENT_FAILED`. Callback VNPay vẫn không tạo notification vì chỉ là redirect UX. |
+| `PaymentService.completeMockPayment` | Sau mock payment save, tạo `PAYMENT_SUCCESS` hoặc `PAYMENT_FAILED`. |
+| `PaymentService.refund` | Sau refund skeleton save, tạo `PAYMENT_REFUNDED`. |
+| `ReviewService.updateReviewStatus` | Khi status thay đổi sang `ACTIVE`, tạo `REVIEW_APPROVED`; sang `HIDDEN`, tạo `REVIEW_REJECTED`. |
+| `SecurityConfig` | Permit `/ws/**` cho WebSocket/SockJS handshake; không đổi `/api/admin/**`, `/api/public/**`, `/api/auth/**`, VNPay callback/IPN. |
+
+### 12.10 WebSocket Realtime
+
+- Đã thêm `spring-boot-starter-websocket`.
+- Đã thêm `WebSocketConfig` với endpoint `/ws`, allowed origin `http://localhost:4200`, bật SockJS.
+- Simple broker bật `/topic`, `/queue`.
+- Application destination prefix: `/app`.
+- User destination prefix: `/user`.
+- Phase này chưa có JWT handshake/channel interceptor cho WebSocket.
+- Do HTTP JWT principal hiện là email và chưa có principal mapping ổn định cho STOMP, realtime push hiện dùng fallback `convertAndSend("/topic/users/" + userId + "/notifications", payload)`.
+- TODO bảo mật: phase sau thêm JWT handshake/channel interceptor và chuyển sang `convertAndSendToUser(..., "/queue/notifications", payload)` với principal mapping rõ ràng.
+- Notification DB là nguồn chính; WebSocket chỉ là kênh realtime phụ. Lỗi push được log warning và không làm fail nghiệp vụ chính.
+
+### 12.11 Business Rule Đã Implement
+
+- User chỉ xem/sửa/xóa notification của chính mình.
+- `unread-count` tính theo user hiện tại.
+- `GET /api/notifications` hỗ trợ `isRead=true`, `isRead=false`, `isRead=all` hoặc bỏ trống để lấy tất cả.
+- Sort mặc định `createdAt DESC`; chỉ cho sort theo `createdAt`, `updatedAt`, `id`, `type`, `isRead`, `readAt`.
+- `markAsRead` idempotent: nếu đã đọc thì trả response hiện tại, không lỗi.
+- `read-all` dùng bulk update các notification chưa đọc của user hiện tại và trả số bản ghi đã update.
+- `delete` kiểm tra ownership; notification không tồn tại trả 404, notification của user khác trả 403.
+- `NotificationService.toJson(Map<String,Object>)` dùng `ObjectMapper`, không nối chuỗi JSON thủ công.
+- Nếu serialize `data` lỗi, log warning và lưu `data = null`, không fail nghiệp vụ chính.
+- `NotificationEventPublisher` catch `RuntimeException` khi tạo notification từ Booking/Payment/Review để không rollback flow chính.
+- WebSocket push failure không làm rollback transaction notification hoặc transaction nghiệp vụ.
+
+### 12.12 Validation/Error Message Quan Trọng
+
+- `Thông báo không tồn tại.`
+- `Bạn không có quyền xem thông báo này.`
+- `Đánh dấu thông báo đã đọc thành công.`
+- `Đánh dấu tất cả thông báo đã đọc thành công.`
+- `Xóa thông báo thành công.`
+- `Không thể gửi thông báo realtime, đã lưu thông báo vào hệ thống.` dùng ở log warning khi WebSocket push lỗi.
+- `isRead must be true, false or all`
+- `Invalid sort field. Allowed fields: createdAt, updatedAt, id, type, isRead, readAt`
+
+### 12.13 Checklist Test Thủ Công
+
+1. User tạo booking thành công -> có notification `BOOKING_CREATED` trong DB.
+2. Gọi `GET /api/notifications` -> thấy notification mới nhất.
+3. Gọi `GET /api/notifications/unread-count` -> count tăng đúng.
+4. Gọi `PATCH /api/notifications/{id}/read` -> notification `read=true`, `readAt` có giá trị.
+5. Gọi unread-count sau mark read -> count giảm.
+6. Tạo nhiều notification chưa đọc -> `POST /api/notifications/read-all` -> tất cả `read=true`.
+7. `DELETE /api/notifications/{id}` -> notification biến mất khỏi list user hiện tại.
+8. User A không đọc/xóa được notification của User B.
+9. Admin confirm booking -> user nhận `BOOKING_CONFIRMED`.
+10. User hoặc admin cancel booking -> user nhận `BOOKING_CANCELLED`.
+11. Mock payment success hoặc VNPay IPN success -> user nhận `PAYMENT_SUCCESS`.
+12. Payment failed -> user nhận `PAYMENT_FAILED`.
+13. Refund skeleton -> user nhận `PAYMENT_REFUNDED`.
+14. Admin đổi review sang `ACTIVE/HIDDEN` -> user nhận `REVIEW_APPROVED/REVIEW_REJECTED`.
+15. Nếu WebSocket được bật: client subscribe `/topic/users/{userId}/notifications` và nhận payload realtime khi tạo notification.
+16. Nếu WebSocket push lỗi: nghiệp vụ booking/payment/review vẫn thành công, DB notification vẫn được lưu nếu create notification không lỗi.
+17. Compile/light check pass.
+
+### 12.14 Kết Quả Compile/Light Check
+
+Đã chạy:
+
+```bash
+.\mvnw.cmd -DskipTests compile
+```
+
+Kết quả: `BUILD SUCCESS` lúc `2026-06-04T08:56:31+07:00`.
+
+### 12.15 TODO Còn Lại
+
+- JWT auth cho WebSocket handshake/channel interceptor.
+- Chuyển realtime push sang `convertAndSendToUser(..., "/queue/notifications", payload)` sau khi principal mapping WebSocket rõ ràng.
+- Notification frontend bell/dropdown và unread badge.
+- Notification settings per user nếu cần.
+- Email/SMS notification nếu cần.
+- Cleanup/retention policy cho notification cũ.
+- Support chat WebSocket tách phase sau.

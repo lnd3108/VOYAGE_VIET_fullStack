@@ -9,6 +9,7 @@ import com.voyageviet.backend.booking.repository.BookingRepository;
 import com.voyageviet.backend.common.exception.BusinessException;
 import com.voyageviet.backend.common.exception.ErrorCode;
 import com.voyageviet.backend.common.paging.PageResponse;
+import com.voyageviet.backend.notification.service.NotificationEventPublisher;
 import com.voyageviet.backend.payment.config.PaymentProperties;
 import com.voyageviet.backend.payment.config.VnpayProperties;
 import com.voyageviet.backend.payment.dto.*;
@@ -54,6 +55,7 @@ public class PaymentService {
     private final PaymentProperties paymentProperties;
     private final ObjectMapper objectMapper;
     private final Environment environment;
+    private final NotificationEventPublisher notificationEventPublisher;
 
     @Transactional
     public CreateVnpayPaymentResponse createVnpayPayment(
@@ -160,7 +162,12 @@ public class PaymentService {
             }
         }
 
-        paymentRepository.save(payment);
+        Payment savedPayment = paymentRepository.save(payment);
+        if (savedPayment.getStatus() == PaymentStatus.SUCCESS) {
+            notificationEventPublisher.paymentSuccess(savedPayment);
+        } else if (savedPayment.getStatus() == PaymentStatus.FAILED) {
+            notificationEventPublisher.paymentFailed(savedPayment);
+        }
         return ipnResponse("00", "Confirm Success");
     }
 
@@ -249,7 +256,9 @@ public class PaymentService {
         payment.getBooking().setPaymentStatus(BookingPaymentStatus.REFUNDED);
 
         // TODO: Tích hợp VNPay refund API thật trước khi bật cho production.
-        return toDetailResponse(paymentRepository.save(payment));
+        Payment savedPayment = paymentRepository.save(payment);
+        notificationEventPublisher.paymentRefunded(savedPayment);
+        return toDetailResponse(savedPayment);
     }
 
     @Transactional
@@ -286,6 +295,11 @@ public class PaymentService {
         }
 
         Payment savedPayment = paymentRepository.save(payment);
+        if (savedPayment.getStatus() == PaymentStatus.SUCCESS) {
+            notificationEventPublisher.paymentSuccess(savedPayment);
+        } else if (savedPayment.getStatus() == PaymentStatus.FAILED) {
+            notificationEventPublisher.paymentFailed(savedPayment);
+        }
         return new BookingPaymentResponse(
                 booking.getId(),
                 booking.getBookingCode(),

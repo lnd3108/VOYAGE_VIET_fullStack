@@ -14,6 +14,7 @@ import com.voyageviet.backend.common.exception.ErrorCode;
 import com.voyageviet.backend.common.paging.PageResponse;
 import com.voyageviet.backend.feature.entity.FeatureCode;
 import com.voyageviet.backend.feature.service.FeatureGuardService;
+import com.voyageviet.backend.notification.service.NotificationEventPublisher;
 import com.voyageviet.backend.promotion.service.PromotionService;
 import com.voyageviet.backend.tour.entity.Tour;
 import com.voyageviet.backend.tour.entity.TourSchedule;
@@ -54,6 +55,7 @@ public class BookingService {
     private final FeatureGuardService featureGuardService;
     private final AuditLogService auditLogService;
     private final PromotionService promotionService;
+    private final NotificationEventPublisher notificationEventPublisher;
 
     @Transactional
     public BookingResponse createBooking(Authentication authentication, BookingCreateRequest request) {
@@ -166,6 +168,7 @@ public class BookingService {
                         promotionResult.discountAmount()
                 );
             }
+            notificationEventPublisher.bookingCreated(savedBooking);
             return toResponse(savedBooking);
         } catch (ObjectOptimisticLockingFailureException ex) {
             throw new BusinessException(ErrorCode.CONFLICT, "Có người vừa đặt lịch này, vui lòng thử lại.");
@@ -244,7 +247,14 @@ public class BookingService {
                 "Admin updated booking status"
         );
 
-        return toResponse(bookingRepository.save(booking));
+        Booking savedBooking = bookingRepository.save(booking);
+        if (newStatus == BookingStatus.CONFIRMED) {
+            notificationEventPublisher.bookingConfirmed(savedBooking);
+        } else if (newStatus == BookingStatus.CANCELLED) {
+            notificationEventPublisher.bookingCancelled(savedBooking);
+        }
+
+        return toResponse(savedBooking);
     }
 
     @Transactional
@@ -282,7 +292,10 @@ public class BookingService {
 
         booking.setStatus(BookingStatus.CANCELLED);
 
-        return toResponse(bookingRepository.save(booking));
+        Booking savedBooking = bookingRepository.save(booking);
+        notificationEventPublisher.bookingCancelled(savedBooking);
+
+        return toResponse(savedBooking);
     }
 
     private User getCurrentUser(Authentication authentication) {

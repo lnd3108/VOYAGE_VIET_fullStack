@@ -42,6 +42,7 @@ public class SecurityConfig {
                                 "/api/auth/**",
                                 "/api/payments/vnpay/callback",
                                 "/api/payments/vnpay/ipn",
+                                "/ws/**",
                                 "/error",
 
                                 "/swagger-ui/**",

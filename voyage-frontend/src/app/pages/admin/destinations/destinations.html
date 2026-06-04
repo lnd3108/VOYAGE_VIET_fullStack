@@ -1,6 +1,201 @@
-<app-admin-page-placeholder
-  title="Quản lý điểm đến"
-  description="Quản lý điểm đến, vùng miền, quốc gia, hình ảnh đại diện và trạng thái hiển thị trên public website."
-  primaryBadge="Destinations"
-  secondaryBadge="CRUD later"
-/>
+<section class="admin-destinations">
+  <header class="admin-destinations__header">
+    <div>
+      <p class="admin-destinations__eyebrow">Admin Destinations</p>
+      <h1>Quản lý điểm đến</h1>
+      <p>Tạo và quản lý các điểm đến hiển thị trên tour và trang public</p>
+    </div>
+
+    <div class="admin-destinations__actions">
+      <a routerLink="/admin/media">Mở Media</a>
+      <button type="button" (click)="openCreateForm()">Thêm điểm đến</button>
+    </div>
+  </header>
+
+  <div class="admin-destinations__notice" *ngIf="successMessage">{{ successMessage }}</div>
+
+  <div class="admin-destinations__error" *ngIf="errorMessage">
+    <p>{{ errorMessage }}</p>
+    <button type="button" *ngIf="!saving && !loading" (click)="loadDestinations()">Thử lại</button>
+  </div>
+
+  <section class="admin-destinations__form" *ngIf="isFormOpen">
+    <div class="admin-destinations__form-head">
+      <div>
+        <span>{{ isEditMode ? 'Cập nhật điểm đến' : 'Tạo điểm đến mới' }}</span>
+        <h2>{{ isEditMode ? selectedDestination?.name || 'Điểm đến' : 'Thông tin điểm đến' }}</h2>
+      </div>
+      <button type="button" (click)="closeForm()">Đóng</button>
+    </div>
+
+    <form [formGroup]="form" (ngSubmit)="submitForm()">
+      <div class="admin-destinations__form-grid">
+        <label class="admin-destinations__field">
+          Tên điểm đến
+          <input type="text" formControlName="name" placeholder="Ví dụ: Đà Nẵng" (input)="handleNameInput()" />
+          <small *ngIf="form.controls.name.touched && form.controls.name.invalid">Tên điểm đến là bắt buộc.</small>
+        </label>
+
+        <label class="admin-destinations__field">
+          Slug
+          <input type="text" formControlName="slug" placeholder="da-nang" (input)="markSlugEdited()" />
+          <small *ngIf="form.controls.slug.touched && form.controls.slug.invalid">Slug là bắt buộc.</small>
+        </label>
+
+        <label class="admin-destinations__field">
+          Khu vực
+          <input type="text" formControlName="region" list="destination-region-options" placeholder="DOMESTIC hoặc Miền Bắc" (input)="handleRegionChange($event)" />
+          <datalist id="destination-region-options">
+            <option *ngFor="let option of regionOptions" [value]="option.value">{{ option.label }}</option>
+          </datalist>
+          <small *ngIf="form.controls.region.touched && form.controls.region.invalid">Khu vực là bắt buộc.</small>
+        </label>
+
+        <label class="admin-destinations__field">
+          Quốc gia
+          <input type="text" formControlName="country" placeholder="Việt Nam" />
+          <small *ngIf="form.controls.country.touched && form.controls.country.invalid">Quốc gia là bắt buộc.</small>
+        </label>
+
+        <label class="admin-destinations__field admin-destinations__field--wide">
+          Mô tả
+          <textarea rows="3" formControlName="description" placeholder="Mô tả ngắn về điểm đến"></textarea>
+        </label>
+
+        <label class="admin-destinations__field admin-destinations__field--wide">
+          URL ảnh Cloudinary
+          <input type="url" formControlName="imageUrl" placeholder="Dán URL ảnh từ /admin/media" />
+          <small>Upload ảnh tại Media, copy URL Cloudinary rồi paste vào đây. Destinations không upload ảnh trực tiếp.</small>
+        </label>
+
+        <label class="admin-destinations__field">
+          Latitude
+          <input type="number" formControlName="latitude" step="0.000001" placeholder="16.054407" />
+        </label>
+
+        <label class="admin-destinations__field">
+          Longitude
+          <input type="number" formControlName="longitude" step="0.000001" placeholder="108.202167" />
+        </label>
+
+        <label class="admin-destinations__field" *ngIf="isEditMode">
+          Trạng thái
+          <select formControlName="status">
+            <option value="ACTIVE">Đang hiển thị</option>
+            <option value="INACTIVE">Tạm ẩn</option>
+          </select>
+        </label>
+
+        <div class="admin-destinations__preview admin-destinations__field--wide">
+          <span>Preview ảnh</span>
+          <img
+            *ngIf="imagePreviewUrl(); else noPreview"
+            [src]="imagePreviewUrl()"
+            alt="Preview ảnh điểm đến"
+            (error)="handleImageError($event)"
+          />
+          <ng-template #noPreview>
+            <div>Chưa có URL ảnh. Mở Media để lấy URL Cloudinary.</div>
+          </ng-template>
+        </div>
+      </div>
+
+      <div class="admin-destinations__form-actions">
+        <a routerLink="/admin/media">Mở Media</a>
+        <button type="button" *ngIf="isEditMode" [disabled]="updatingImage || saving" (click)="updateImageOnly()">
+          {{ updatingImage ? 'Đang cập nhật ảnh...' : 'Cập nhật ảnh' }}
+        </button>
+        <button type="submit" [disabled]="saving">
+          {{ saving ? 'Đang lưu...' : isEditMode ? 'Lưu thay đổi' : 'Tạo điểm đến' }}
+        </button>
+      </div>
+    </form>
+  </section>
+
+  <section class="admin-destinations__toolbar">
+    <label>
+      Tìm kiếm
+      <input type="search" [value]="keyword" placeholder="Tìm theo tên, slug, quốc gia, khu vực" (input)="updateKeyword($event)" />
+    </label>
+
+    <label>
+      Trạng thái
+      <select [value]="statusFilter" (change)="updateStatusFilter($event)">
+        <option *ngFor="let option of statusFilters" [value]="option.value">{{ option.label }}</option>
+      </select>
+    </label>
+
+    <label>
+      Khu vực
+      <select [value]="regionFilter" (change)="updateRegionFilter($event)">
+        <option *ngFor="let option of regionFilters" [value]="option.value">{{ option.label }}</option>
+      </select>
+    </label>
+
+    <div>
+      <strong>{{ filteredDestinations.length }}</strong>
+      <span>/ {{ destinations.length }} điểm đến</span>
+    </div>
+  </section>
+
+  <section class="admin-destinations__table" *ngIf="loading">
+    <div class="admin-destinations__row admin-destinations__row--skeleton" *ngFor="let item of [1, 2, 3, 4, 5]"></div>
+  </section>
+
+  <section class="admin-destinations__table" *ngIf="!loading && filteredDestinations.length">
+    <div class="admin-destinations__table-head">
+      <span>Ảnh</span>
+      <span>Tên điểm đến</span>
+      <span>Slug</span>
+      <span>Region</span>
+      <span>Country</span>
+      <span>Tọa độ</span>
+      <span>Trạng thái</span>
+      <span>Cập nhật</span>
+      <span>Hành động</span>
+    </div>
+
+    <article class="admin-destinations__row" *ngFor="let destination of filteredDestinations">
+      <div class="admin-destinations__image" data-label="Ảnh">
+        <img [src]="getDestinationImage(destination)" [alt]="destination.name || 'Điểm đến'" (error)="handleImageError($event)" />
+      </div>
+
+      <div data-label="Tên điểm đến">
+        <strong>{{ destination.name || 'Chưa đặt tên' }}</strong>
+        <small>{{ destination.description || 'Chưa có mô tả' }}</small>
+      </div>
+
+      <div data-label="Slug">
+        <code>{{ destination.slug || 'dang-cap-nhat' }}</code>
+      </div>
+
+      <div data-label="Region">{{ formatRegion(destination.region) }}</div>
+      <div data-label="Country">{{ destination.country || 'Đang cập nhật' }}</div>
+      <div data-label="Tọa độ">{{ coordinatesText(destination) }}</div>
+
+      <div data-label="Trạng thái">
+        <span class="admin-destinations__status" [ngClass]="statusClass(destination.status)">
+          {{ statusLabel(destination.status) }}
+        </span>
+      </div>
+
+      <div data-label="Cập nhật">{{ formatDate(destination.updatedAt || destination.createdAt) }}</div>
+
+      <div class="admin-destinations__row-actions" data-label="Hành động">
+        <button type="button" (click)="openEditForm(destination)">Sửa</button>
+        <button type="button" [disabled]="updatingStatusId === destination.id" (click)="toggleStatus(destination)">
+          {{ updatingStatusId === destination.id ? 'Đang đổi...' : nextStatusLabel(destination) }}
+        </button>
+        <button type="button" class="admin-destinations__danger" [disabled]="deletingId === destination.id" (click)="deleteDestination(destination)">
+          {{ deletingId === destination.id ? 'Đang xóa...' : 'Xóa' }}
+        </button>
+      </div>
+    </article>
+  </section>
+
+  <div class="admin-destinations__empty" *ngIf="!loading && !filteredDestinations.length && !errorMessage">
+    <strong>Chưa có điểm đến nào</strong>
+    <p>Tạo điểm đến đầu tiên hoặc thay đổi bộ lọc để xem kết quả khác.</p>
+    <button type="button" (click)="openCreateForm()">Thêm điểm đến</button>
+  </div>
+</section>

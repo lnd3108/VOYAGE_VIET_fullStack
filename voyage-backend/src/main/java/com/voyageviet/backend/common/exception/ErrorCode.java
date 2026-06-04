@@ -60,6 +60,9 @@ public enum ErrorCode {
     PROMOTION_INVALID("PROMOTION_422", "Promotion is invalid", HttpStatus.UNPROCESSABLE_ENTITY),
     PROMOTION_IN_USE("PROMOTION_422", "Promotion is already used", HttpStatus.UNPROCESSABLE_ENTITY),
 
+    NOTIFICATION_NOT_FOUND("NOTIFICATION_404", "Notification not found", HttpStatus.NOT_FOUND),
+    NOTIFICATION_FORBIDDEN("NOTIFICATION_403", "You are not allowed to access this notification", HttpStatus.FORBIDDEN),
+
     FEATURE_FLAG_NOT_FOUND("FEATURE_404", "Feature flag not found", HttpStatus.NOT_FOUND),
 
     REVIEW_NOT_FOUND("REVIEW_404", "Review not found", HttpStatus.NOT_FOUND),

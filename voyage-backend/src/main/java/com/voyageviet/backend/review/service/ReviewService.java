@@ -6,6 +6,7 @@ import com.voyageviet.backend.common.exception.BusinessException;
 import com.voyageviet.backend.common.exception.ErrorCode;
 import com.voyageviet.backend.feature.entity.FeatureCode;
 import com.voyageviet.backend.feature.service.FeatureGuardService;
+import com.voyageviet.backend.notification.service.NotificationEventPublisher;
 import com.voyageviet.backend.review.dto.ReviewCreateRequest;
 import com.voyageviet.backend.review.dto.ReviewResponse;
 import com.voyageviet.backend.review.entity.Review;
@@ -41,6 +42,7 @@ public class ReviewService {
     private final TourRepository tourRepository;
     private final UserRepository userRepository;
     private final FeatureGuardService featureGuardService;
+    private final NotificationEventPublisher notificationEventPublisher;
 
     public List<ReviewResponse> getPublicReviewsByTourSlug(String tourSlug) {
         return reviewRepository.findByTourSlugAndStatus(
@@ -141,9 +143,15 @@ public class ReviewService {
                         "Review not found"
                 ));
 
+        ReviewStatus currentStatus = review.getStatus();
         review.setStatus(request.status());
 
-        return toResponse(reviewRepository.save(review));
+        Review savedReview = reviewRepository.save(review);
+        if (currentStatus != request.status()) {
+            notificationEventPublisher.reviewStatusChanged(savedReview, request.status());
+        }
+
+        return toResponse(savedReview);
     }
 
     @Transactional

@@ -1,10 +1,12 @@
 import { NgClass, NgFor, NgIf } from '@angular/common';
 import { Component, DestroyRef, ElementRef, OnDestroy, OnInit, ViewChild, inject } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { take } from 'rxjs';
 
 import { AdminMediaApiService } from '../../../core/api/admin-media-api.service';
 import { AdminMediaItem } from '../../../core/models/media.model';
 import { PageResponse } from '../../../core/models/page-response.model';
+import { AdminUiFeedbackService } from '../../../core/services/admin-ui-feedback.service';
 
 interface MediaModuleOption {
   label: string;
@@ -23,6 +25,7 @@ export class AdminMedia implements OnInit, OnDestroy {
 
   private readonly adminMediaApiService = inject(AdminMediaApiService);
   private readonly destroyRef = inject(DestroyRef);
+  private readonly feedback = inject(AdminUiFeedbackService);
 
   readonly fallbackImage = '/hero/bg-home.png';
   readonly maxFileSize = 5 * 1024 * 1024;
@@ -225,6 +228,7 @@ export class AdminMedia implements OnInit, OnDestroy {
         .writeText(url)
         .then(() => {
           this.successMessage = 'Đã copy URL ảnh';
+          this.feedback.success(this.successMessage);
         })
         .catch(() => this.copyUrlFallback(url));
       return;
@@ -240,30 +244,35 @@ export class AdminMedia implements OnInit, OnDestroy {
       return;
     }
 
-    const confirmed = window.confirm(
-      'Bạn có chắc muốn xóa media này? URL đã dùng ở nội dung khác có thể bị lỗi ảnh.',
-    );
+    this.feedback
+      .confirmDanger(
+        'Thao tác này không thể hoàn tác. Bạn có chắc muốn xóa media này? URL đã dùng ở nội dung khác có thể bị lỗi ảnh.',
+      )
+      .pipe(take(1))
+      .subscribe((confirmed) => {
+        if (!confirmed) {
+          return;
+        }
 
-    if (!confirmed) {
-      return;
-    }
+        this.deletingId = id;
+        this.errorMessage = '';
+        this.successMessage = '';
 
-    this.deletingId = id;
-    this.errorMessage = '';
-    this.successMessage = '';
-
-    this.adminMediaApiService.deleteMedia(id).subscribe({
-      next: () => {
-        this.mediaItems = this.mediaItems.filter((media) => media.id !== id);
-        this.totalElements = Math.max(0, this.totalElements - 1);
-        this.successMessage = 'Đã xóa media.';
-        this.deletingId = null;
-      },
-      error: (error) => {
-        this.errorMessage = this.errorText(error, 'Không thể xóa media. Vui lòng thử lại sau.');
-        this.deletingId = null;
-      },
-    });
+        this.adminMediaApiService.deleteMedia(id).subscribe({
+          next: () => {
+            this.mediaItems = this.mediaItems.filter((media) => media.id !== id);
+            this.totalElements = Math.max(0, this.totalElements - 1);
+            this.successMessage = 'Đã xóa media.';
+            this.feedback.success(this.successMessage);
+            this.deletingId = null;
+          },
+          error: (error) => {
+            this.errorMessage = this.errorText(error, 'Không thể xóa media. Vui lòng thử lại sau.');
+            this.feedback.error(this.errorMessage);
+            this.deletingId = null;
+          },
+        });
+      });
   }
 
   loadMore(): void {
@@ -495,8 +504,10 @@ export class AdminMedia implements OnInit, OnDestroy {
     try {
       const copied = document.execCommand('copy');
       this.successMessage = copied ? 'Đã copy URL ảnh' : `Copy thủ công URL: ${url}`;
+      copied ? this.feedback.success(this.successMessage) : this.feedback.info(this.successMessage);
     } catch {
       this.successMessage = `Copy thủ công URL: ${url}`;
+      this.feedback.info(this.successMessage);
     } finally {
       document.body.removeChild(textarea);
     }
