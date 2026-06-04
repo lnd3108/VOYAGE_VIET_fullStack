@@ -15,6 +15,7 @@ import com.voyageviet.backend.review.repository.ReviewRepository;
 import com.voyageviet.backend.tour.entity.Tour;
 import com.voyageviet.backend.tour.entity.TourStatus;
 import com.voyageviet.backend.tour.repository.TourRepository;
+import com.voyageviet.backend.tour.service.TourStatsService;
 import com.voyageviet.backend.user.entity.User;
 import com.voyageviet.backend.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
@@ -43,6 +44,7 @@ public class ReviewService {
     private final UserRepository userRepository;
     private final FeatureGuardService featureGuardService;
     private final NotificationEventPublisher notificationEventPublisher;
+    private final TourStatsService tourStatsService;
 
     public List<ReviewResponse> getPublicReviewsByTourSlug(String tourSlug) {
         return reviewRepository.findByTourSlugAndStatus(
@@ -116,7 +118,9 @@ public class ReviewService {
                 .status(ReviewStatus.ACTIVE)
                 .build();
 
-        return toResponse(reviewRepository.save(review));
+        Review savedReview = reviewRepository.save(review);
+        tourStatsService.recomputeRatingSummary(tour.getId());
+        return toResponse(savedReview);
     }
 
     public PageResponse<ReviewResponse> getAllReviewsForAdmin(
@@ -149,6 +153,7 @@ public class ReviewService {
         Review savedReview = reviewRepository.save(review);
         if (currentStatus != request.status()) {
             notificationEventPublisher.reviewStatusChanged(savedReview, request.status());
+            tourStatsService.recomputeRatingSummary(savedReview.getTour().getId());
         }
 
         return toResponse(savedReview);
@@ -163,6 +168,8 @@ public class ReviewService {
                 ));
 
         reviewRepository.delete(review);
+        reviewRepository.flush();
+        tourStatsService.recomputeRatingSummary(review.getTour().getId());
     }
 
     private Pageable buildPageable(int page, int size, String sortBy, String sortDir) {

@@ -1,5 +1,8 @@
 package com.voyageviet.backend.tour.service;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.voyageviet.backend.category.entity.Category;
 import com.voyageviet.backend.category.repository.CategoryRepository;
 import com.voyageviet.backend.common.exception.BusinessException;
@@ -14,6 +17,8 @@ import com.voyageviet.backend.review.repository.ReviewRepository;
 import com.voyageviet.backend.review.repository.projection.TourReviewSummaryProjection;
 import com.voyageviet.backend.tour.dto.*;
 import com.voyageviet.backend.tour.entity.Tour;
+import com.voyageviet.backend.tour.entity.TourImage;
+import com.voyageviet.backend.tour.entity.TourItinerary;
 import com.voyageviet.backend.tour.entity.TourSchedule;
 import com.voyageviet.backend.tour.entity.TourScheduleStatus;
 import com.voyageviet.backend.tour.entity.TourStatus;
@@ -32,6 +37,9 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -51,6 +59,7 @@ public class TourService {
     private final TourItineraryRepository tourItineraryRepository;
     private final TourImageRepository tourImageRepository;
     private final TourPublishService tourPublishService;
+    private final ObjectMapper objectMapper;
 
     public List<TourCardResponse> getFeaturedTours() {
         List<Tour> tours = tourRepository.findTop6ByFeaturedTrueAndStatusOrderByCreatedAtDesc(TourStatus.PUBLISHED);
@@ -80,6 +89,41 @@ public class TourService {
                 tourItineraryRepository.countByTourId(id),
                 tourPublishService.getPublishChecklist(id)
         );
+    }
+
+    @Transactional
+    public AdminTourDetailResponse duplicateTour(Long sourceTourId) {
+        Tour source = findTourById(sourceTourId);
+
+        Tour duplicated = Tour.builder()
+                .title(source.getTitle() + " (Copy)")
+                .slug(generateDuplicateSlug(source.getSlug()))
+                .shortDescription(source.getShortDescription())
+                .description(source.getDescription())
+                .thumbnailUrl(source.getThumbnailUrl())
+                .originalPrice(source.getOriginalPrice())
+                .salePrice(source.getSalePrice())
+                .minPrice(null)
+                .durationDays(source.getDurationDays())
+                .durationNights(source.getDurationNights())
+                .departureLocation(source.getDepartureLocation())
+                .maxParticipants(source.getMaxParticipants())
+                .availableSeats(source.getAvailableSeats())
+                .featured(false)
+                .isDomestic(source.getIsDomestic())
+                .avgRating(BigDecimal.ZERO)
+                .totalReviews(0)
+                .highlightTags(source.getHighlightTags())
+                .status(TourStatus.DRAFT)
+                .category(source.getCategory())
+                .destination(source.getDestination())
+                .build();
+
+        Tour savedTour = tourRepository.save(duplicated);
+        copyItineraries(source.getId(), savedTour);
+        copyImages(source.getId(), savedTour);
+
+        return getAdminTourDetail(savedTour.getId());
     }
 
     @Transactional
@@ -113,6 +157,8 @@ public class TourService {
                 .maxParticipants(request.maxParticipants() == null ? 0 : request.maxParticipants())
                 .availableSeats(request.availableSeats() == null ? 0 : request.availableSeats())
                 .featured(request.featured() != null && request.featured())
+                .isDomestic(resolveIsDomestic(request.isDomestic(), destination))
+                .highlightTags(toHighlightTagsJson(request.highlightTags()))
                 .status(request.status() == null ? TourStatus.DRAFT : request.status())
                 .category(category)
                 .destination(destination)
@@ -153,6 +199,10 @@ public class TourService {
         tour.setMaxParticipants(request.maxParticipants() == null ? 0 : request.maxParticipants());
         tour.setAvailableSeats(request.availableSeats() == null ? 0 : request.availableSeats());
         tour.setFeatured(request.featured() != null && request.featured());
+        tour.setIsDomestic(request.isDomestic() != null
+                ? request.isDomestic()
+                : tour.getIsDomestic() == null ? inferIsDomestic(destination) : tour.getIsDomestic());
+        tour.setHighlightTags(toHighlightTagsJson(request.highlightTags()));
         tour.setStatus(request.status() == null ? tour.getStatus() : request.status());
         tour.setCategory(category);
         tour.setDestination(destination);
@@ -325,6 +375,7 @@ public class TourService {
         Set<String> allowedSortFields = Set.of(
                 "createdAt",
                 "effectivePrice",
+                "minPrice",
                 "originalPrice",
                 "salePrice",
                 "durationDays",
@@ -396,11 +447,16 @@ public class TourService {
                 tour.getThumbnailUrl(),
                 tour.getOriginalPrice(),
                 tour.getSalePrice(),
+                tour.getMinPrice(),
                 tour.getDurationDays(),
                 tour.getDurationNights(),
                 tour.getDepartureLocation(),
                 resolveAvailableSeats(tour),
                 tour.getFeatured(),
+                tour.getIsDomestic(),
+                resolveStoredAverageRating(tour, averageRating),
+                resolveStoredTotalReviews(tour, reviewCount),
+                parseHighlightTags(tour.getHighlightTags()),
                 tour.getStatus(),
                 tour.getCategory().getName(),
                 tour.getCategory().getSlug(),
@@ -450,6 +506,7 @@ public class TourService {
                 "createdAt",
                 "originalPrice",
                 "salePrice",
+                "minPrice",
                 "durationDays",
                 "availableSeats",
                 "id"
@@ -479,12 +536,17 @@ public class TourService {
                 tour.getThumbnailUrl(),
                 tour.getOriginalPrice(),
                 tour.getSalePrice(),
+                tour.getMinPrice(),
                 tour.getDurationDays(),
                 tour.getDurationNights(),
                 tour.getDepartureLocation(),
                 tour.getMaxParticipants(),
                 tour.getAvailableSeats(),
                 tour.getFeatured(),
+                tour.getIsDomestic(),
+                resolveStoredAverageRating(tour, getAverageRating(tour.getId())),
+                resolveStoredTotalReviews(tour, getReviewCount(tour.getId())),
+                parseHighlightTags(tour.getHighlightTags()),
                 tour.getStatus(),
 
                 getAverageRating(tour.getId()),
@@ -509,8 +571,77 @@ public class TourService {
         return tourRepository.findById(id)
                 .orElseThrow(() -> new BusinessException(
                         ErrorCode.TOUR_NOT_FOUND,
-                        "Tour not found"
+                        "Tour không tồn tại."
                 ));
+    }
+
+    private void copyItineraries(Long sourceTourId, Tour targetTour) {
+        List<TourItinerary> sourceItineraries =
+                tourItineraryRepository.findByTourIdOrderByDayNumberAscSortOrderAsc(sourceTourId);
+        if (sourceItineraries.isEmpty()) {
+            return;
+        }
+
+        tourItineraryRepository.saveAll(sourceItineraries.stream()
+                .map(item -> TourItinerary.builder()
+                        .tour(targetTour)
+                        .dayNumber(item.getDayNumber())
+                        .title(item.getTitle())
+                        .description(item.getDescription())
+                        .hotelName(item.getHotelName())
+                        .meals(item.getMeals())
+                        .transportModes(item.getTransportModes())
+                        .placeNames(item.getPlaceNames())
+                        .activities(item.getActivities())
+                        .sortOrder(item.getSortOrder())
+                        .build())
+                .toList());
+    }
+
+    private void copyImages(Long sourceTourId, Tour targetTour) {
+        List<TourImage> sourceImages = tourImageRepository.findByTourIdOrderBySortOrderAscIdAsc(sourceTourId);
+        if (sourceImages.isEmpty()) {
+            return;
+        }
+
+        tourImageRepository.saveAll(sourceImages.stream()
+                .map(image -> TourImage.builder()
+                        .tour(targetTour)
+                        .url(image.getUrl())
+                        .publicId(image.getPublicId())
+                        .altText(image.getAltText())
+                        .sortOrder(image.getSortOrder())
+                        .thumbnail(image.getThumbnail())
+                        .width(image.getWidth())
+                        .height(image.getHeight())
+                        .fileSizeBytes(image.getFileSizeBytes())
+                        .build())
+                .toList());
+    }
+
+    private String generateDuplicateSlug(String sourceSlug) {
+        String baseSlug = sourceSlug + "-copy";
+        if (!tourRepository.existsBySlug(baseSlug)) {
+            return baseSlug;
+        }
+
+        for (int i = 2; i <= 50; i++) {
+            String candidate = baseSlug + "-" + i;
+            if (!tourRepository.existsBySlug(candidate)) {
+                return candidate;
+            }
+        }
+
+        String timestamp = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMddHHmmss"));
+        String timestampSlug = baseSlug + "-" + timestamp;
+        if (!tourRepository.existsBySlug(timestampSlug)) {
+            return timestampSlug;
+        }
+
+        throw new BusinessException(
+                ErrorCode.TOUR_ALREADY_EXISTS,
+                "Slug nhân bản bị trùng, vui lòng thử lại."
+        );
     }
 
     private Category findCategoryById(Long id) {
@@ -617,11 +748,16 @@ public class TourService {
                 tour.getThumbnailUrl(),
                 tour.getOriginalPrice(),
                 tour.getSalePrice(),
+                tour.getMinPrice(),
                 tour.getDurationDays(),
                 tour.getDurationNights(),
                 tour.getDepartureLocation(),
                 tour.getAvailableSeats(),
                 tour.getFeatured(),
+                tour.getIsDomestic(),
+                getAverageRating(tour.getId()),
+                Math.toIntExact(getReviewCount(tour.getId())),
+                parseHighlightTags(tour.getHighlightTags()),
                 tour.getStatus(),
                 tour.getCategory().getName(),
                 tour.getCategory().getSlug(),
@@ -631,5 +767,78 @@ public class TourService {
                 getAverageRating(tour.getId()),
                 getReviewCount(tour.getId())
         );
+    }
+
+    private Boolean resolveIsDomestic(Boolean requestedValue, Destination destination) {
+        return requestedValue != null ? requestedValue : inferIsDomestic(destination);
+    }
+
+    private Boolean inferIsDomestic(Destination destination) {
+        if (destination == null || destination.getCountry() == null) {
+            return null;
+        }
+
+        String country = destination.getCountry().trim();
+        return "Vietnam".equalsIgnoreCase(country)
+                || "Viet Nam".equalsIgnoreCase(country)
+                || "Việt Nam".equalsIgnoreCase(country);
+    }
+
+    private String toHighlightTagsJson(List<String> tags) {
+        if (tags == null) {
+            return null;
+        }
+
+        List<String> normalizedTags = tags.stream()
+                .filter(tag -> tag != null && !tag.isBlank())
+                .map(String::trim)
+                .distinct()
+                .toList();
+
+        if (normalizedTags.isEmpty()) {
+            return null;
+        }
+
+        try {
+            return objectMapper.writeValueAsString(normalizedTags);
+        } catch (JsonProcessingException ex) {
+            throw new BusinessException(
+                    ErrorCode.INVALID_REQUEST,
+                    "Highlight tags không hợp lệ."
+            );
+        }
+    }
+
+    private List<String> parseHighlightTags(String rawTags) {
+        if (rawTags == null || rawTags.isBlank()) {
+            return List.of();
+        }
+
+        try {
+            return objectMapper.readValue(rawTags, new TypeReference<>() {
+            });
+        } catch (JsonProcessingException ex) {
+            List<String> fallbackTags = new ArrayList<>();
+            for (String tag : rawTags.split(",")) {
+                if (tag != null && !tag.isBlank()) {
+                    fallbackTags.add(tag.trim());
+                }
+            }
+            return fallbackTags;
+        }
+    }
+
+    private Double resolveStoredAverageRating(Tour tour, Double fallbackAverageRating) {
+        if (tour.getAvgRating() != null) {
+            return tour.getAvgRating().doubleValue();
+        }
+        return fallbackAverageRating == null ? 0.0 : fallbackAverageRating;
+    }
+
+    private Integer resolveStoredTotalReviews(Tour tour, Long fallbackReviewCount) {
+        if (tour.getTotalReviews() != null) {
+            return tour.getTotalReviews();
+        }
+        return fallbackReviewCount == null ? 0 : Math.toIntExact(fallbackReviewCount);
     }
 }

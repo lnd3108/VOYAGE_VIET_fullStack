@@ -1,6 +1,7 @@
 package com.voyageviet.backend.booking.repository;
 
 import com.voyageviet.backend.booking.entity.Booking;
+import com.voyageviet.backend.booking.entity.BookingPaymentStatus;
 import com.voyageviet.backend.booking.entity.BookingStatus;
 import com.voyageviet.backend.booking.repository.projection.BookingStatusCountProjection;
 import com.voyageviet.backend.booking.repository.projection.MonthlyBookingRevenueProjection;
@@ -55,6 +56,24 @@ public interface BookingRepository extends JpaRepository<Booking, Long> {
     @EntityGraph(attributePaths = {"user", "tour", "schedule"})
     Optional<Booking> findByIdAndUserId(Long id, Long userId);
 
+    @EntityGraph(attributePaths = {"user", "tour", "tour.category", "tour.destination", "schedule", "promotion"})
+    Optional<Booking> findWithAdminDetailById(Long id);
+
+    @Query("""
+            SELECT b.id
+            FROM Booking b
+            WHERE b.status = :status
+              AND b.createdAt <= :cutoff
+              AND b.paymentStatus IN :paymentStatuses
+            ORDER BY b.createdAt ASC
+            """)
+    List<Long> findExpiredPendingBookingIds(
+            @Param("status") BookingStatus status,
+            @Param("paymentStatuses") Collection<BookingPaymentStatus> paymentStatuses,
+            @Param("cutoff") LocalDateTime cutoff,
+            Pageable pageable
+    );
+
     long countByStatus(BookingStatus status);
 
     long countByUserId(Long userId);
@@ -108,4 +127,10 @@ public interface BookingRepository extends JpaRepository<Booking, Long> {
 
     @EntityGraph(attributePaths = {"user", "tour", "schedule"})
     Optional<Booking> findByBookingCode(String bookingCode);
+
+    @EntityGraph(attributePaths = {"tour", "tour.category", "tour.destination"})
+    List<Booking> findByCreatedAtGreaterThanEqualAndCreatedAtLessThan(
+            LocalDateTime startInclusive,
+            LocalDateTime endExclusive
+    );
 }

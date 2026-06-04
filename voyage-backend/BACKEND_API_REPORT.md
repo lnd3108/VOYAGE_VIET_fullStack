@@ -975,3 +975,639 @@ Kết quả: `BUILD SUCCESS` lúc `2026-06-04T08:56:31+07:00`.
 - Email/SMS notification nếu cần.
 - Cleanup/retention policy cho notification cũ.
 - Support chat WebSocket tách phase sau.
+
+## 13. Cập Nhật 04/06/2026 — Phase 6: Booking/Admin Hardening
+
+### 13.1 Mục Tiêu Phase
+
+Triển khai hardening cho Booking/Admin gồm admin booking detail, nhân bản tour sang bản nháp, scheduler tự hủy booking PENDING quá hạn, fail payment pending quá hạn, release ghế schedule, sửa security `/api/users/**` và bổ sung SMTP email thật cho forgot/reset/verify email.
+
+Không làm frontend, không làm support chat, không làm VNPay refund thật, không làm WebSocket JWT handshake và không đổi response format chung.
+
+### 13.2 File Đã Thêm
+
+| File | Nội dung |
+|---|---|
+| `src/main/java/com/voyageviet/backend/booking/dto/AdminBookingDetailResponse.java` | DTO detail booking cho admin, gồm user/tour/schedule/contact/amount/promotion/payment mới nhất. |
+| `src/main/java/com/voyageviet/backend/booking/config/BookingExpiryProperties.java` | Bind config `booking.expiry.*`. |
+| `src/main/java/com/voyageviet/backend/booking/service/BookingExpiryService.java` | Xử lý expire từng booking trong transaction riêng: cancel booking, release ghế, fail payment pending, tạo notification. |
+| `src/main/java/com/voyageviet/backend/booking/service/BookingExpiryScheduler.java` | Job scheduled scan booking PENDING quá hạn theo fixed rate và batch-size. |
+
+Không xóa file nào.
+
+### 13.3 File Đã Sửa
+
+| File | Nội dung sửa |
+|---|---|
+| `pom.xml` | Thêm `spring-boot-starter-mail`. |
+| `src/main/java/com/voyageviet/backend/VoyageBackendApplication.java` | Bật `@EnableScheduling`. |
+| `src/main/java/com/voyageviet/backend/booking/controller/AdminBookingController.java` | Thêm `GET /api/admin/bookings/{id}`. |
+| `src/main/java/com/voyageviet/backend/booking/service/BookingService.java` | Thêm `getAdminBookingDetail`, map detail admin, inject `PaymentRepository`. |
+| `src/main/java/com/voyageviet/backend/booking/repository/BookingRepository.java` | Thêm `findWithAdminDetailById`, `findExpiredPendingBookingIds`. |
+| `src/main/java/com/voyageviet/backend/tour/controller/AdminTourController.java` | Thêm `POST /api/admin/tours/{id}/duplicate`. |
+| `src/main/java/com/voyageviet/backend/tour/service/TourService.java` | Thêm duplicate tour sang DRAFT, copy itinerary/images, generate slug unique. |
+| `src/main/java/com/voyageviet/backend/notification/service/NotificationEventPublisher.java` | Thêm `bookingExpired` notification. |
+| `src/main/java/com/voyageviet/backend/common/config/SecurityConfig.java` | Đổi matcher từ `/api/users/me` sang `/api/users/**` yêu cầu role `USER`. |
+| `src/main/java/com/voyageviet/backend/auth/service/LoggingEmailService.java` | Refactor để gửi email thật qua `JavaMailSender` khi enabled, fallback/log link khi mail disabled hoặc local/dev. |
+| `src/main/resources/application.properties` | Thêm config booking expiry và mail/frontend base URL. |
+| `src/main/resources/application-local.properties` | Thêm config booking expiry và mail/frontend base URL cho local. |
+| `BACKEND_API_REPORT.md` | Cập nhật Phase 6 Booking/Admin Hardening. |
+
+### 13.4 DTO Mới
+
+| DTO | Mục đích |
+|---|---|
+| `AdminBookingDetailResponse` | Response detail booking cho admin: booking status/payment status, user info, tour/category/destination, schedule, passenger counts, price snapshots, contact/note, promotion info, latest payment summary. |
+
+Không tạo `TourDuplicateRequest` trong phase này. Endpoint duplicate không nhận body và dùng default: copy itinerary/images, không copy schedules.
+
+### 13.5 Repository/Service/Controller Đã Thêm/Sửa
+
+| Loại | Tên | Ghi chú |
+|---|---|---|
+| Controller | `AdminBookingController` | Thêm detail endpoint. |
+| Service | `BookingService` | Thêm `getAdminBookingDetail`. |
+| Repository | `BookingRepository` | Thêm fetch graph cho detail và query id booking quá hạn. |
+| Controller | `AdminTourController` | Thêm duplicate endpoint. |
+| Service | `TourService` | Thêm `duplicateTour(Long sourceTourId)`. |
+| Service | `BookingExpiryService` | Xử lý expire từng booking. |
+| Scheduler | `BookingExpiryScheduler` | Scan booking quá hạn theo config. |
+| Service | `LoggingEmailService` / `EmailService` | Gửi SMTP thật khi enabled, log link khi disabled/local. |
+| Config | `SecurityConfig` | `/api/users/**` yêu cầu role `USER`. |
+
+### 13.6 API Mới
+
+| Method | Endpoint | Quyền | Chức năng | Payload/query chính |
+|---|---|---|---|---|
+| GET | `/api/admin/bookings/{id}` | Admin | Admin xem detail booking đầy đủ để mở detail drawer/page | Path `id`; không expose password/token/raw gatewayResponse |
+| POST | `/api/admin/tours/{id}/duplicate` | Admin | Nhân bản tour hiện có sang tour mới `DRAFT` | Path `id`; không body; default copy itinerary/images, không copy schedules |
+
+### 13.7 Config Mới
+
+| Key | Default | Ghi chú |
+|---|---|---|
+| `booking.expiry.enabled` | `true` | Bật/tắt scheduler tự hủy booking quá hạn. |
+| `booking.expiry.pending-timeout-minutes` | `30` | Booking `PENDING` quá số phút này sẽ bị expire nếu chưa paid. |
+| `booking.expiry.fixed-rate-ms` | `60000` | Chu kỳ scheduler. |
+| `booking.expiry.batch-size` | `100` | Số booking tối đa xử lý mỗi lần scan. |
+| `app.mail.enabled` | `false` | Bật gửi email thật qua SMTP. |
+| `app.mail.from` | `no-reply@voyageviet.local` | From address. |
+| `app.frontend.base-url` | `http://localhost:4200` | Base URL để tạo reset/verify link. |
+| `spring.mail.host` | `${MAIL_HOST:}` | SMTP host. |
+| `spring.mail.port` | `${MAIL_PORT:587}` | SMTP port. |
+| `spring.mail.username` | `${MAIL_USERNAME:}` | SMTP username. |
+| `spring.mail.password` | `${MAIL_PASSWORD:}` | SMTP password/app password. |
+| `spring.mail.properties.mail.smtp.auth` | `true` | SMTP auth. |
+| `spring.mail.properties.mail.smtp.starttls.enable` | `true` | STARTTLS. |
+
+Ghi chú SMTP: dùng env/provider SMTP, không hardcode Gmail password. Với Gmail cần dùng App Password.
+
+### 13.8 API/Service Cũ Đã Chỉnh Sửa
+
+| API/Service | Thay đổi |
+|---|---|
+| `BookingService` | Admin detail mapping; scheduler expire release ghế qua `BookingExpiryService`. |
+| `PaymentRepository` | Reuse `findFirstByBookingIdAndStatusOrderByCreatedAtDesc` để fail latest `PENDING` payment khi booking expire. |
+| `TourService` | Duplicate tour sang DRAFT, title `old title (Copy)`, slug unique `old-slug-copy`, `old-slug-copy-2`, hoặc timestamp fallback. |
+| `SecurityConfig` | `/api/users/**` cần role `USER`; role hierarchy vẫn cho `ADMIN/SUPER_ADMIN` kế thừa. Public/admin/auth/VNPay/ws/swagger rules giữ nguyên thứ tự trước matcher này. |
+| `AuthService` / `EmailService` | Forgot password/register verify email gọi service gửi email; service không expose token trong response và không làm fail register/forgot khi SMTP lỗi. |
+| `NotificationEventPublisher` | Thêm notification `BOOKING_CANCELLED` với title `Booking đã hết hạn` cho booking expiry. |
+
+### 13.9 Business Rule Đã Implement
+
+- Admin xem detail booking bất kỳ qua `/api/admin/bookings/{id}`.
+- Booking không tồn tại trả business error `Booking không tồn tại.`.
+- Booking detail không expose password/token/raw `gatewayResponse`; raw payment vẫn xem qua `GET /api/admin/payments/{id}`.
+- Tour duplicate luôn tạo tour mới `DRAFT`, `featured=false`.
+- Tour duplicate copy category/destination reference và basic tour fields.
+- Tour duplicate không copy booking/review/wishlist/payment/promotion usage/audit log.
+- Tour duplicate không copy schedules mặc định để tránh mở bán nhầm.
+- Tour duplicate copy itinerary trong cùng transaction.
+- Tour duplicate copy image metadata. Do `TourImage.publicId` đang `nullable=false`, phase này copy cùng `publicId`; có rủi ro shared Cloudinary publicId nếu xóa ảnh ở tour copy.
+- Booking PENDING quá hạn tự chuyển `CANCELLED` nếu `paymentStatus` thuộc `UNPAID/PENDING/FAILED` và không phải `PAID`.
+- Scheduler release ghế khỏi `TourSchedule` theo `totalPeople` hoặc `numberOfPeople` fallback.
+- Nếu schedule đang `FULL` và còn chỗ sau release thì chuyển về `OPEN`; không reopen `CLOSED/CANCELLED`.
+- Latest payment `PENDING` của booking expired được set `FAILED`.
+- Booking expired set `booking.paymentStatus=FAILED` để frontend biết hết hạn thanh toán.
+- Mỗi booking expire xử lý trong transaction riêng; một lỗi không dừng toàn batch.
+- Booking `CONFIRMED/COMPLETED/CANCELLED` không bị scheduler đụng.
+- Notification được tạo cho booking expired nếu Notification module hoạt động; lỗi notification vẫn được publisher catch/log.
+- `/api/users/**` yêu cầu role `USER`; anonymous vẫn 401, user hợp lệ OK, admin kế thừa qua role hierarchy.
+- Nếu `app.mail.enabled=true` và SMTP hoạt động, reset/verify email được gửi thật.
+- Nếu `app.mail.enabled=false`, backend log reset/verify link để test local/dev.
+- Nếu SMTP lỗi, backend log warning và không leak email tồn tại hay không qua API response.
+
+### 13.10 Validation/Error Message Quan Trọng
+
+- `Booking không tồn tại.`
+- `Tour không tồn tại.`
+- `Nhân bản tour thành công.`
+- `Slug nhân bản bị trùng, vui lòng thử lại.`
+- `Booking đã được tự động hủy do quá thời gian thanh toán.`
+- Notification expiry: title `Booking đã hết hạn`, body `Booking {bookingCode} đã bị hủy do quá thời gian thanh toán.`
+- Forgot password response vẫn là message chung: `Nếu email tồn tại, hệ thống đã gửi hướng dẫn đặt lại mật khẩu.`
+- SMTP warning nội bộ: `Gửi email xác thực thất bại, vui lòng kiểm tra cấu hình SMTP.`
+
+### 13.11 Checklist Test Thủ Công
+
+1. Admin gọi `GET /api/admin/bookings/{id}` với booking tồn tại -> trả đủ user/tour/schedule/payment/promotion/contact/amount.
+2. Admin gọi booking không tồn tại -> lỗi `Booking không tồn tại.`.
+3. User thường gọi endpoint admin -> 403.
+4. Admin duplicate tour có itinerary/images -> tạo tour mới `DRAFT`.
+5. Tour mới có slug unique.
+6. Tour mới không copy booking/review/wishlist/payment.
+7. Tour mới copy itinerary đúng.
+8. Tour mới copy image metadata; lưu ý rủi ro shared `publicId` khi xóa ảnh.
+9. Duplicate tour không tồn tại -> lỗi `Tour không tồn tại.`.
+10. Tạo booking `PENDING` quá hạn -> scheduler tự `CANCELLED`.
+11. Booking bị expired release ghế khỏi schedule.
+12. Schedule `FULL` sau release còn chỗ -> chuyển `OPEN` nếu không `CLOSED/CANCELLED`.
+13. Payment `PENDING` quá hạn -> `FAILED`.
+14. Booking `CONFIRMED/COMPLETED/CANCELLED` không bị scheduler đụng.
+15. Notification được tạo cho booking expired.
+16. Một booking lỗi không làm dừng toàn bộ batch.
+17. Anonymous gọi `/api/users/me/avatar` -> 401.
+18. User gọi `/api/users/me/avatar` -> OK.
+19. User gọi `/api/users/me/wishlist` -> OK.
+20. Admin APIs vẫn OK.
+21. Public APIs vẫn OK.
+22. VNPay callback/IPN vẫn public.
+23. `app.mail.enabled=false` -> forgot password log reset link, API vẫn trả message chung.
+24. `app.mail.enabled=true` + SMTP đúng -> gửi email reset password thật.
+25. Reset link mở frontend đúng `/reset-password?token=...`.
+26. Verify email gửi link đúng `/verify-email?token=...`.
+27. SMTP lỗi không leak thông tin email tồn tại hay không.
+28. Compile/light check pass.
+
+### 13.12 Kết Quả Compile/Light Check
+
+Đã chạy:
+
+```bash
+.\mvnw.cmd -DskipTests compile
+```
+
+Kết quả: `BUILD SUCCESS` lúc `2026-06-04T09:24:14+07:00`.
+
+### 13.13 TODO Còn Lại
+
+- Booking passengers table nếu cần lưu từng hành khách.
+- Payment timeout/refund production nâng cao nếu cần.
+- Email HTML template đẹp hơn và i18n nếu cần.
+- WebSocket JWT handshake/channel interceptor.
+- Admin frontend booking detail drawer/page.
+- Unit/integration tests cho scheduler/duplicate/security.
+- Xử lý an toàn hơn cho duplicate image publicId: clone Cloudinary asset hoặc đánh dấu shared publicId để tránh xóa ảnh gốc khi xóa ảnh tour copy.
+
+## 14. Cập Nhật 04/06/2026 — Phase 7: Admin Analytics + Dashboard Nâng Cao
+
+### 14.1 Mục Tiêu Phase
+
+Triển khai nhóm API admin analytics nâng cao cho dashboard/charts: revenue theo khoảng ngày, booking stats nâng cao, top tours theo nhiều metric, payment stats theo method/status và promotion usage stats. Các API dashboard cũ `/api/admin/dashboard/summary`, `/api/admin/dashboard/monthly`, `/api/admin/dashboard/reviews` được giữ nguyên, không đổi response.
+
+Không làm frontend, không render chart, không export Excel/PDF, không tạo data warehouse riêng và không đổi enum business hiện có.
+
+### 14.2 File Đã Thêm
+
+| File | Nội dung |
+|---|---|
+| `src/main/java/com/voyageviet/backend/admin/controller/AdminAnalyticsController.java` | Controller mới base path `/api/admin/analytics`. |
+| `src/main/java/com/voyageviet/backend/admin/service/AdminAnalyticsService.java` | Service aggregate analytics theo date range, groupBy/metric/limit. |
+| `src/main/java/com/voyageviet/backend/admin/dto/RevenueAnalyticsResponse.java` | Response tổng doanh thu theo khoảng ngày. |
+| `src/main/java/com/voyageviet/backend/admin/dto/RevenuePointResponse.java` | Response từng point ngày/tháng của revenue chart. |
+| `src/main/java/com/voyageviet/backend/admin/dto/BookingAnalyticsResponse.java` | Response thống kê booking/status/paymentStatus/conversion. |
+| `src/main/java/com/voyageviet/backend/admin/dto/TopTourAnalyticsResponse.java` | Response top tours theo revenue/bookings/rating. |
+| `src/main/java/com/voyageviet/backend/admin/dto/PaymentAnalyticsResponse.java` | Response thống kê payment tổng quan. |
+| `src/main/java/com/voyageviet/backend/admin/dto/PaymentMethodStatsResponse.java` | Response group payment theo method. |
+| `src/main/java/com/voyageviet/backend/admin/dto/PromotionAnalyticsResponse.java` | Response thống kê promotion usage tổng quan. |
+| `src/main/java/com/voyageviet/backend/admin/dto/PromotionUsageStatsResponse.java` | Response top promotion theo usage/discount. |
+
+Không xóa file nào.
+
+### 14.3 File Đã Sửa
+
+| File | Nội dung sửa |
+|---|---|
+| `src/main/java/com/voyageviet/backend/payment/repository/PaymentRepository.java` | Thêm fetch payments theo createdAt và revenue payments theo `SUCCESS.paidAt`/`REFUNDED.refundedAt`. |
+| `src/main/java/com/voyageviet/backend/booking/repository/BookingRepository.java` | Thêm fetch bookings theo createdAt với tour/category/destination graph. |
+| `src/main/java/com/voyageviet/backend/review/repository/ReviewRepository.java` | Thêm fetch active reviews theo createdAt và fetch active reviews có tour graph. |
+| `src/main/java/com/voyageviet/backend/promotion/repository/PromotionUsageRepository.java` | Thêm fetch promotion usages theo `usedAt` với promotion graph. |
+| `BACKEND_API_REPORT.md` | Cập nhật Phase 7 Admin Analytics + Dashboard nâng cao. |
+
+Không chỉnh `DashboardController`/`AdminDashboardService`; API dashboard cũ được giữ nguyên.
+
+### 14.4 DTO Mới
+
+| DTO | Mục đích |
+|---|---|
+| `RevenueAnalyticsResponse` | Trả `dateFrom`, `dateTo`, `groupBy`, tổng revenue/refund/net revenue và danh sách points. |
+| `RevenuePointResponse` | Trả `label`, `revenue`, `paidBookings`, `refundAmount`, `netRevenue`. |
+| `BookingAnalyticsResponse` | Trả tổng booking, count theo `BookingStatus`, count theo `BookingPaymentStatus`, conversion/cancel rate. |
+| `TopTourAnalyticsResponse` | Trả thông tin tour + booking count + paid count + revenue + averageRating + reviewCount. |
+| `PaymentAnalyticsResponse` | Trả count theo payment status, amount success/refund và group by method. |
+| `PaymentMethodStatsResponse` | Trả `method`, `attempts`, `successCount`, `successAmount`. |
+| `PromotionAnalyticsResponse` | Trả tổng usage, tổng discount và top promotions. |
+| `PromotionUsageStatsResponse` | Trả `promotionId`, `code`, `name`, `usedCount`, `discountAmount`. |
+
+### 14.5 Repository/Service/Controller Mới Hoặc Đã Sửa
+
+| Loại | Tên | Ghi chú |
+|---|---|---|
+| Controller | `AdminAnalyticsController` | 5 endpoint analytics mới dưới `/api/admin/analytics`. |
+| Service | `AdminAnalyticsService` | Normalize date range, validate `groupBy/metric/limit`, aggregate analytics bằng Java. |
+| Repository | `PaymentRepository` | Fetch payment analytics và revenue payments. |
+| Repository | `BookingRepository` | Fetch booking analytics theo `createdAt`. |
+| Repository | `ReviewRepository` | Fetch ACTIVE review analytics theo `createdAt`. |
+| Repository | `PromotionUsageRepository` | Fetch promotion usage analytics theo `usedAt`. |
+
+### 14.6 API Mới
+
+| Method | Endpoint | Quyền | Chức năng | Payload/query chính |
+|---|---|---|---|---|
+| GET | `/api/admin/analytics/revenue` | Admin | Thống kê gross/refund/net revenue theo ngày hoặc tháng | `dateFrom`, `dateTo`, `groupBy=DAY/MONTH`; default 30 ngày, `DAY` |
+| GET | `/api/admin/analytics/bookings` | Admin | Thống kê booking status/paymentStatus và conversion/cancel rate | `dateFrom`, `dateTo`; default 30 ngày |
+| GET | `/api/admin/analytics/top-tours` | Admin | Top tours theo `REVENUE`, `BOOKINGS`, hoặc `RATING` | `dateFrom`, `dateTo`, `metric`, `limit`; default `REVENUE`, `10`, max `50` |
+| GET | `/api/admin/analytics/payments` | Admin | Thống kê payment attempts theo status và method | `dateFrom`, `dateTo`; default 30 ngày |
+| GET | `/api/admin/analytics/promotions` | Admin | Thống kê promotion usage và top promotion theo discount/usage | `dateFrom`, `dateTo`, `limit`; default `10`, max `50` |
+
+### 14.7 Query Logic Chính
+
+- Không thêm native query mới trong phase này.
+- Revenue analytics fetch payment `SUCCESS` theo `paidAt` và payment `REFUNDED` theo `refundedAt` hoặc `createdAt` fallback, sau đó group DAY/MONTH bằng Java.
+- Payment analytics fetch payment theo `createdAt` trong khoảng ngày rồi aggregate count/amount/method bằng Java.
+- Booking analytics fetch booking theo `createdAt` rồi aggregate status/paymentStatus bằng Java.
+- Top tours `REVENUE` dùng payment success amount theo `payment.paidAt`; `BOOKINGS` dùng booking count theo `booking.createdAt`; `RATING` dùng active review theo `review.createdAt`.
+- Promotion analytics fetch `PromotionUsage` theo `usedAt`, aggregate total usage/discount và top promotions bằng Java.
+
+Lý do không dùng native Oracle `TRUNC/TO_CHAR`: date range mặc định nhỏ, dữ liệu dashboard hiện chưa yêu cầu data warehouse/cache, aggregate bằng Java giữ code dễ đọc và tránh SQL native phức tạp. Native query cũ của dashboard monthly vẫn giữ nguyên, không thay đổi.
+
+### 14.8 Business Rule Đã Implement
+
+- Date range mặc định: nếu thiếu cả `dateFrom/dateTo`, dùng hôm nay và 29 ngày trước đó.
+- Nếu thiếu `dateFrom`, lấy `dateTo - 29 ngày`.
+- Nếu thiếu `dateTo`, dùng hôm nay.
+- `dateTo < dateFrom` trả lỗi `Khoảng ngày không hợp lệ.`.
+- Revenue gross chỉ tính `PaymentStatus.SUCCESS`.
+- Refund tính `PaymentStatus.REFUNDED` và `refundAmount` nếu có.
+- Net revenue = gross revenue - refunded amount.
+- Không tính payment `PENDING/FAILED` vào revenue.
+- Revenue points trả đủ bucket theo ngày/tháng trong date range, kể cả bucket 0.
+- Booking stats theo `Booking.status` và `Booking.paymentStatus` trong khoảng `booking.createdAt`.
+- `conversionRate = paidBookings / totalBookings * 100`, `cancelRate = cancelledBookings / totalBookings * 100`, không chia lỗi khi total = 0.
+- Top tours `REVENUE` sort theo revenue desc; `BOOKINGS` sort theo booking count desc; `RATING` sort theo average rating desc, tie-break review count.
+- Review analytics chỉ tính `ReviewStatus.ACTIVE`.
+- Payment stats `successAmount` chỉ tính status `SUCCESS`; `refundedAmount` tính status `REFUNDED` + `refundAmount`.
+- Promotion stats dựa trên `promotion_usages`, count usage và sum `discountAmount`.
+- `limit` phải từ 1 đến 50.
+- Các endpoint mới thuộc `/api/admin/**`, nên vẫn yêu cầu role `ADMIN` qua `SecurityConfig` hiện có.
+
+### 14.9 Validation/Error Message Quan Trọng
+
+- `Khoảng ngày không hợp lệ.`
+- `groupBy chỉ hỗ trợ DAY hoặc MONTH.`
+- `metric chỉ hỗ trợ REVENUE, BOOKINGS hoặc RATING.`
+- `limit tối đa là 50.`
+- `limit must be greater than or equal to 1.`
+
+Các message response thành công:
+
+- `Get revenue analytics successfully`
+- `Get booking analytics successfully`
+- `Get top tour analytics successfully`
+- `Get payment analytics successfully`
+- `Get promotion analytics successfully`
+
+### 14.10 Checklist Test Thủ Công
+
+1. Có payment `SUCCESS` trong khoảng -> `totalRevenue` và point revenue tăng đúng.
+2. Payment `FAILED/PENDING` không tính revenue.
+3. Payment `REFUNDED` có `refundAmount` -> `totalRefundedAmount` và `netRevenue` đúng.
+4. `groupBy=DAY` trả points theo ngày.
+5. `groupBy=MONTH` trả points theo tháng.
+6. `dateTo < dateFrom` -> lỗi `Khoảng ngày không hợp lệ.`.
+7. Tạo booking nhiều status khác nhau -> booking status count đúng.
+8. `paid/unpaid/failed/refunded` theo `Booking.paymentStatus` đúng.
+9. `conversionRate` và `cancelRate` đúng khi `totalBookings > 0`.
+10. `totalBookings = 0` không chia lỗi, rate = `0.0`.
+11. `metric=REVENUE` sort top tours đúng theo revenue.
+12. `metric=BOOKINGS` sort đúng theo booking count.
+13. `metric=RATING` sort đúng theo average rating và review count tie-break.
+14. `limit > 50` -> lỗi `limit tối đa là 50.`.
+15. Payment stats count theo status đúng.
+16. `byMethod` group `VNPAY/MOCK/BANK_TRANSFER` đúng nếu có dữ liệu.
+17. `successAmount` chỉ tính `SUCCESS`.
+18. Promotion usage count đúng.
+19. `totalDiscountAmount` đúng.
+20. `topPromotions` sort theo discount desc, tie-break used count desc.
+21. User thường gọi `/api/admin/analytics/revenue` -> 403.
+22. Admin gọi các endpoint analytics -> 200.
+23. Các API dashboard cũ `/api/admin/dashboard/summary`, `/monthly`, `/reviews` vẫn chạy.
+24. Compile/light check pass.
+
+### 14.11 Kết Quả Compile/Light Check
+
+Đã chạy:
+
+```bash
+.\mvnw.cmd -DskipTests compile
+```
+
+Kết quả: `BUILD SUCCESS` lúc `2026-06-04T09:42:12+07:00`.
+
+### 14.12 TODO Còn Lại
+
+- Frontend admin dashboard charts.
+- Export CSV/Excel/PDF nếu cần.
+- Cache analytics nếu dữ liệu lớn.
+- Revenue by category/destination nếu cần.
+- Profit/cost/tax nếu mở rộng production.
+- Unit/integration tests cho analytics date range, sorting, security.
+- Nếu dữ liệu lớn, cân nhắc native query/projection hoặc materialized view cho revenue points thay vì aggregate Java.
+
+
+
+### 14.13 Ghi Chú Bổ Sung Phase 7
+
+- Controller analytics bọc lỗi runtime không mong muốn thành `BusinessException(ErrorCode.INTERNAL_ERROR, ...)` để giữ response format chung.
+- Error message nội bộ tương ứng: `Không thể lấy thống kê doanh thu.`, `Không thể lấy thống kê booking.`, `Không thể lấy thống kê tour.`, `Không thể lấy thống kê payment.`, `Không thể lấy thống kê promotion.`
+- Lần compile/light check cuối cùng đã chạy `./mvnw.cmd -DskipTests compile` và đạt `BUILD SUCCESS` lúc `2026-06-04T09:42:12+07:00`.
+
+## 15. Cập Nhật 04/06/2026 — Fix Encoding Tiếng Việt
+
+### 15.1 Mục Tiêu
+
+- Sửa lỗi mojibake tiếng Việt trong `BACKEND_API_REPORT.md`.
+- Kiểm tra source code Java/properties/yml/yaml/md/xml có khả năng chứa message tiếng Việt bị lỗi mã hóa.
+- Chuẩn hóa file text về UTF-8 và bổ sung cấu hình để hạn chế tái phát.
+- Không sửa logic backend, không đổi API, không đổi business rule.
+
+### 15.2 File Đã Sửa
+
+| File | Nội dung |
+|---|---|
+| `BACKEND_API_REPORT.md` | Sửa toàn bộ đoạn mojibake tiếng Việt trong report, đặc biệt các phase gần cuối; thêm section ghi nhận task fix encoding. |
+| `.editorconfig` | Thêm cấu hình charset UTF-8, LF, final newline và rule riêng cho Markdown/properties. |
+| `pom.xml` | Thêm `project.build.sourceEncoding=UTF-8` và `project.reporting.outputEncoding=UTF-8`. |
+| `src/main/resources/application.properties` | Thêm cấu hình `server.servlet.encoding.*` để force UTF-8 cho servlet response/request encoding. |
+
+Không sửa logic Java, không đổi endpoint, DTO, entity, enum hoặc business rule.
+
+### 15.3 Cấu Hình Đã Thêm/Sửa
+
+- `.editorconfig`: `charset = utf-8` cho toàn repo, `[*.properties] charset = utf-8`.
+- `pom.xml`: `project.build.sourceEncoding` và `project.reporting.outputEncoding` đều là `UTF-8`.
+- `application.properties`: `server.servlet.encoding.charset=UTF-8`, `server.servlet.encoding.enabled=true`, `server.servlet.encoding.force=true`.
+
+### 15.4 Pattern Lỗi Đã Xử Lý
+
+- `Ã`
+- `Â`
+- `áº`
+- `á»`
+- `Ä`
+- `Æ`
+- `Å`
+- `â€`
+
+### 15.5 Kết Quả Kiểm Tra
+
+- Đã scan các file `*.java`, `*.properties`, `*.yml`, `*.yaml`, `*.md`, `*.xml` ngoài `target/.git`.
+- Kết quả scan mojibake sau khi sửa: `hits 0` với bộ pattern mở rộng, khi bỏ qua riêng mục 15.4 đang cố ý liệt kê pattern lỗi đã xử lý.
+- Các message tiếng Việt trong source hiện hiển thị đúng; không phát hiện source Java/properties cần sửa nội dung mojibake.
+- Compile/light check: `BUILD SUCCESS` lúc `2026-06-04T09:54:59+07:00` với lệnh `.\mvnw.cmd -DskipTests compile`.
+
+### 15.6 TODO Còn Lại
+
+- Kiểm tra IDE luôn lưu file bằng UTF-8.
+- Tránh copy text từ terminal/console đang sai code page vào report.
+- Nếu terminal PowerShell vẫn hiển thị mojibake, kiểm tra output encoding/code page trước khi kết luận file bị lỗi.
+
+## 16. Cập Nhật 04/06/2026 — Phase 8: Đồng Bộ Enum/Model + Feature Flags Mở Rộng
+
+### 16.1 Mục Tiêu Phase
+
+Đồng bộ nền enum/model theo PRD/Admin Supplement theo hướng backward-compatible: bổ sung role `STAFF`, mở rộng `FeatureCode`, mở rộng `AuditAction`, thêm các field tổng hợp cho `Tour`, trả field mới trong public/admin tour response, thêm service hook cập nhật `minPrice`, `avgRating`, `totalReviews`.
+
+Không đổi breaking `TourStatus`/`BookingStatus`, không migrate status DB, không đổi URL API, không đổi flow Payment/Booking/Promotion/Notification.
+
+### 16.2 File Đã Thêm
+
+| File | Nội dung |
+|---|---|
+| `src/main/java/com/voyageviet/backend/tour/service/TourStatsService.java` | Service tính lại `Tour.minPrice` từ schedule OPEN future và `avgRating/totalReviews` từ review ACTIVE. |
+
+Không xóa file nào.
+
+### 16.3 File Đã Sửa
+
+| File | Nội dung sửa |
+|---|---|
+| `src/main/java/com/voyageviet/backend/role/entity/RoleCode.java` | Thêm `STAFF`. |
+| `src/main/java/com/voyageviet/backend/common/config/RoleHierarchyConfig.java` | Đổi hierarchy thành `SUPER_ADMIN > ADMIN > STAFF > USER`. |
+| `src/main/java/com/voyageviet/backend/feature/entity/FeatureCode.java` | Thêm các feature code admin/module mới, giữ nguyên code cũ. |
+| `src/main/java/com/voyageviet/backend/audit/entity/AuditAction.java` | Thêm các audit action mới cho tour/booking/payment/promotion/review/media/feature. |
+| `src/main/java/com/voyageviet/backend/feature/service/FeatureFlagService.java` | Toggle feature ghi audit bằng `FEATURE_TOGGLE`; vẫn giữ enum cũ `FEATURE_FLAG_UPDATED`. |
+| `src/main/java/com/voyageviet/backend/tour/entity/Tour.java` | Thêm `isDomestic`, `avgRating`, `totalReviews`, `highlightTags`, `minPrice`. |
+| `src/main/java/com/voyageviet/backend/tour/dto/TourCardResponse.java` | Trả thêm các field summary/model mới. |
+| `src/main/java/com/voyageviet/backend/tour/dto/TourDetailResponse.java` | Trả thêm các field summary/model mới. |
+| `src/main/java/com/voyageviet/backend/tour/dto/TourCreateRequest.java` | Nhận optional `isDomestic`, `highlightTags`; không nhận `avgRating/totalReviews/minPrice`. |
+| `src/main/java/com/voyageviet/backend/tour/dto/TourUpdateRequest.java` | Nhận optional `isDomestic`, `highlightTags`; không nhận `avgRating/totalReviews/minPrice`. |
+| `src/main/java/com/voyageviet/backend/tour/repository/TourScheduleRepository.java` | Thêm query lấy min `priceAdult` theo tour, status `OPEN`, `departureDate >= today`. |
+| `src/main/java/com/voyageviet/backend/tour/repository/specification/TourSpecification.java` | Public search/sort `effectivePrice` ưu tiên `minPrice`, fallback `salePrice`, `originalPrice`. |
+| `src/main/java/com/voyageviet/backend/tour/service/TourService.java` | Map field mới, serialize/parse `highlightTags`, infer `isDomestic` từ destination country, giữ compatibility `averageRating/reviewCount`. |
+| `src/main/java/com/voyageviet/backend/tour/service/TourScheduleService.java` | Hook recompute `minPrice` khi create/update/delete/status/duplicate schedule. |
+| `src/main/java/com/voyageviet/backend/review/service/ReviewService.java` | Hook recompute rating summary khi create/update status/delete review. |
+| `src/main/java/com/voyageviet/backend/common/config/DataSeeder.java` | Seed role `STAFF`, seed feature code mới, sample tour infer `isDomestic`. |
+| `BACKEND_API_REPORT.md` | Cập nhật Phase 8. |
+
+### 16.4 Enum Đã Bổ Sung
+
+`RoleCode`:
+
+- Giữ: `USER`, `ADMIN`, `SUPER_ADMIN`.
+- Thêm: `STAFF`.
+
+`FeatureCode`:
+
+- Giữ code cũ: `PUBLIC_BOOKING`, `PUBLIC_REVIEW`, `PUBLIC_PAYMENT`, `CHAT_SUPPORT`, `GOOGLE_LOGIN`, `TOUR_SEARCH`, `TOUR_FILTER`, `ADMIN_DASHBOARD`.
+- Thêm: `TOUR_VIEW`, `TOUR_CREATE`, `TOUR_UPDATE`, `TOUR_DELETE`, `TOUR_PUBLISH`, `BOOKING_VIEW`, `BOOKING_UPDATE`, `BOOKING_CONFIRM`, `BOOKING_CANCEL`, `USER_MANAGE`, `REVIEW_MANAGE`, `CATEGORY_MANAGE`, `DESTINATION_MANAGE`, `MEDIA_MANAGE`, `PROMOTION_MANAGE`, `PAYMENT_VIEW`, `PAYMENT_REFUND`, `REVENUE_VIEW`, `ANALYTICS_VIEW`, `NOTIFICATION_VIEW`, `FEATURE_MANAGE`, `AUDIT_VIEW`, `SUPPORT_CHAT`, `BANNER_MANAGE`, `BLOG_MANAGE`.
+
+`AuditAction`:
+
+- Giữ action cũ: `USER_STATUS_UPDATED`, `USER_ROLE_UPDATED`, `BOOKING_STATUS_UPDATED`, `FEATURE_FLAG_UPDATED`, `MEDIA_DELETED`.
+- Thêm: `FEATURE_TOGGLE`, `TOUR_CREATED`, `TOUR_UPDATED`, `TOUR_PUBLISHED`, `TOUR_ARCHIVED`, `TOUR_DUPLICATED`, `TOUR_DELETED`, `BOOKING_CREATED`, `BOOKING_CONFIRMED`, `BOOKING_CANCELLED`, `BOOKING_COMPLETED`, `PAYMENT_REFUNDED`, `PROMOTION_CREATED`, `PROMOTION_UPDATED`, `PROMOTION_STATUS_UPDATED`, `PROMOTION_DELETED`, `REVIEW_APPROVED`, `REVIEW_REJECTED`, `MEDIA_UPLOADED`.
+
+Không bổ sung hoặc đổi `TourStatus`/`BookingStatus` trong phase này.
+
+### 16.5 Entity/Table Field Mới
+
+Table `TOURS` qua JPA `ddl-auto=update`:
+
+- `IS_DOMESTIC`: Boolean, `true` tour trong nước, `false` tour quốc tế, nullable để tương thích dữ liệu cũ.
+- `AVG_RATING`: `BigDecimal(3,1)`, default entity `0`.
+- `TOTAL_REVIEWS`: Integer, default entity `0`.
+- `HIGHLIGHT_TAGS`: CLOB/string JSON array, ví dụ `["HOT","SALE","FAMILY"]`.
+- `MIN_PRICE`: `BigDecimal(15,2)`, nullable; lấy từ schedule OPEN future.
+
+### 16.6 DTO/Request/Response Đã Sửa
+
+- `TourCardResponse`: thêm `minPrice`, `isDomestic`, `avgRating`, `totalReviews`, `highlightTags`; giữ `averageRating/reviewCount` để frontend cũ không vỡ.
+- `TourDetailResponse`: thêm `minPrice`, `isDomestic`, `avgRating`, `totalReviews`, `highlightTags`; giữ `averageRating/reviewCount`.
+- `TourCreateRequest`: thêm optional `isDomestic`, `highlightTags`; không cho client set `avgRating/totalReviews/minPrice`.
+- `TourUpdateRequest`: thêm optional `isDomestic`, `highlightTags`; nếu không gửi `isDomestic` thì giữ giá trị admin đã set trước đó, chỉ infer khi đang null.
+
+### 16.7 Seeder Đã Sửa
+
+- `DataSeeder.seedRoles()` seed thêm role `STAFF` idempotent.
+- `DataSeeder.seedFeatureFlags()` seed tất cả feature code mới idempotent, không duplicate feature cũ.
+- Sample tour set `isDomestic` theo `destination.country`.
+- Không xóa role/feature cũ và không tự đổi role user hiện có.
+
+### 16.8 Service/Repository Đã Sửa
+
+- `TourStatsService.recomputeMinPrice(tourId)`: tính min `priceAdult` từ `TourSchedule` có `status=OPEN` và `departureDate >= today`; nếu không có schedule phù hợp thì `minPrice=null`.
+- `TourStatsService.recomputeRatingSummary(tourId)`: tính `avgRating/totalReviews` từ `ReviewStatus.ACTIVE`, không tính `HIDDEN`.
+- `TourScheduleService`: gọi recompute min price sau create/update/delete/status/duplicate schedule.
+- `ReviewService`: gọi recompute rating summary sau create review, đổi status review, delete review.
+- `TourService`: map field mới, parse JSON `highlightTags` về `List<String>`, serialize request list thành JSON string, infer `isDomestic` từ country `Vietnam`, `Viet Nam`, `Việt Nam`.
+- `TourSpecification`: `effectivePrice` public search/sort dùng `COALESCE(minPrice, salePrice, originalPrice)`.
+
+### 16.9 API Cũ Bị Ảnh Hưởng
+
+Không đổi endpoint hoặc HTTP method. Response có thêm field mới:
+
+- Public tour list/detail.
+- Admin tour list/detail/create/update/duplicate response.
+- Admin features list/update vẫn dùng endpoint cũ; có thêm feature code mới trong dữ liệu seed.
+
+### 16.10 Business Rule Đã Implement
+
+- `STAFF` là role nền, chưa được cấp quyền `/api/admin/**` mặc định.
+- Role hierarchy mới: `SUPER_ADMIN > ADMIN > STAFF > USER`.
+- Feature code cũ được giữ nguyên để tránh vỡ frontend.
+- Audit action cũ được giữ nguyên; feature toggle mới ghi `FEATURE_TOGGLE`.
+- `minPrice` chỉ tính từ schedule `OPEN`, future/today, lấy min `priceAdult`.
+- Nếu không có schedule OPEN future thì `minPrice=null`, không fallback DB field sang `salePrice` để phân biệt chưa có lịch bán; response vẫn còn `salePrice/originalPrice`.
+- Public search effective price fallback `minPrice -> salePrice -> originalPrice`.
+- `avgRating/totalReviews` chỉ tính review `ACTIVE`.
+- Review `HIDDEN` không tính vào summary.
+- `highlightTags` lưu JSON string, response trả `List<String>`.
+- `isDomestic` dùng giá trị request nếu có; nếu không có thì infer từ `destination.country`; update không override giá trị admin đã set thủ công nếu request không gửi.
+- Giữ backward compatibility `TourStatus.PUBLISHED/INACTIVE/SOLD_OUT/DRAFT` và `BookingStatus` hiện tại.
+
+### 16.11 Validation/Error Message Quan Trọng
+
+- `Tour không tồn tại.`
+- `Highlight tags không hợp lệ.`
+- `Không thể tính giá thấp nhất của tour.`
+- `Không thể tính điểm đánh giá của tour.`
+- `Role not found` vẫn dùng cho role không tồn tại trong API user role hiện tại.
+- `Feature flag not found` vẫn dùng cho feature code không tồn tại trong API feature hiện tại.
+
+### 16.12 Checklist Test Thủ Công
+
+1. Seeder chạy không duplicate role/feature.
+2. Role `STAFF` được tạo nếu chưa có.
+3. Feature codes mới được tạo nếu chưa có.
+4. Không còn mojibake trong description seed mới.
+5. `SUPER_ADMIN` vẫn có quyền `ADMIN`.
+6. `ADMIN` kế thừa `STAFF` và `USER`.
+7. `STAFF` tồn tại nhưng chưa vào được full `/api/admin/**`.
+8. `GET /api/admin/features` thấy feature code mới.
+9. `PATCH /api/admin/features/{code}` vẫn bật/tắt được.
+10. Public feature cũ vẫn hoạt động.
+11. Tạo/cập nhật tour có `isDomestic/highlightTags` -> response trả đúng.
+12. Tour response public/admin có `avgRating/totalReviews/minPrice`.
+13. Tạo schedule OPEN future -> `tour.minPrice` cập nhật đúng.
+14. Đổi schedule CLOSED hoặc xóa schedule min price -> `tour.minPrice` recompute đúng.
+15. Review ACTIVE -> `avgRating/totalReviews` tăng đúng.
+16. Review HIDDEN -> `avgRating/totalReviews` không tính review đó.
+17. Delete review -> `avgRating/totalReviews` recompute đúng.
+18. `originalPrice/salePrice` vẫn còn trong response.
+19. Public tour list/detail cũ vẫn chạy.
+20. Admin tour CRUD cũ vẫn chạy.
+21. Payment/Booking/Promotion/Notification không bị ảnh hưởng.
+22. Compile/light check pass.
+
+### 16.13 Kết Quả Compile/Light Check
+
+Đã chạy:
+
+```bash
+.\mvnw.cmd -DskipTests compile
+```
+
+Kết quả: `BUILD SUCCESS` lúc `2026-06-04T10:05:46+07:00`.
+
+Scan mojibake sau khi sửa source/report: `hits 0` với bộ pattern mở rộng, bỏ qua riêng mục 15.4 đang cố ý liệt kê pattern lỗi.
+
+### 16.14 TODO Còn Lại
+
+- Thiết kế bảng `role_feature_permissions`.
+- Phân quyền chi tiết cho `STAFF`.
+- Migration `TourStatus ACTIVE/ARCHIVED` nếu frontend/PRD thật sự cần, kèm backward compatibility.
+- `BookingStatus IN_PROGRESS` nếu admin flow cần.
+- Feature flags v2 fields: `disabledReason`, `visibleInAdmin`, `visibleInPublic`, `sortOrder`, `parentKey`.
+- Audit logging chi tiết cho tất cả action mới.
+- Cache tour stats nếu dữ liệu lớn.
+- Job/backfill recompute `minPrice`, `avgRating`, `totalReviews`, `isDomestic` cho dữ liệu tour cũ trong production.
+
+### 16.15 Hotfix Sau Startup Test
+
+Sau khi chạy app với Oracle DB hiện có, insert role `STAFF` bị lỗi:
+
+- `ORA-02290: check constraint (...) violated`
+- Nguyên nhân: Oracle check constraint cũ trên cột enum `ROLES.CODE` vẫn chỉ cho phép các role cũ, trong khi `ddl-auto=update` không tự nới enum check constraint.
+
+Điều chỉnh đã làm:
+
+- `DataSeeder.createRoleIfNotExists(...)` catch `DataIntegrityViolationException`, log warning và skip role mới nếu DB constraint chưa cho phép.
+- `DataSeeder.createFeatureIfNotExists(...)` cũng catch `DataIntegrityViolationException` để tránh lỗi tương tự với các `FeatureCode` mới.
+- App không fail startup chỉ vì schema enum check constraint chưa migrate.
+- Sau khi migrate DB constraint cho `ROLES.CODE` và `FEATURE_FLAGS.FEATURE_CODE`, seeder vẫn idempotent và sẽ tự thêm các role/feature còn thiếu ở lần chạy sau.
+
+Compile sau hotfix:
+
+```bash
+.\mvnw.cmd -DskipTests compile
+```
+
+Kết quả: `BUILD SUCCESS` lúc `2026-06-04T10:14:11+07:00`.
+
+TODO migration Oracle:
+
+- Nới check constraint `ROLES.CODE` để cho phép `STAFF`.
+- Nới check constraint `FEATURE_FLAGS.FEATURE_CODE` để cho phép các feature code Phase 8.
+- Nên đặt tên constraint rõ ràng thay vì để Oracle tạo `SYS_C...` để dễ maintain.
+
+### 16.16 Hotfix Schema TOURS Phase 8
+
+Sau khi app chạy và gọi admin tour list, Oracle báo lỗi:
+
+- `ORA-00904: "T1_0"."TOTAL_REVIEWS": invalid identifier`
+- Nguyên nhân: entity `Tour` đã thêm các field Phase 8 nhưng bảng `TOURS` hiện có trong Oracle chưa được bổ sung đủ cột; `ddl-auto=update` không đảm bảo tự migrate schema hiện hữu.
+
+Điều chỉnh đã làm:
+
+- Thêm `Phase8SchemaMigration` chạy bằng `CommandLineRunner` với `@Order(Ordered.HIGHEST_PRECEDENCE)`.
+- Runner kiểm tra `USER_TAB_COLUMNS` và chỉ `ALTER TABLE TOURS ADD ...` khi cột còn thiếu.
+- Các cột được đảm bảo tồn tại:
+  - `IS_DOMESTIC NUMBER(1)`
+  - `AVG_RATING NUMBER(3,1) DEFAULT 0`
+  - `TOTAL_REVIEWS NUMBER(10) DEFAULT 0 NOT NULL`
+  - `HIGHLIGHT_TAGS CLOB`
+  - `MIN_PRICE NUMBER(15,2)`
+- Runner idempotent, restart nhiều lần không add trùng cột.
+
+Compile sau hotfix:
+
+```bash
+.\mvnw.cmd -DskipTests compile
+```
+
+Kết quả: `BUILD SUCCESS` lúc `2026-06-04T10:22:44+07:00`.
+
+TODO production:
+
+- Thay runner tạm bằng migration tool chính thức nếu dự án đưa Flyway/Liquibase vào production.
+- Backfill `MIN_PRICE`, `AVG_RATING`, `TOTAL_REVIEWS`, `IS_DOMESTIC` cho dữ liệu tour cũ sau khi cột đã tồn tại.

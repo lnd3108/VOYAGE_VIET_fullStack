@@ -14,6 +14,7 @@ import org.springframework.data.repository.query.Param;
 
 import java.util.List;
 import java.util.Optional;
+import java.time.LocalDateTime;
 
 public interface ReviewRepository extends JpaRepository<Review, Long> {
 
@@ -71,6 +72,16 @@ public interface ReviewRepository extends JpaRepository<Review, Long> {
     );
 
     long countByStatus(ReviewStatus status);
+
+    @EntityGraph(attributePaths = {"tour", "tour.category", "tour.destination"})
+    List<Review> findByStatusAndCreatedAtGreaterThanEqualAndCreatedAtLessThan(
+            ReviewStatus status,
+            LocalDateTime startInclusive,
+            LocalDateTime endExclusive
+    );
+
+    @EntityGraph(attributePaths = {"tour", "tour.category", "tour.destination"})
+    List<Review> findByStatus(ReviewStatus status);
 
     @Query("""
         SELECT AVG(r.rating)

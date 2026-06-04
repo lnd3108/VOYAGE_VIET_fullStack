@@ -4,6 +4,7 @@ import com.voyageviet.backend.tour.entity.TourStatus;
 import jakarta.validation.constraints.*;
 
 import java.math.BigDecimal;
+import java.util.List;
 
 public record TourUpdateRequest(
 
@@ -46,6 +47,10 @@ public record TourUpdateRequest(
         Integer availableSeats,
 
         Boolean featured,
+
+        Boolean isDomestic,
+
+        List<String> highlightTags,
 
         TourStatus status,
 

@@ -50,6 +50,16 @@ public class NotificationEventPublisher {
         );
     }
 
+    public void bookingExpired(Booking booking) {
+        publish(
+                booking.getUser().getId(),
+                NotificationType.BOOKING_CANCELLED,
+                "Booking đã hết hạn",
+                "Booking " + booking.getBookingCode() + " đã bị hủy do quá thời gian thanh toán.",
+                bookingData(booking)
+        );
+    }
+
     public void paymentSuccess(Payment payment) {
         publishPayment(
                 payment,

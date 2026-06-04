@@ -12,7 +12,8 @@ public class RoleHierarchyConfig {
     static RoleHierarchy roleHierarchy() {
         return RoleHierarchyImpl.withDefaultRolePrefix()
                 .role("SUPER_ADMIN").implies("ADMIN")
-                .role("ADMIN").implies("USER")
+                .role("ADMIN").implies("STAFF")
+                .role("STAFF").implies("USER")
                 .build();
     }
 }

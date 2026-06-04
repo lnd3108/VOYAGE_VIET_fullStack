@@ -8,6 +8,7 @@ import com.voyageviet.backend.tour.dto.TourCreateRequest;
 import com.voyageviet.backend.tour.dto.TourStatusUpdateRequest;
 import com.voyageviet.backend.tour.dto.TourUpdateRequest;
 import com.voyageviet.backend.tour.service.TourService;
+import io.swagger.v3.oas.annotations.Operation;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
@@ -34,6 +35,15 @@ public class AdminTourController {
         return ApiResponse.success(
                 "Get admin tour detail successfully",
                 tourService.getAdminTourDetail(id)
+        );
+    }
+
+    @PostMapping("/{id}/duplicate")
+    @Operation(summary = "Duplicate tour into a new draft")
+    public ApiResponse<AdminTourDetailResponse> duplicateTour(@PathVariable Long id) {
+        return ApiResponse.success(
+                "Nhân bản tour thành công.",
+                tourService.duplicateTour(id)
         );
     }
 

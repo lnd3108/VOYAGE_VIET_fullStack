@@ -60,7 +60,7 @@ public class FeatureFlagService {
 
         auditLogService.log(
                 authentication,
-                AuditAction.FEATURE_FLAG_UPDATED,
+                AuditAction.FEATURE_TOGGLE,
                 "FEATURE_FLAG",
                 featureFlag.getId(),
                 featureFlag.getCode().name(),

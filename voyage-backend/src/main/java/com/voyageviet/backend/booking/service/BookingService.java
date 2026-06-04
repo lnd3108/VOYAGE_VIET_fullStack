@@ -2,6 +2,7 @@ package com.voyageviet.backend.booking.service;
 
 import com.voyageviet.backend.audit.entity.AuditAction;
 import com.voyageviet.backend.audit.service.AuditLogService;
+import com.voyageviet.backend.booking.dto.AdminBookingDetailResponse;
 import com.voyageviet.backend.booking.dto.BookingCreateRequest;
 import com.voyageviet.backend.booking.dto.BookingResponse;
 import com.voyageviet.backend.booking.dto.BookingStatusUpdateRequest;
@@ -15,6 +16,9 @@ import com.voyageviet.backend.common.paging.PageResponse;
 import com.voyageviet.backend.feature.entity.FeatureCode;
 import com.voyageviet.backend.feature.service.FeatureGuardService;
 import com.voyageviet.backend.notification.service.NotificationEventPublisher;
+import com.voyageviet.backend.payment.entity.Payment;
+import com.voyageviet.backend.payment.repository.PaymentRepository;
+import com.voyageviet.backend.promotion.entity.Promotion;
 import com.voyageviet.backend.promotion.service.PromotionService;
 import com.voyageviet.backend.tour.entity.Tour;
 import com.voyageviet.backend.tour.entity.TourSchedule;
@@ -56,6 +60,7 @@ public class BookingService {
     private final AuditLogService auditLogService;
     private final PromotionService promotionService;
     private final NotificationEventPublisher notificationEventPublisher;
+    private final PaymentRepository paymentRepository;
 
     @Transactional
     public BookingResponse createBooking(Authentication authentication, BookingCreateRequest request) {
@@ -209,6 +214,19 @@ public class BookingService {
         return PageResponse.from(bookingPage, this::toResponse);
     }
 
+    public AdminBookingDetailResponse getAdminBookingDetail(Long id) {
+        Booking booking = bookingRepository.findWithAdminDetailById(id)
+                .orElseThrow(() -> new BusinessException(
+                        ErrorCode.BOOKING_NOT_FOUND,
+                        "Booking không tồn tại."
+                ));
+
+        Payment latestPayment = paymentRepository.findFirstByBookingIdOrderByCreatedAtDesc(booking.getId())
+                .orElse(null);
+
+        return toAdminDetailResponse(booking, latestPayment);
+    }
+
     @Transactional
     public BookingResponse updateBookingStatus(
             Authentication authentication,
@@ -359,6 +377,80 @@ public class BookingService {
 
                 booking.getCreatedAt(),
                 booking.getUpdatedAt()
+        );
+    }
+
+    private AdminBookingDetailResponse toAdminDetailResponse(Booking booking, Payment latestPayment) {
+        Tour tour = booking.getTour();
+        TourSchedule schedule = booking.getSchedule();
+        User user = booking.getUser();
+        Promotion promotion = booking.getPromotion();
+
+        Integer maxSeats = schedule == null ? null : schedule.getMaxSeats();
+        Integer bookedSeats = schedule == null ? null : schedule.getBookedSeats();
+        Integer remainingSeats = schedule == null
+                ? null
+                : Math.max(schedule.getMaxSeats() - (schedule.getBookedSeats() == null ? 0 : schedule.getBookedSeats()), 0);
+
+        return new AdminBookingDetailResponse(
+                booking.getId(),
+                booking.getBookingCode(),
+                booking.getStatus(),
+                booking.getPaymentStatus(),
+                booking.getCreatedAt(),
+                booking.getUpdatedAt(),
+
+                user.getId(),
+                user.getFullName(),
+                user.getEmail(),
+                user.getPhone(),
+                user.getAvatarUrl(),
+
+                tour.getId(),
+                tour.getTitle(),
+                tour.getSlug(),
+                tour.getThumbnailUrl(),
+                tour.getCategory().getName(),
+                tour.getDestination().getName(),
+
+                schedule == null ? null : schedule.getId(),
+                schedule == null ? booking.getStartDate() : schedule.getDepartureDate(),
+                schedule == null ? null : schedule.getReturnDate(),
+                schedule == null ? null : schedule.getStatus(),
+                maxSeats,
+                bookedSeats,
+                remainingSeats,
+
+                booking.getAdultCount(),
+                booking.getChildCount(),
+                booking.getInfantCount(),
+                booking.getTotalPeople() == null ? booking.getNumberOfPeople() : booking.getTotalPeople(),
+
+                booking.getPriceAdultSnapshot(),
+                booking.getPriceChildSnapshot(),
+                booking.getPriceInfantSnapshot(),
+                booking.getSingleSupplementSnapshot(),
+                booking.getOriginalAmount(),
+                booking.getDiscountAmount(),
+                booking.getTotalAmount(),
+                booking.getPromoCodeSnapshot(),
+
+                booking.getContactName(),
+                booking.getContactEmail(),
+                booking.getContactPhone(),
+                booking.getNote(),
+
+                promotion == null ? null : promotion.getId(),
+                promotion == null ? booking.getPromoCodeSnapshot() : promotion.getCode(),
+                promotion == null ? null : promotion.getName(),
+
+                latestPayment == null ? null : latestPayment.getId(),
+                latestPayment == null ? null : latestPayment.getMethod(),
+                latestPayment == null ? null : latestPayment.getStatus(),
+                latestPayment == null ? null : latestPayment.getAmount(),
+                latestPayment == null ? null : latestPayment.getPaidAt(),
+                latestPayment == null ? null : latestPayment.getGatewayTxnId(),
+                latestPayment == null ? null : latestPayment.getGatewayOrderId()
         );
     }
 

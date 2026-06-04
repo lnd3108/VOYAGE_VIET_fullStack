@@ -1,5 +1,6 @@
 package com.voyageviet.backend.booking.controller;
 
+import com.voyageviet.backend.booking.dto.AdminBookingDetailResponse;
 import com.voyageviet.backend.booking.dto.BookingResponse;
 import com.voyageviet.backend.booking.dto.BookingStatusUpdateRequest;
 import com.voyageviet.backend.booking.entity.BookingStatus;
@@ -7,6 +8,7 @@ import com.voyageviet.backend.booking.service.BookingService;
 import com.voyageviet.backend.common.paging.PageResponse;
 import com.voyageviet.backend.common.response.ApiResponse;
 import jakarta.validation.Valid;
+import io.swagger.v3.oas.annotations.Operation;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
@@ -31,6 +33,15 @@ public class AdminBookingController {
         return ApiResponse.success(
                 "Get admin bookings successfully",
                 bookingService.getAllBookingsForAdmin(status, page, size, sortBy, sortDir)
+        );
+    }
+
+    @GetMapping("/{id}")
+    @Operation(summary = "Get admin booking detail")
+    public ApiResponse<AdminBookingDetailResponse> getBookingDetail(@PathVariable Long id) {
+        return ApiResponse.success(
+                "Get admin booking detail successfully",
+                bookingService.getAdminBookingDetail(id)
         );
     }
 

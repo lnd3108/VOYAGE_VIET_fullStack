@@ -156,6 +156,7 @@ public class TourSpecification {
 
         Expression<?> sortExpression = switch (sortBy) {
             case "effectivePrice" -> getEffectivePrice(root, criteriaBuilder);
+            case "minPrice" -> root.get("minPrice");
             case "originalPrice" -> root.get("originalPrice");
             case "salePrice" -> root.get("salePrice");
             case "durationDays" -> root.get("durationDays");
@@ -179,8 +180,11 @@ public class TourSpecification {
             CriteriaBuilder criteriaBuilder
     ) {
         return criteriaBuilder.coalesce(
-                root.<BigDecimal>get("salePrice"),
-                root.<BigDecimal>get("originalPrice")
+                root.<BigDecimal>get("minPrice"),
+                criteriaBuilder.coalesce(
+                        root.<BigDecimal>get("salePrice"),
+                        root.<BigDecimal>get("originalPrice")
+                )
         );
     }
 

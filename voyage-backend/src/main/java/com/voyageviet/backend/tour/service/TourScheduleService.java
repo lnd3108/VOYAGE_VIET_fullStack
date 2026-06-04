@@ -29,6 +29,7 @@ public class TourScheduleService {
     private final TourRepository tourRepository;
     private final TourScheduleRepository scheduleRepository;
     private final BookingRepository bookingRepository;
+    private final TourStatsService tourStatsService;
 
     @Transactional
     public TourScheduleResponse createSchedule(Long tourId, TourScheduleCreateRequest request) {
@@ -50,7 +51,9 @@ public class TourScheduleService {
                 .build();
 
         normalizeStatus(schedule);
-        return toResponse(scheduleRepository.save(schedule));
+        TourSchedule savedSchedule = scheduleRepository.save(schedule);
+        tourStatsService.recomputeMinPrice(tourId);
+        return toResponse(savedSchedule);
     }
 
     public PageResponse<TourScheduleResponse> getAdminSchedules(Long tourId, TourScheduleStatus status, Pageable pageable) {
@@ -83,6 +86,7 @@ public class TourScheduleService {
         schedule.setNotes(trimToNull(request.notes()));
 
         normalizeStatus(schedule);
+        tourStatsService.recomputeMinPrice(tourId);
         return toResponse(schedule);
     }
 
@@ -91,6 +95,8 @@ public class TourScheduleService {
         TourSchedule schedule = findSchedule(tourId, scheduleId);
         assertNoBooking(scheduleId, "Không thể xóa lịch đã có booking.");
         scheduleRepository.delete(schedule);
+        scheduleRepository.flush();
+        tourStatsService.recomputeMinPrice(tourId);
     }
 
     @Transactional
@@ -107,6 +113,7 @@ public class TourScheduleService {
         }
         schedule.setStatus(status);
         normalizeStatus(schedule);
+        tourStatsService.recomputeMinPrice(tourId);
         return toResponse(schedule);
     }
 
@@ -132,7 +139,9 @@ public class TourScheduleService {
                 .notes(source.getNotes())
                 .build();
 
-        return toResponse(scheduleRepository.save(duplicate));
+        TourSchedule savedSchedule = scheduleRepository.save(duplicate);
+        tourStatsService.recomputeMinPrice(tourId);
+        return toResponse(savedSchedule);
     }
 
     public List<TourScheduleResponse> getPublicSchedulesByTourSlug(String slug) {

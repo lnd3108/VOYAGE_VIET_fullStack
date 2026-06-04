@@ -54,6 +54,9 @@ public class Tour extends BaseEntity {
     @Column(name = "SALE_PRICE", precision = 15, scale = 2)
     private BigDecimal salePrice;
 
+    @Column(name = "MIN_PRICE", precision = 15, scale = 2)
+    private BigDecimal minPrice;
+
     @Column(name = "DURATION_DAYS", nullable = false)
     private Integer durationDays;
 
@@ -75,6 +78,21 @@ public class Tour extends BaseEntity {
     @Builder.Default
     @Column(name = "FEATURED", nullable = false)
     private Boolean featured = false;
+
+    @Column(name = "IS_DOMESTIC")
+    private Boolean isDomestic;
+
+    @Builder.Default
+    @Column(name = "AVG_RATING", precision = 3, scale = 1)
+    private BigDecimal avgRating = BigDecimal.ZERO;
+
+    @Builder.Default
+    @Column(name = "TOTAL_REVIEWS", nullable = false)
+    private Integer totalReviews = 0;
+
+    @Lob
+    @Column(name = "HIGHLIGHT_TAGS")
+    private String highlightTags;
 
     @Builder.Default
     @Enumerated(EnumType.STRING)

@@ -7,6 +7,8 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 
 import java.time.LocalDate;
 import java.util.List;
@@ -39,4 +41,17 @@ public interface TourScheduleRepository extends JpaRepository<TourSchedule, Long
     long countByTourIdAndStatus(Long tourId, TourScheduleStatus status);
 
     Optional<TourSchedule> findByIdAndTourId(Long id, Long tourId);
+
+    @Query("""
+            SELECT MIN(s.priceAdult)
+            FROM TourSchedule s
+            WHERE s.tour.id = :tourId
+              AND s.status = :status
+              AND s.departureDate >= :fromDate
+            """)
+    java.math.BigDecimal findMinPriceAdultByTourIdAndStatusFromDate(
+            @Param("tourId") Long tourId,
+            @Param("status") TourScheduleStatus status,
+            @Param("fromDate") LocalDate fromDate
+    );
 }

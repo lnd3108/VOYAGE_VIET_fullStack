@@ -16,9 +16,11 @@ import com.voyageviet.backend.user.entity.User;
 import com.voyageviet.backend.user.entity.UserStatus;
 import com.voyageviet.backend.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
 import java.math.BigDecimal;
@@ -28,6 +30,7 @@ import com.voyageviet.backend.feature.repository.FeatureFlagRepository;
 
 @Configuration
 @RequiredArgsConstructor
+@Slf4j
 public class DataSeeder implements CommandLineRunner {
 
     private final RoleRepository roleRepository;
@@ -77,6 +80,12 @@ public class DataSeeder implements CommandLineRunner {
                 RoleCode.USER,
                 "User",
                 "Người dùng thông thường có thể xem tour, đặt tour và đánh giá."
+        );
+
+        createRoleIfNotExists(
+                RoleCode.STAFF,
+                "Staff",
+                "Nhân viên vận hành có quyền nền để xử lý nghiệp vụ nội bộ theo phân quyền chi tiết ở phase sau."
         );
 
         createRoleIfNotExists(
@@ -232,7 +241,14 @@ public class DataSeeder implements CommandLineRunner {
                 .description(description)
                 .build();
 
-        roleRepository.save(role);
+        try {
+            roleRepository.save(role);
+        } catch (DataIntegrityViolationException ex) {
+            log.warn(
+                    "Skip seeding role {} because database constraint does not allow this enum value yet. Apply enum check constraint migration first.",
+                    code
+            );
+        }
     }
 
     private void createUserIfNotExists(String fullName, String email, String rawPassword, Role role) {
@@ -328,6 +344,7 @@ public class DataSeeder implements CommandLineRunner {
                 .maxParticipants(maxParticipants)
                 .availableSeats(availableSeats)
                 .featured(featured)
+                .isDomestic(inferDomestic(destination))
                 .status(status)
                 .category(category)
                 .destination(destination)
@@ -392,6 +409,43 @@ public class DataSeeder implements CommandLineRunner {
                 "Cho phép hiển thị dashboard thống kê trong trang admin.",
                 true
         );
+
+        createFeatureIfNotExists(FeatureCode.TOUR_VIEW, "Xem tour", "Cho phép xem module quản lý tour.", true);
+        createFeatureIfNotExists(FeatureCode.TOUR_CREATE, "Tạo tour", "Cho phép tạo tour mới trong trang admin.", true);
+        createFeatureIfNotExists(FeatureCode.TOUR_UPDATE, "Cập nhật tour", "Cho phép chỉnh sửa thông tin tour.", true);
+        createFeatureIfNotExists(FeatureCode.TOUR_DELETE, "Xóa tour", "Cho phép xóa tour trong trang admin.", true);
+        createFeatureIfNotExists(FeatureCode.TOUR_PUBLISH, "Publish tour", "Cho phép publish tour ra public.", true);
+        createFeatureIfNotExists(FeatureCode.BOOKING_VIEW, "Xem booking", "Cho phép xem danh sách và chi tiết booking.", true);
+        createFeatureIfNotExists(FeatureCode.BOOKING_UPDATE, "Cập nhật booking", "Cho phép cập nhật thông tin/trạng thái booking.", true);
+        createFeatureIfNotExists(FeatureCode.BOOKING_CONFIRM, "Xác nhận booking", "Cho phép xác nhận booking của khách hàng.", true);
+        createFeatureIfNotExists(FeatureCode.BOOKING_CANCEL, "Hủy booking", "Cho phép hủy booking trong trang quản trị.", true);
+        createFeatureIfNotExists(FeatureCode.USER_MANAGE, "Quản lý user", "Cho phép quản lý người dùng và vai trò.", true);
+        createFeatureIfNotExists(FeatureCode.REVIEW_MANAGE, "Quản lý đánh giá", "Cho phép kiểm duyệt, ẩn hoặc xóa đánh giá.", true);
+        createFeatureIfNotExists(FeatureCode.CATEGORY_MANAGE, "Quản lý danh mục", "Cho phép quản lý danh mục tour.", true);
+        createFeatureIfNotExists(FeatureCode.DESTINATION_MANAGE, "Quản lý điểm đến", "Cho phép quản lý điểm đến.", true);
+        createFeatureIfNotExists(FeatureCode.MEDIA_MANAGE, "Quản lý media", "Cho phép upload và quản lý media.", true);
+        createFeatureIfNotExists(FeatureCode.PROMOTION_MANAGE, "Quản lý khuyến mãi", "Cho phép quản lý mã giảm giá và campaign.", true);
+        createFeatureIfNotExists(FeatureCode.PAYMENT_VIEW, "Xem thanh toán", "Cho phép xem payment list/detail.", true);
+        createFeatureIfNotExists(FeatureCode.PAYMENT_REFUND, "Hoàn tiền", "Cho phép thao tác refund payment khi backend hỗ trợ.", false);
+        createFeatureIfNotExists(FeatureCode.REVENUE_VIEW, "Xem doanh thu", "Cho phép xem thống kê doanh thu.", true);
+        createFeatureIfNotExists(FeatureCode.ANALYTICS_VIEW, "Xem analytics", "Cho phép xem dashboard analytics nâng cao.", true);
+        createFeatureIfNotExists(FeatureCode.NOTIFICATION_VIEW, "Xem thông báo", "Cho phép xem module thông báo.", true);
+        createFeatureIfNotExists(FeatureCode.FEATURE_MANAGE, "Quản lý feature flags", "Cho phép bật/tắt feature flags.", true);
+        createFeatureIfNotExists(FeatureCode.AUDIT_VIEW, "Xem audit log", "Cho phép xem lịch sử thao tác quản trị.", true);
+        createFeatureIfNotExists(FeatureCode.SUPPORT_CHAT, "Support chat", "Chuẩn bị feature cho module support chat.", false);
+        createFeatureIfNotExists(FeatureCode.BANNER_MANAGE, "Quản lý banner", "Chuẩn bị feature cho module banner.", false);
+        createFeatureIfNotExists(FeatureCode.BLOG_MANAGE, "Quản lý blog", "Chuẩn bị feature cho module blog.", false);
+    }
+
+    private Boolean inferDomestic(Destination destination) {
+        if (destination == null || destination.getCountry() == null) {
+            return null;
+        }
+
+        String country = destination.getCountry().trim();
+        return "Vietnam".equalsIgnoreCase(country)
+                || "Viet Nam".equalsIgnoreCase(country)
+                || "Việt Nam".equalsIgnoreCase(country);
     }
 
     private void createFeatureIfNotExists(
@@ -411,6 +465,13 @@ public class DataSeeder implements CommandLineRunner {
                 .enabled(enabled)
                 .build();
 
-        featureFlagRepository.save(featureFlag);
+        try {
+            featureFlagRepository.save(featureFlag);
+        } catch (DataIntegrityViolationException ex) {
+            log.warn(
+                    "Skip seeding feature {} because database constraint does not allow this enum value yet. Apply enum check constraint migration first.",
+                    code
+            );
+        }
     }
 }
