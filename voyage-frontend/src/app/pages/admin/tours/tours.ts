@@ -2,6 +2,7 @@ import { NgClass, NgFor, NgIf } from '@angular/common';
 import { Component, DestroyRef, HostListener, OnInit, inject } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { RouterLink } from '@angular/router';
+import { TuiIcon } from '@taiga-ui/core';
 import { take } from 'rxjs';
 
 import { AdminTourApiService } from '../../../core/api/admin-tour-api.service';
@@ -31,7 +32,7 @@ interface TourStats {
 
 @Component({
   selector: 'app-admin-tours',
-  imports: [NgClass, NgFor, NgIf, RouterLink],
+  imports: [NgClass, NgFor, NgIf, RouterLink, TuiIcon],
   templateUrl: './tours.html',
   styleUrl: './tours.scss',
 })
@@ -89,6 +90,7 @@ export class AdminTours implements OnInit {
   checklistMessage = '';
   checklistItems: string[] = [];
   openedActionTourId: number | null = null;
+  actionMenuPlacement: 'bottom' | 'top' = 'bottom';
 
   ngOnInit(): void {
     this.loadTours();
@@ -97,6 +99,12 @@ export class AdminTours implements OnInit {
   @HostListener('document:click')
   closeActionMenu(): void {
     this.openedActionTourId = null;
+    this.actionMenuPlacement = 'bottom';
+  }
+
+  @HostListener('document:keydown.escape')
+  closeActionMenuByEscape(): void {
+    this.closeActionMenu();
   }
 
   get stats(): TourStats {
@@ -181,11 +189,111 @@ export class AdminTours implements OnInit {
 
   toggleActionMenu(tour: AdminTour, event?: Event): void {
     event?.stopPropagation();
-    this.openedActionTourId = this.isActionMenuOpen(tour) ? null : tour.id ?? null;
+
+    if (this.isActionMenuOpen(tour)) {
+      this.closeActionMenu();
+      return;
+    }
+
+    this.actionMenuPlacement = this.shouldOpenActionMenuUp(event) ? 'top' : 'bottom';
+    this.openedActionTourId = tour.id ?? null;
+  }
+
+  onActionTriggerKeydown(tour: AdminTour, event: KeyboardEvent): void {
+    if (event.key === 'Enter' || event.key === ' ') {
+      event.preventDefault();
+      this.toggleActionMenu(tour, event);
+      return;
+    }
+
+    if (event.key === 'Escape') {
+      event.preventDefault();
+      this.closeActionMenu();
+    }
   }
 
   isActionMenuOpen(tour: AdminTour): boolean {
     return !!tour.id && this.openedActionTourId === tour.id;
+  }
+
+  isActionMenuTop(tour: AdminTour): boolean {
+    return this.isActionMenuOpen(tour) && this.actionMenuPlacement === 'top';
+  }
+
+  primaryActionLabel(tour: AdminTour): string {
+    switch (this.statusValue(tour)) {
+      case 'PUBLISHED':
+        return 'Tạm ẩn';
+      case 'INACTIVE':
+        return 'Kích hoạt lại';
+      case 'SOLD_OUT':
+        return 'Mở bán lại';
+      case 'DRAFT':
+      default:
+        return 'Xuất bản';
+    }
+  }
+
+  primaryActionIcon(tour: AdminTour): string {
+    switch (this.statusValue(tour)) {
+      case 'PUBLISHED':
+        return '@tui.archive';
+      case 'INACTIVE':
+      case 'SOLD_OUT':
+        return '@tui.archive-restore';
+      case 'DRAFT':
+      default:
+        return '@tui.circle-play';
+    }
+  }
+
+  primaryActionClass(tour: AdminTour): string {
+    switch (this.statusValue(tour)) {
+      case 'PUBLISHED':
+        return 'admin-tours__action-item--archive';
+      case 'INACTIVE':
+        return 'admin-tours__action-item--reactivate';
+      case 'SOLD_OUT':
+        return 'admin-tours__action-item--sold-out';
+      case 'DRAFT':
+      default:
+        return 'admin-tours__action-item--publish';
+    }
+  }
+
+  isPrimaryActionDisabled(tour: AdminTour): boolean {
+    return this.publishingId === tour.id || this.checklistLoadingId === tour.id || this.updatingStatusId === tour.id;
+  }
+
+  runPrimaryTourAction(tour: AdminTour): void {
+    switch (this.statusValue(tour)) {
+      case 'PUBLISHED':
+        this.changeStatusFromMenu(tour, 'INACTIVE');
+        return;
+      case 'INACTIVE':
+      case 'SOLD_OUT':
+      case 'DRAFT':
+      default:
+        this.publishTour(tour);
+    }
+  }
+
+  duplicateTour(tour: AdminTour): void {
+    if (!tour.id) {
+      this.errorMessage = 'Không xác định được tour cần nhân bản.';
+      this.feedback.error(this.errorMessage);
+      return;
+    }
+
+    this.errorMessage = '';
+    this.successMessage = 'Chức năng nhân bản tour sẽ được nối API ở bước sau.';
+    this.feedback.info(this.successMessage, 'Thông tin');
+  }
+
+  closePublishWarning(): void {
+    this.checklistTourId = null;
+    this.checklistMessage = '';
+    this.checklistItems = [];
   }
 
   openPublicTour(tour: AdminTour): void {
@@ -237,14 +345,17 @@ export class AdminTours implements OnInit {
           this.checklistLoadingId = null;
 
           if (!canPublish) {
-            this.errorMessage = 'Tour chưa đủ điều kiện publish. Kiểm tra checklist bên dưới.';
+            this.errorMessage = '';
+            this.feedback.warning('Tour còn thiếu dữ liệu trước khi publish.', 'Chưa đủ điều kiện xuất bản');
             return;
           }
 
+          this.closePublishWarning();
           this.runPublish(tour);
         },
         error: (error) => {
           this.errorMessage = this.errorText(error, 'Không thể kiểm tra checklist publish. Vui lòng thử lại sau.');
+          this.feedback.error(this.errorMessage);
           this.checklistLoadingId = null;
         },
       });
@@ -469,6 +580,20 @@ export class AdminTours implements OnInit {
     image.src = this.fallbackImage;
   }
 
+  private shouldOpenActionMenuUp(event?: Event): boolean {
+    const trigger = event?.currentTarget as HTMLElement | null;
+
+    if (!trigger || typeof window === 'undefined') {
+      return false;
+    }
+
+    const rect = trigger.getBoundingClientRect();
+    const spaceBelow = window.innerHeight - rect.bottom;
+    const estimatedMenuHeight = 180;
+
+    return spaceBelow < estimatedMenuHeight && rect.top > estimatedMenuHeight;
+  }
+
   private runPublish(tour: AdminTour): void {
     if (!tour.id) {
       return;
@@ -484,10 +609,12 @@ export class AdminTours implements OnInit {
           const publishedTour = this.extractItem(response) || { ...tour, status: 'PUBLISHED' as TourStatus };
           this.upsertTour(publishedTour);
           this.successMessage = 'Đã publish tour.';
+          this.feedback.success(this.successMessage);
           this.publishingId = null;
         },
         error: (error) => {
           this.errorMessage = this.errorText(error, 'Không thể publish tour. Vui lòng kiểm tra checklist và thử lại.');
+          this.feedback.error(this.errorMessage);
           this.publishingId = null;
         },
       });

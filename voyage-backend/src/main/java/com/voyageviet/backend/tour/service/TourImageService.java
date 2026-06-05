@@ -3,6 +3,9 @@ package com.voyageviet.backend.tour.service;
 import com.voyageviet.backend.common.exception.BusinessException;
 import com.voyageviet.backend.common.exception.ErrorCode;
 import com.voyageviet.backend.media.dto.MediaUploadResponse;
+import com.voyageviet.backend.media.entity.Media;
+import com.voyageviet.backend.media.entity.MediaType;
+import com.voyageviet.backend.media.repository.MediaRepository;
 import com.voyageviet.backend.media.service.MediaService;
 import com.voyageviet.backend.tour.dto.*;
 import com.voyageviet.backend.tour.entity.Tour;
@@ -27,6 +30,7 @@ public class TourImageService {
 
     private final TourRepository tourRepository;
     private final TourImageRepository imageRepository;
+    private final MediaRepository mediaRepository;
     private final MediaService mediaService;
 
     public List<TourImageResponse> getImages(Long tourId) {
@@ -71,6 +75,47 @@ public class TourImageService {
     }
 
     @Transactional
+    public TourImageResponse attachImageFromMedia(Long tourId, TourImageFromMediaRequest request) {
+        Tour tour = findTour(tourId);
+        Media media = mediaRepository.findById(request.mediaId())
+                .orElseThrow(() -> new BusinessException(ErrorCode.MEDIA_NOT_FOUND, "Media không tồn tại"));
+
+        if (media.getMediaType() != MediaType.IMAGE) {
+            throw new BusinessException(ErrorCode.MEDIA_INVALID_FILE, "Chỉ có thể gắn media loại ảnh vào gallery tour");
+        }
+
+        String imageUrl = trimToNull(media.getSecureUrl());
+        if (imageUrl == null) {
+            throw new BusinessException(ErrorCode.MEDIA_INVALID_FILE, "Media chưa có URL ảnh hợp lệ");
+        }
+
+        long imageCount = imageRepository.countByTourId(tourId);
+        if (imageCount >= MAX_IMAGES_PER_TOUR) {
+            throw new BusinessException(ErrorCode.TOUR_IMAGE_INVALID, "Tối đa 10 ảnh cho một tour");
+        }
+
+        boolean thumbnail = Boolean.TRUE.equals(request.isThumbnail()) || imageCount == 0;
+        if (thumbnail) {
+            imageRepository.unsetThumbnailByTourId(tourId);
+            tour.setThumbnailUrl(imageUrl);
+        }
+
+        TourImage image = TourImage.builder()
+                .tour(tour)
+                .url(imageUrl)
+                .publicId(media.getPublicId())
+                .altText(trimToNull(request.altText()))
+                .sortOrder(request.sortOrder() == null ? (int) imageCount : request.sortOrder())
+                .thumbnail(thumbnail)
+                .width(media.getWidth())
+                .height(media.getHeight())
+                .fileSizeBytes(media.getBytes())
+                .build();
+
+        return toResponse(imageRepository.save(image));
+    }
+
+    @Transactional
     public void deleteImage(Long tourId, Long imageId) {
         TourImage image = findImage(tourId, imageId);
         long imageCount = imageRepository.countByTourId(tourId);
@@ -78,7 +123,9 @@ public class TourImageService {
             throw new BusinessException(ErrorCode.TOUR_IMAGE_INVALID, "Không thể xóa thumbnail khi tour còn ảnh khác. Hãy chọn thumbnail khác trước.");
         }
 
-        mediaService.deleteImageByPublicId(image.getPublicId());
+        if (mediaRepository.findByPublicId(image.getPublicId()).isEmpty()) {
+            mediaService.deleteImageByPublicId(image.getPublicId());
+        }
         imageRepository.delete(image);
 
         if (Boolean.TRUE.equals(image.getThumbnail())) {
@@ -165,3 +212,6 @@ public class TourImageService {
         );
     }
 }
+
+
+

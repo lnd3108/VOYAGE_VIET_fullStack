@@ -31,6 +31,14 @@ public class AdminTourImageController {
         return ApiResponse.success("Upload tour image successfully", imageService.uploadImage(id, file, altText));
     }
 
+    @PostMapping("/{id}/images/from-media")
+    public ApiResponse<TourImageResponse> attachImageFromMedia(
+            @PathVariable Long id,
+            @Valid @RequestBody TourImageFromMediaRequest request
+    ) {
+        return ApiResponse.success("Attach media to tour gallery successfully", imageService.attachImageFromMedia(id, request));
+    }
+
     @DeleteMapping("/{tourId}/images/{imageId}")
     public ApiResponse<Void> deleteImage(
             @PathVariable Long tourId,
@@ -65,3 +73,4 @@ public class AdminTourImageController {
         return ApiResponse.success("Update tour image alt text successfully", imageService.updateAltText(tourId, imageId, request.altText()));
     }
 }
+

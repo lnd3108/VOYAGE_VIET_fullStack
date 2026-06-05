@@ -4,7 +4,7 @@
   --dest-secondary: #2f8f84;
   --dest-mint: #4db6a7;
   --dest-bg: #f8faf9;
-  --dest-border: #e8e8e8;
+  --dest-border: #e2e8f0;
   --dest-danger: #da0808;
 
   display: grid;
@@ -21,7 +21,7 @@
     border: 1px solid var(--dest-border);
     border-radius: 16px;
     background: #fff;
-    box-shadow: 0 12px 28px rgba(20, 83, 79, 0.08);
+    box-shadow: 0 10px 30px rgba(15, 23, 42, 0.06);
   }
 
   &__header {
@@ -37,7 +37,7 @@
       margin: 0;
       color: var(--dest-dark);
       font-size: clamp(28px, 4vw, 42px);
-      font-weight: 900;
+      font-weight: 800;
       letter-spacing: -0.04em;
     }
 
@@ -50,7 +50,7 @@
   &__eyebrow {
     margin: 0 0 8px !important;
     color: var(--dest-secondary) !important;
-    font-weight: 900;
+    font-weight: 800;
     text-transform: uppercase;
   }
 
@@ -74,14 +74,18 @@
     align-items: center;
     justify-content: center;
     border-radius: 12px;
-    font-weight: 900;
+    font-weight: 800;
     text-decoration: none;
   }
 
   button {
-    border: 0;
-    background: linear-gradient(135deg, var(--dest-primary), var(--dest-secondary));
+    border: 1px solid transparent;
+    background: var(--dest-primary);
     color: #fff;
+
+    &:hover:not(:disabled) {
+      background: var(--dest-dark);
+    }
 
     &:disabled {
       opacity: 0.55;
@@ -90,9 +94,13 @@
   }
 
   a {
-    border: 1px solid rgba(31, 111, 104, 0.22);
-    background: var(--dest-bg);
-    color: var(--dest-dark);
+    border: 1px solid #dde7e4;
+    background: #fff;
+    color: var(--dest-primary);
+
+    &:hover {
+      background: #f1f8f6;
+    }
   }
 
   &__notice,
@@ -137,7 +145,7 @@
       gap: 8px;
       color: #475569;
       font-size: 13px;
-      font-weight: 900;
+      font-weight: 800;
     }
 
     input,
@@ -148,6 +156,12 @@
       border-radius: 12px;
       background: #fff;
       color: #143734;
+
+      &:focus {
+        outline: 0;
+        border-color: var(--dest-primary);
+        box-shadow: 0 0 0 3px rgba(31, 111, 104, 0.1);
+      }
     }
 
     div {
@@ -174,7 +188,7 @@
     span {
       color: var(--dest-secondary);
       font-size: 12px;
-      font-weight: 900;
+      font-weight: 800;
       text-transform: uppercase;
     }
 
@@ -184,8 +198,9 @@
     }
 
     button {
-      background: #eef7f5;
-      color: var(--dest-dark);
+      border-color: #dde7e4;
+      background: #fff;
+      color: var(--dest-primary);
     }
   }
 
@@ -200,7 +215,7 @@
     gap: 8px;
     color: #475569;
     font-size: 13px;
-    font-weight: 900;
+    font-weight: 600;
 
     input,
     select,
@@ -212,6 +227,12 @@
       background: #fff;
       color: #143734;
       resize: vertical;
+
+      &:focus {
+        outline: 0;
+        border-color: var(--dest-primary);
+        box-shadow: 0 0 0 3px rgba(31, 111, 104, 0.1);
+      }
     }
 
     small {
@@ -230,7 +251,7 @@
     gap: 10px;
     color: #475569;
     font-size: 13px;
-    font-weight: 900;
+    font-weight: 800;
 
     img,
     div {
@@ -256,6 +277,12 @@
   &__form-actions {
     margin-top: 16px;
     justify-content: flex-end;
+
+    button[type='button'] {
+      border-color: rgba(37, 99, 235, 0.18);
+      background: #eff6ff;
+      color: #2563eb;
+    }
   }
 
   &__table {
@@ -275,7 +302,7 @@
     background: var(--dest-bg);
     color: #64748b;
     font-size: 12px;
-    font-weight: 900;
+    font-weight: 800;
     text-transform: uppercase;
   }
 
@@ -326,16 +353,16 @@
     display: inline-flex;
     border-radius: 999px;
     font-size: 12px;
-    font-weight: 900;
+    font-weight: 800;
 
     &--active {
-      background: #e8f8f4;
-      color: var(--dest-dark);
+      background: #dcfce7;
+      color: #166534;
     }
 
     &--inactive {
-      background: #fff7ed;
-      color: #9a5a00;
+      background: #ffedd5;
+      color: #c2410c;
     }
   }
 
@@ -346,11 +373,25 @@
     background: #fff;
     color: var(--dest-dark);
     font-size: 12px;
+
+    &:hover:not(:disabled) {
+      background: #f1f8f6;
+    }
+  }
+
+  &__row-actions button:nth-child(2) {
+    border-color: rgba(245, 158, 11, 0.25);
+    background: #fff7ed;
+    color: #d97706;
   }
 
   &__danger {
     border-color: rgba(218, 8, 8, 0.2) !important;
     color: var(--dest-danger) !important;
+
+    &:hover:not(:disabled) {
+      background: rgba(218, 8, 8, 0.08) !important;
+    }
   }
 
   &__empty {
@@ -386,7 +427,7 @@
         content: attr(data-label);
         color: #64748b;
         font-size: 11px;
-        font-weight: 900;
+        font-weight: 800;
         text-transform: uppercase;
       }
     }

@@ -1,16 +1,16 @@
 <section class="admin-tour-gallery">
   <header class="admin-tour-gallery__header">
     <div>
-      <p>Tour Gallery</p>
-      <h2>Gallery ảnh tour</h2>
-      <span>Dán URL Cloudinary từ Admin Media để thêm ảnh cho tour</span>
+      <p>Ảnh tour</p>
+      <h2>Thư viện ảnh tour</h2>
+      <span>Chọn ảnh từ Media hoặc tải ảnh mới để thêm vào thư viện tour.</span>
     </div>
-    <a routerLink="/admin/media">Mo Media</a>
+    <button type="button" (click)="loadMedia()">Tải lại Media</button>
   </header>
 
   <div class="admin-tour-gallery__empty" *ngIf="!isEditMode || !tourId">
-    <strong>Vui lòng lưu tour trước khi quản lý gallery ảnh.</strong>
-    <p>Gallery cần tour id từ backend. Sau khi tạo tour, quay lại màn sửa để thêm ảnh.</p>
+    <strong>Vui lòng lưu tour trước khi quản lý thư viện ảnh.</strong>
+    <p>Thư viện ảnh cần tour id từ backend. Sau khi tạo tour, quay lại màn sửa để thêm ảnh.</p>
   </div>
 
   <ng-container *ngIf="isEditMode && tourId">
@@ -18,38 +18,75 @@
 
     <div class="admin-tour-gallery__error" *ngIf="galleryErrorMessage">
       <p>{{ galleryErrorMessage }}</p>
-      <button type="button" (click)="loadGallery()">Thu lai</button>
+      <button type="button" (click)="loadGallery()">Thử lại</button>
     </div>
 
     <section class="admin-tour-gallery__form">
       <div class="admin-tour-gallery__form-grid">
         <label>
-          URL ảnh Cloudinary
-          <input type="url" [(ngModel)]="imageUrlInput" placeholder="Dán URL ảnh đã copy từ /admin/media" />
-        </label>
-        <label>
-          Alt text
+          Mô tả ảnh
           <input type="text" [(ngModel)]="altTextInput" placeholder="Mô tả ngắn cho ảnh" />
         </label>
         <label>
-          Thu tu
+          Thứ tự
           <input type="number" [(ngModel)]="sortOrderInput" min="0" />
         </label>
       </div>
 
-      <div class="admin-tour-gallery__preview">
-        <img *ngIf="addPreviewUrl(); else noAddPreview" [src]="addPreviewUrl()" alt="Preview ảnh gallery" (error)="handleImageError($event)" />
-        <ng-template #noAddPreview>
-          <div>Chưa có URL ảnh. Upload ảnh ở Media, copy URL Cloudinary rồi paste vào đây.</div>
-        </ng-template>
+      <div class="admin-tour-gallery__empty" *ngIf="mediaErrorMessage">
+        <strong>{{ mediaErrorMessage }}</strong>
+        <button type="button" (click)="loadMedia()">Thử lại</button>
       </div>
 
       <div class="admin-tour-gallery__actions">
-        <a routerLink="/admin/media">Mo Media</a>
-        <button type="button" [disabled]="gallerySaving" (click)="addImage()">
-          {{ gallerySaving ? 'Đang thêm...' : 'Thêm ảnh' }}
+        <input
+          #galleryUploadInput
+          type="file"
+          accept="image/png,image/jpeg,image/jpg,image/webp"
+          (change)="onUploadFileSelected($event)"
+        />
+        <button type="button" [disabled]="uploading || !selectedUploadFile" (click)="uploadAndAttachImage()">
+          {{ uploading ? 'Đang tải...' : 'Tải ảnh mới' }}
+        </button>
+        <button type="button" *ngIf="selectedUploadFile" [disabled]="uploading" (click)="clearSelectedUploadFile()">Xóa file</button>
+        <button type="button" [disabled]="gallerySaving || !selectedMediaId" (click)="attachSelectedMedia()">
+          {{ gallerySaving ? 'Đang thêm...' : 'Thêm ảnh đã chọn' }}
         </button>
       </div>
+
+      <small class="admin-tour-gallery__validation" *ngIf="uploadErrorMessage">{{ uploadErrorMessage }}</small>
+
+      <section class="admin-tour-gallery__grid" *ngIf="mediaLoading">
+        <div class="admin-tour-gallery__card admin-tour-gallery__card--skeleton" *ngFor="let item of mediaSkeletonCards"></div>
+      </section>
+
+      <div class="admin-tour-gallery__empty" *ngIf="!mediaLoading && !mediaItems.length && !mediaErrorMessage">
+        <strong>Chưa có ảnh trong Media</strong>
+        <p>Tải ảnh mới để backend upload lên Cloudinary và tự gắn vào gallery tour.</p>
+      </div>
+
+      <section class="admin-tour-gallery__grid" *ngIf="!mediaLoading && mediaItems.length">
+        <article
+          class="admin-tour-gallery__card"
+          *ngFor="let item of mediaItems"
+          [class.admin-tour-gallery__card--selected]="isSelectedMedia(item)"
+        >
+          <div class="admin-tour-gallery__image">
+            <img *ngIf="getMediaUrl(item); else mediaNoUrl" [src]="getMediaUrl(item)" [alt]="mediaTitle(item)" (error)="handleImageError($event)" />
+            <ng-template #mediaNoUrl>
+              <span>Chưa có URL</span>
+            </ng-template>
+            <span class="admin-tour-gallery__badge" *ngIf="isSelectedMedia(item)">Đang chọn</span>
+          </div>
+          <div class="admin-tour-gallery__meta">
+            <strong>{{ mediaTitle(item) }}</strong>
+            <code>{{ getMediaUrl(item) || 'Chưa có URL' }}</code>
+          </div>
+          <div class="admin-tour-gallery__actions">
+            <button type="button" [disabled]="!item.id || !getMediaUrl(item)" (click)="selectMedia(item)">Chọn ảnh</button>
+          </div>
+        </article>
+      </section>
     </section>
 
     <section class="admin-tour-gallery__grid" *ngIf="galleryLoading">
@@ -60,35 +97,35 @@
       <article class="admin-tour-gallery__card" *ngFor="let image of tourImages; let index = index; trackBy: trackImage">
         <div class="admin-tour-gallery__image">
           <img [src]="getImageUrl(image) || fallbackImage" [alt]="image.altText || 'Ảnh tour'" (error)="handleImageError($event)" />
-          <span class="admin-tour-gallery__badge" *ngIf="image.isThumbnail">Thumbnail</span>
+          <span class="admin-tour-gallery__badge" *ngIf="image.isThumbnail">Ảnh đại diện</span>
         </div>
 
         <div class="admin-tour-gallery__meta">
-          <strong>{{ image.altText || 'Chưa có alt text' }}</strong>
-          <span>Sort: {{ image.sortOrder ?? 0 }}</span>
+          <strong>{{ image.altText || 'Chưa có mô tả ảnh' }}</strong>
+          <span>Thứ tự: {{ image.sortOrder ?? 0 }}</span>
           <code>{{ shortUrl(image) }}</code>
         </div>
 
         <div class="admin-tour-gallery__edit" *ngIf="editingImageId === image.id">
           <label>
-            Alt text
+            Mô tả ảnh
             <input type="text" [(ngModel)]="editingAltText" />
           </label>
           <label>
-            Sort order
+            Thứ tự
             <input type="number" [(ngModel)]="editingSortOrder" min="0" />
           </label>
           <div class="admin-tour-gallery__actions">
             <button type="button" [disabled]="gallerySaving" (click)="saveEdit(image)">Lưu</button>
-            <button type="button" (click)="cancelEdit()">Huy</button>
+            <button type="button" (click)="cancelEdit()">Hủy</button>
           </div>
         </div>
 
         <div class="admin-tour-gallery__actions">
-          <button type="button" (click)="copyUrl(image)">Copy URL</button>
+          <button type="button" (click)="copyUrl(image)">Sao chép URL</button>
           <button type="button" [disabled]="!getImageUrl(image)" (click)="openImage(image)">Mở ảnh</button>
           <button type="button" [disabled]="settingThumbnailId === image.id || image.isThumbnail" (click)="setThumbnail(image)">
-            {{ settingThumbnailId === image.id ? 'Đang đặt...' : 'Đặt thumbnail' }}
+            {{ settingThumbnailId === image.id ? 'Đang đặt...' : 'Đặt ảnh đại diện' }}
           </button>
           <button type="button" (click)="startEdit(image)">Sửa</button>
           <button type="button" [disabled]="index === 0 || reorderSaving" (click)="moveImage(image, -1)">Lên</button>
@@ -101,8 +138,8 @@
     </section>
 
     <div class="admin-tour-gallery__empty" *ngIf="!galleryLoading && !tourImages.length && !galleryErrorMessage">
-      <strong>Tour chưa có ảnh gallery</strong>
-      <p>Thêm ảnh đầu tiên bằng URL Cloudinary copy từ Admin Media.</p>
+      <strong>Tour chưa có ảnh thư viện</strong>
+      <p>Chọn ảnh từ Media hoặc tải ảnh mới để thêm ảnh đầu tiên.</p>
     </div>
   </ng-container>
 </section>

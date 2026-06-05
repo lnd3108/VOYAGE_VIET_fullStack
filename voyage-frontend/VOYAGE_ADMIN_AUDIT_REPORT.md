@@ -1134,3 +1134,674 @@ Thời gian cập nhật: 2026-06-04 09:02:16 +07:00
 - Admin Tours action dropdown đã đóng trước khi mở confirm ở các action menu, nên dialog không bị dropdown che.
 - Route admin được chuyển sang lazy `loadComponent` chỉ để tối ưu bundle; URL `/admin/...`, guard và title không đổi.
 - Cần test thủ công trên browser để xác nhận toast/dialog hiển thị đúng theme và select status schedule/tour không gây lệch UI khi hủy confirm.
+
+## Cập Nhật: Admin Tours Dropdown Hành Động Phương Án B
+
+Thời gian cập nhật: 2026-06-04 09:17:24 +07:00
+
+### File Đã Sửa/Tạo Mới
+
+- `src/app/pages/admin/tours/tours.ts`
+- `src/app/pages/admin/tours/tours.html`
+- `src/app/pages/admin/tours/tours.scss`
+- `VOYAGE_ADMIN_AUDIT_REPORT.md`
+
+### Đầu Việc Đã Làm
+
+- Đọc `VOYAGE_ADMIN_AUDIT_REPORT.md` và ưu tiên section mới nhất về Taiga UI confirm/notification.
+- Đọc `VOYAGE_FRONTEND_AUDIT_REPORT.md` để nắm bối cảnh frontend, không ghi thay đổi admin vào frontend report.
+- Xác định màn `/admin/tours` hiện có các action chính: xem nhanh/preview, sửa tour, xem public, cập nhật thumbnail, publish/checklist, đổi trạng thái và xóa tour.
+- Refactor phần render bảng quản lý tour trong `tours.html` từ bảng nhiều metadata/action ngang sang bảng 6 cột chính: thumbnail, tên tour, giá, thời lượng, trạng thái và hành động.
+- Chỉ sửa file liên quan trực tiếp đến Admin Tours UI; không sửa public pages, AdminLayout hoặc module admin khác.
+
+### Chức Năng Đã Thêm/Sửa
+
+- Import `TuiIcon` và dùng icon Taiga UI cho trigger/menu item: `more-vertical`, `eye`, `edit-2`, `copy`, `circle-play`, `archive`, `archive-restore`, `trash-2`.
+- Cột `Hành động` chuyển sang fixed 80px, mỗi row chỉ còn một nút icon mở menu.
+- Dropdown menu mới theo Phương án B gồm: `Xem trước`, `Chỉnh sửa`, `Nhân bản`, separator, primary action theo status, separator và `Xóa`.
+- Primary action map theo status:
+  - `DRAFT`: `Xuất bản`, dùng publish checklist flow hiện có.
+  - `PUBLISHED`: `Tạm ẩn`, dùng flow update status `INACTIVE` và Taiga confirm warning hiện có.
+  - `INACTIVE`/`SOLD_OUT`: `Kích hoạt lại`, dùng publish flow hiện có để đưa tour về published nếu checklist hợp lệ.
+- Thêm `actionMenuPlacement` và kiểm tra `getBoundingClientRect()` để row gần đáy viewport mở dropdown lên trên bằng class `admin-tours__action-menu--top`.
+- Bổ sung keyboard cơ bản: Enter/Space mở menu, Escape đóng menu.
+- Thêm `duplicateTour()` dạng TODO có kiểm soát bằng Taiga notification info vì hiện chưa có API duplicate tour.
+- Giữ nguyên logic nghiệp vụ/API hiện có cho preview, edit route, publish checklist, update status, Taiga confirm delete và delete tour.
+- SCSS dropdown dùng light theme VoyageViet: nền trắng, border `0.5px solid rgba(0,0,0,0.15)`, radius 8px, shadow `0 4px 12px rgba(0,0,0,0.08)`, hover xám nhạt, danger `#DA0808`.
+- Rút gọn SCSS không còn dùng để tránh warning budget mới ở `tours.scss`.
+
+### API Đã Nối
+
+- Không nối API mới.
+- Không thay đổi endpoint, payload, service API, model hoặc route.
+- Action `Nhân bản` chưa gọi API vì backend/service hiện chưa có endpoint duplicate trong màn này.
+
+### Kết Quả Build/Test
+
+- `npx ng build --configuration development`: pass.
+- `npm run build`: pass.
+- Không có lỗi TypeScript/template.
+- Đã build production nhiều lần trong quá trình tối ưu; warning mới ở `tours.scss` đã được xử lý, build cuối không còn warning này.
+
+### Warning/Lỗi Còn Lại
+
+- Initial bundle vẫn vượt warning budget: budget 500.00 kB, total 859.07 kB.
+- `src/app/layouts/public-layout/public-layout.scss` vẫn vượt warning budget: 9.99 kB.
+- `src/app/pages/public/home/components/home-hero/home-hero.scss` vẫn vượt warning budget: 9.88 kB.
+- Đây là các warning budget cũ, không phải lỗi mới từ refactor Admin Tours action dropdown.
+
+### Ghi Chú Kỹ Thuật Và Rủi Ro
+
+- Dropdown custom vẫn nằm trong row/table và table để `overflow: visible`; cần test thực tế trên browser với row cuối bảng và scroll container để xác nhận menu không bị cắt.
+- `Xem public` và `Cập nhật ảnh` vẫn còn method/panel trong component nhưng không còn nằm trong dropdown Phương án B theo yêu cầu mới.
+- `Nhân bản` hiện chỉ hiển thị notification info; cần nối API duplicate nếu backend bổ sung endpoint ở bước sau.
+- Cần test thủ công trên desktop/tablet/mobile để xác nhận layout card responsive, click outside, Esc, primary action theo status và Taiga confirm/notification hoạt động đúng.
+
+## Cập Nhật: Admin Tours Dropdown Tối Giản Không Màu Primary
+
+Thời gian cập nhật: 2026-06-04 09:22:12 +07:00
+
+### File Đã Sửa/Tạo Mới
+
+- `src/app/pages/admin/tours/tours.ts`
+- `src/app/pages/admin/tours/tours.html`
+- `src/app/pages/admin/tours/tours.scss`
+- `VOYAGE_ADMIN_AUDIT_REPORT.md`
+
+### Đầu Việc Đã Làm
+
+- Điều chỉnh dropdown hành động của `/admin/tours` theo ảnh mẫu người dùng gửi.
+- Bỏ style xanh/teal riêng cho primary action trong dropdown.
+- Giữ phạm vi chỉnh sửa trong Admin Tours, không sửa public pages hoặc module admin khác.
+
+### Chức Năng Đã Thêm/Sửa
+
+- Xóa helper `primaryActionClass()` vì không còn cần map màu success/warning theo status.
+- Bỏ `[ngClass]="primaryActionClass(tour)"` khỏi primary action trong dropdown.
+- Dropdown chuyển sang style tối giản: nền tối, chữ sáng mặc định, hover nhẹ, separator mảnh.
+- Chỉ giữ style đỏ cho `Xóa` vì đây là action nguy hiểm.
+- Trigger focus chuyển sang outline trung tính, không dùng màu teal/green.
+
+### API Đã Nối
+
+- Không nối API mới.
+- Không thay đổi endpoint, payload, service API, model hoặc route.
+
+### Kết Quả Build/Test
+
+- `npx ng build --configuration development`: pass.
+- `npm run build`: pass.
+- Không có lỗi TypeScript/template.
+- Không phát sinh warning mới ở `src/app/pages/admin/tours/tours.scss`.
+
+### Warning/Lỗi Còn Lại
+
+- Initial bundle vẫn vượt warning budget: budget 500.00 kB, total 859.07 kB.
+- `src/app/layouts/public-layout/public-layout.scss` vẫn vượt warning budget: 9.99 kB.
+- `src/app/pages/public/home/components/home-hero/home-hero.scss` vẫn vượt warning budget: 9.88 kB.
+- Đây là các warning budget cũ, không phải lỗi mới từ chỉnh style dropdown Admin Tours.
+
+### Ghi Chú Kỹ Thuật Và Rủi Ro
+
+- Dropdown hiện dùng màu mặc định tối giản cho mọi action không nguy hiểm; nếu cần phân biệt `Xuất bản/Tạm ẩn/Kích hoạt lại`, có thể bổ sung màu nhẹ sau nhưng hiện đã bỏ theo yêu cầu.
+- Cần kiểm tra thực tế trên browser để xác nhận dropdown tối không bị lệch với nền trang admin light mode.
+
+## Cập Nhật: Admin Tours Bảng Gọn Và Dropdown Trắng
+
+Thời gian cập nhật: 2026-06-04 09:35:32 +07:00
+
+### File Đã Sửa/Tạo Mới
+
+- `src/app/pages/admin/tours/tours.ts`
+- `src/app/pages/admin/tours/tours.html`
+- `src/app/pages/admin/tours/tours.scss`
+- `VOYAGE_ADMIN_AUDIT_REPORT.md`
+
+### Đầu Việc Đã Làm
+
+- Đọc `VOYAGE_ADMIN_AUDIT_REPORT.md` và ưu tiên section mới nhất về dropdown tối giản không màu primary.
+- Đọc `VOYAGE_FRONTEND_AUDIT_REPORT.md` để nắm bối cảnh frontend, không ghi thay đổi admin vào frontend report.
+- Xác định task gần nhất đã chỉnh dropdown action `/admin/tours` sang nền tối và bỏ màu primary.
+- Chỉ sửa file liên quan trực tiếp đến Admin Tours UI, không sửa public pages, AdminLayout hoặc module admin khác.
+
+### Chức Năng Đã Thêm/Sửa
+
+- Gộp `Thumbnail` và `Tên tour` thành một cột `Tour`, gồm thumbnail, title, slug và departure location.
+- Bảng mới giữ các cột metadata chính: `Tour`, `Giá`, `Thời lượng`, `Số chỗ`, `Featured`, `Trạng thái`, `Cập nhật`, `Hành động`.
+- Cột `Hành động` giữ một nút icon `more-vertical`, width cố định 72px và căn giữa.
+- Dropdown action chuyển về nền trắng nhẹ:
+  - trigger 32x32px, border `#DDE7E4`, nền trắng, icon `#1F6F68`.
+  - menu nền trắng, border `#E3ECE9`, radius 12px, shadow nhẹ.
+  - item cao 36px, hover nền `#F3F7F6`, không fill teal toàn item.
+- Thêm màu chữ/icon nhẹ theo primary action:
+  - `DRAFT`: `Xuất bản`, màu `#16A34A`.
+  - `PUBLISHED`: `Tạm ẩn`, màu `#D97706`.
+  - `INACTIVE`: `Kích hoạt lại`, màu `#1F6F68`.
+  - `SOLD_OUT`: `Mở bán lại`, dùng flow publish hiện có.
+- Giữ `Xóa` màu danger `#DA0808` và hover đỏ nhạt.
+- Giữ action `Cập nhật ảnh` trong dropdown để panel thumbnail cũ vẫn truy cập được.
+- Chuyển publish checklist ra khỏi row table sang card warning phía dưới toolbar, tránh làm row table phình lớn.
+- Thêm `closePublishWarning()` để đóng card checklist.
+- Khi checklist publish thiếu dữ liệu, hiển thị Taiga warning notification và card warning, không render inline checklist trong từng row.
+- Giữ click outside, Escape, Enter/Space và logic menu mở lên trên khi gần đáy viewport.
+- Rút gọn SCSS để `tours.scss` không phát sinh warning budget mới.
+
+### API Đã Nối
+
+- Không nối API mới.
+- Không thay đổi endpoint, payload, service API, model hoặc route.
+- Flow publish/checklist, update status, update thumbnail và delete vẫn dùng API hiện có.
+
+### Kết Quả Build/Test
+
+- `npx ng build --configuration development`: pass.
+- `npm run build`: pass.
+- Không có lỗi TypeScript/template.
+- Đã xử lý warning mới của `src/app/pages/admin/tours/tours.scss`; build cuối không còn warning này.
+
+### Warning/Lỗi Còn Lại
+
+- Initial bundle vẫn vượt warning budget: budget 500.00 kB, total 859.07 kB.
+- `src/app/pages/public/home/components/home-hero/home-hero.scss` vẫn vượt warning budget: 9.88 kB.
+- `src/app/layouts/public-layout/public-layout.scss` vẫn vượt warning budget: 9.99 kB.
+- Đây là các warning budget cũ, không phải lỗi mới từ chỉnh UI Admin Tours.
+
+### Ghi Chú Kỹ Thuật Và Rủi Ro
+
+- Publish checklist card đang dùng style warning tối giản để giữ `tours.scss` dưới budget; nếu cần UI giàu hơn nên cân nhắc tách component/style riêng hoặc tăng budget có kiểm soát.
+- `Nhân bản` vẫn là TODO có notification info vì chưa có API duplicate tour.
+- Cần test thủ công trên browser để xác nhận dropdown trắng không bị cắt ở row cuối, action `Cập nhật ảnh` mở panel cũ và mobile/tablet không vỡ.
+
+## Cập Nhật: Admin Tours Màu Action Dropdown Theo Trạng Thái
+
+Thời gian cập nhật: 2026-06-04 09:47:30 +07:00
+
+### File Đã Sửa/Tạo Mới
+
+- `src/app/pages/admin/tours/tours.ts`
+- `src/app/pages/admin/tours/tours.html`
+- `src/app/pages/admin/tours/tours.scss`
+- `VOYAGE_ADMIN_AUDIT_REPORT.md`
+
+### Đầu Việc Đã Làm
+
+- Đọc `VOYAGE_ADMIN_AUDIT_REPORT.md` và ưu tiên section mới nhất về bảng gọn/dropdown trắng của Admin Tours.
+- Đọc `VOYAGE_FRONTEND_AUDIT_REPORT.md` để nắm bối cảnh frontend, không ghi thay đổi admin vào frontend report.
+- Chỉ sửa nhóm file liên quan trực tiếp đến Admin Tours UI, không sửa public pages, AdminLayout hoặc module admin khác.
+
+### Chức Năng Đã Thêm/Sửa
+
+- Thêm BEM modifier cho từng action thường trong dropdown: preview, edit, duplicate, image.
+- Tăng specificity riêng cho trigger và menu item để không bị rule button chung của trang admin biến thành button gradient/teal lớn.
+- Dropdown vẫn giữ nền trắng, border `#E3ECE9`, radius 12px, shadow nhẹ, hover nền nhạt.
+- Action thường dùng màu trung tính/nhẹ:
+  - `Xem trước`: màu mặc định trung tính.
+  - `Chỉnh sửa`: màu teal `#1F6F68`.
+  - `Nhân bản`: giữ màu trung tính.
+  - `Cập nhật ảnh`: màu xanh nhẹ `#0EA5E9`.
+- Primary action theo status dùng màu riêng:
+  - `DRAFT`: `Xuất bản`, màu xanh lá `#16A34A`.
+  - `PUBLISHED`: `Tạm ẩn`, màu amber `#D97706`.
+  - `INACTIVE`: `Kích hoạt lại`, màu teal `#1F6F68`.
+  - `SOLD_OUT`: `Mở bán lại`, màu blue `#2563EB`.
+- `Xóa` luôn dùng danger `#DA0808` và hover đỏ nhạt.
+- Dùng CSS variables ngắn trong SCSS để giữ `tours.scss` dưới warning budget.
+- Không đổi flow publish checklist, update thumbnail, delete confirm, edit route hoặc Taiga feedback.
+
+### API Đã Nối
+
+- Không nối API mới.
+- Không thay đổi endpoint, payload, service API, model hoặc route.
+
+### Kết Quả Build/Test
+
+- `npx ng build --configuration development`: pass.
+- `npm run build`: pass.
+- Không có lỗi TypeScript/template.
+- Đã xử lý warning mới của `src/app/pages/admin/tours/tours.scss`; build cuối không còn warning này.
+
+### Warning/Lỗi Còn Lại
+
+- Initial bundle vẫn vượt warning budget: budget 500.00 kB, total 859.07 kB.
+- `src/app/layouts/public-layout/public-layout.scss` vẫn vượt warning budget: 9.99 kB.
+- `src/app/pages/public/home/components/home-hero/home-hero.scss` vẫn vượt warning budget: 9.88 kB.
+- Đây là các warning budget cũ, không phải lỗi mới từ chỉnh màu dropdown Admin Tours.
+
+### Ghi Chú Kỹ Thuật Và Rủi Ro
+
+- Icon trong menu kế thừa màu text của action để tránh tăng `tours.scss` vượt budget; màu action vẫn phản ánh đúng trạng thái và danger.
+- `Nhân bản` vẫn là TODO có notification info vì chưa có API duplicate tour.
+- Cần test thủ công trên browser để xác nhận hover màu nhạt, menu không bị cắt ở row cuối và các action cũ vẫn hoạt động.
+
+## Cập Nhật: Polish UI Admin Button Và Màu Nhấn
+
+- Thời gian cập nhật: 2026-06-04 10:01:43 +07:00
+- File đã sửa/tạo mới:
+  - `src/app/layouts/admin-layout/admin-layout.scss`
+  - `src/app/pages/admin/media/media.scss`
+  - `src/app/pages/admin/categories/categories.scss`
+  - `src/app/pages/admin/destinations/destinations.scss`
+  - `src/app/pages/admin/tours/tours.scss`
+  - `src/app/pages/admin/tours/tour-form/tour-form.scss`
+  - `src/app/pages/admin/tours/tour-gallery/tour-gallery.scss`
+  - `src/app/pages/admin/tours/tour-itinerary/tour-itinerary.scss`
+  - `src/app/pages/admin/tours/tour-schedules/tour-schedules.scss`
+  - `VOYAGE_ADMIN_AUDIT_REPORT.md`
+- Đầu việc đã làm:
+  - Polish lại màu nhấn và hệ thống button trong khu vực admin để giảm việc dùng teal đặc quá nhiều.
+  - Làm nhẹ card, table, form, filter, dropdown/action và status badge theo theme VoyageViet.
+  - Giữ nguyên phạm vi admin, không sửa public pages, không đổi API/route/payload/model.
+- Chức năng đã thêm/sửa:
+  - AdminLayout: làm nhẹ nền content, sidebar active bớt nặng, link public dùng accent blue nhẹ.
+  - Admin Media: summary chuyển sang nền nhạt, upload button dùng primary solid, filter active dùng soft teal, action/danger hover nhẹ, preview upload giới hạn chiều cao.
+  - Admin Categories/Destinations: button chính dùng primary solid, link/phụ dùng outline, cập nhật ảnh dùng info, đổi trạng thái dùng warning, xóa dùng danger, input/select/textarea có focus teal nhẹ, status active/inactive tách màu green/amber.
+  - Admin Tours: button chính bỏ gradient teal, link outline, dropdown action giữ nền trắng và màu theo action/status, status badge DRAFT/PUBLISHED/INACTIVE/SOLD_OUT đổi màu riêng.
+  - Admin Tour Form/Gallery/Itinerary/Schedules: save/upload dùng primary solid, action phụ dùng outline/neutral, danger hover đỏ nhạt, input focus nhẹ, badge/status tách màu theo trạng thái, preview ảnh có giới hạn chiều cao ở các khu vực cần thiết.
+- API đã nối nếu có:
+  - Không có API mới.
+  - Không đổi endpoint, payload, route hoặc model.
+- Kết quả build/test:
+  - `npx ng build --configuration development`: pass.
+  - `npm run build`: pass.
+  - Kiểm tra trong `src/app/pages/admin` và `src/app/layouts/admin-layout`: không có `#004FA8`, `window.confirm`, `window.alert`, `confirm(`, `alert(`.
+- Warning/lỗi còn lại:
+  - Còn warning budget cũ ở production build: initial bundle vượt 500 kB, `src/app/pages/public/home/components/home-hero/home-hero.scss`, `src/app/layouts/public-layout/public-layout.scss`.
+  - Không còn warning budget mới ở `src/app/pages/admin/tours/tours.scss` sau khi trim lại rule phụ.
+- Ghi chú kỹ thuật/rủi ro cần theo dõi:
+  - Các thay đổi tập trung ở SCSS admin để tránh ảnh hưởng nghiệp vụ.
+  - Không đụng các thay đổi backend/public đang có sẵn trong worktree.
+  - Nên kiểm tra thủ công lại `/admin/tours`, `/admin/media`, `/admin/categories`, `/admin/destinations` và các tab Tour Form/Gallery/Itinerary/Schedules để đánh giá cảm giác màu/spacing thực tế trên desktop và mobile.
+
+## Cập Nhật: Admin Tour Form Media Picker Và Autosave Draft
+
+Thời gian cập nhật: 2026-06-04 07:45:42 +07:00
+
+### File Đã Sửa/Tạo Mới
+
+- `src/app/pages/admin/tours/tour-form/tour-form.ts`
+- `src/app/pages/admin/tours/tour-form/tour-form.html`
+- `src/app/pages/admin/tours/tour-form/tour-form.scss`
+- `VOYAGE_ADMIN_AUDIT_REPORT.md`
+
+### Đầu Việc Đã Làm
+
+- Chuyển các chuỗi tiếng Việt trong TourForm và section audit mới nhất sang UTF-8 đúng dấu.
+- Giữ phạm vi trong nhóm Admin Tour Form và audit report; không sửa public pages.
+- Không đổi API backend, endpoint tour/media hoặc payload tour.
+
+### Chức Năng Đã Thêm/Sửa
+
+- Media picker trong TourForm giữ 3 tab: `Chọn từ Media`, `Upload ảnh mới`, `Nhập URL thủ công`.
+- Autosave draft create mode vẫn dùng key `vv_admin_tour_create_draft` và banner `Bạn có bản nháp chưa lưu.`.
+- Các notification, validation message, label, placeholder và text preview đã được chuyển về tiếng Việt có dấu.
+
+### API Đã Nối
+
+- Tiếp tục dùng `AdminMediaApiService.getMedia(...)` và `AdminMediaApiService.uploadMedia(file, 'tours')`.
+- Tiếp tục dùng `AdminTourApiService.createTour(payload)` và `updateTour(id, payload)`.
+
+### Kết Quả Build/Test
+
+- Cần chạy lại build sau khi chuyển mã nội dung.
+
+### Warning/Lỗi Còn Lại
+
+- Các warning budget cũ về initial bundle và public SCSS vẫn cần theo dõi.
+- `tour-form.scss` có thể vẫn còn warning style budget 8KB do media picker UI.
+
+### Ghi Chú Kỹ Thuật Và Rủi Ro
+
+- Không dùng base64 hoặc object URL làm URL thật gửi backend.
+- Cần test thủ công lại `/admin/tours/new`, restore draft, chọn ảnh media, upload ảnh mới và create sang edit.
+
+## Cập Nhật: Hoàn Thiện Việt Hóa Tour Form, Phân Loại Và Điểm Khởi Hành
+
+Thời gian cập nhật: 2026-06-04 15:36:24 +07:00
+
+### File Đã Sửa/Tạo Mới
+
+- `src/app/pages/admin/tours/tour-form/tour-form.ts`
+- `src/app/pages/admin/tours/tour-form/tour-form.html`
+- `src/app/pages/admin/tours/tour-form/tour-form.scss`
+- `src/app/pages/admin/tours/tour-gallery/tour-gallery.ts`
+- `src/app/pages/admin/tours/tour-gallery/tour-gallery.html`
+- `src/app/pages/admin/tours/tour-itinerary/tour-itinerary.html`
+- `src/app/pages/admin/tours/tour-schedules/tour-schedules.html`
+- `VOYAGE_ADMIN_AUDIT_REPORT.md`
+
+### Đầu Việc Đã Làm
+
+- Đọc `VOYAGE_ADMIN_AUDIT_REPORT.md`, `VOYAGE_FRONTEND_AUDIT_REPORT.md` và `BACKEND_API_REPORT.md`; ưu tiên section admin mới nhất về Tour Form media picker/autosave.
+- Xác nhận `AdminCategoryApiService.getCategories()`, `AdminDestinationApiService.getDestinations()` và `AdminMediaApiService.getMedia()/uploadMedia()` đã tồn tại.
+- Chỉ sửa nhóm Admin Tour Form/Gallery/Itinerary/Schedules; không sửa public pages, không đổi route API backend và không ghi thay đổi admin vào frontend audit report.
+
+### Chức Năng Đã Thêm/Sửa
+
+- Việt hóa thêm breadcrumb, mô tả section, label, button, empty state và các message còn sót trong Tour Form/Gallery/Itinerary/Schedules.
+- Danh mục tour tiếp tục lấy từ API admin categories, ưu tiên category `ACTIVE`; nếu API chỉ có inactive thì vẫn hiển thị và gắn nhãn `Tạm ẩn`.
+- Option danh mục ưu tiên `name` từ API, có fallback slug quen thuộc như `tour-trong-nuoc`, `tour-nuoc-ngoai`, `tour-combo`, `visa`, `ve-may-bay`.
+- Điểm đến tiếp tục lấy từ API admin destinations, hiển thị `name - country - region` nếu backend có đủ dữ liệu.
+- Khi chọn category trong nước/nước ngoài, danh sách điểm đến chỉ được ưu tiên sắp xếp theo region/country phù hợp, không lọc cứng để tránh mất option.
+- Điểm khởi hành đổi từ input text sang select với 3 option chuẩn: `Hà Nội`, `Đà Nẵng`, `TP. Hồ Chí Minh`.
+- Edit mode giữ giá trị `departureLocation` cũ nếu khác 3 option bằng option tạm `Khác: <giá trị cũ>`.
+- Create mode tự set mặc định `Hà Nội` nếu không có bản nháp.
+- Preview card hiển thị thêm điểm khởi hành đã chọn.
+- Empty state category/destination có link mở `/admin/categories` và `/admin/destinations`.
+- Gallery đổi heading sang `Thư viện ảnh tour`, bổ sung text chọn từ Media/tải ảnh mới hoặc dán URL Cloudinary; chưa đổi endpoint gallery sang media picker thật.
+
+### API Đã Nối
+
+- Tiếp tục dùng `GET /api/admin/categories` qua `AdminCategoryApiService.getCategories()`.
+- Tiếp tục dùng `GET /api/admin/destinations` qua `AdminDestinationApiService.getDestinations()`.
+- Tiếp tục dùng `GET /api/admin/media` và `POST /api/admin/media/upload` trong Tour Form.
+- Không đổi endpoint, enum backend, selector Angular hoặc key payload tour.
+
+### Kết Quả Build/Test
+
+- `npx ng build --configuration development`: lần đầu trong sandbox lỗi `spawn EPERM`, rerun ngoài sandbox pass.
+- `npm run build`: lần đầu trong sandbox lỗi `spawn EPERM`; rerun ngoài sandbox lần 1 compile được nhưng fail budget error do `tour-form.scss` vượt hard limit 241 bytes; đã trim SCSS và rerun pass.
+
+### Warning/Lỗi Còn Lại
+
+- Production build còn warning budget cũ: initial bundle vượt 500 kB, `src/app/layouts/public-layout/public-layout.scss`, `src/app/pages/public/home/components/home-hero/home-hero.scss`.
+- `src/app/pages/admin/tours/tour-form/tour-form.scss` còn warning budget ở mức 10.00 kB nhưng không còn vượt hard error 10 kB.
+- Chưa test thủ công trên browser với backend thật nên cần kiểm tra lại category/destination/media data thực tế.
+
+### Ghi Chú Kỹ Thuật Và Rủi Ro
+
+- Gallery hiện vẫn thêm ảnh bằng URL qua API tour image hiện có; nút `Chọn từ Media`/`Tải ảnh mới` đang dẫn admin sang Media, chưa mở media picker inline cho gallery.
+- Category inactive bị ẩn nếu API có category active; nếu tour edit đang gắn category inactive, cần backend/API trả dữ liệu đủ hoặc bổ sung rule giữ option đang chọn ở task sau.
+- Điểm đến chỉ được ưu tiên sắp xếp theo region/country, không filter cứng theo category để tránh mất dữ liệu nếu backend chưa chuẩn hóa region.
+
+## Cập Nhật: Tích Hợp API Tỉnh/Thành Vào Admin Tour Form
+
+Thời gian cập nhật: 2026-06-04 16:12:12 +07:00
+
+### File Đã Sửa/Tạo Mới
+
+- `src/app/core/models/vietnam-province.model.ts`
+- `src/app/core/api/vietnam-province-api.service.ts`
+- `src/environments/environment.ts`
+- `src/app/pages/admin/tours/tour-form/tour-form.ts`
+- `src/app/pages/admin/tours/tour-form/tour-form.html`
+- `src/app/pages/admin/tours/tour-form/tour-form.scss`
+- `VOYAGE_ADMIN_AUDIT_REPORT.md`
+
+### Đầu Việc Đã Làm
+
+- Đọc `VOYAGE_ADMIN_AUDIT_REPORT.md`, `VOYAGE_FRONTEND_AUDIT_REPORT.md` và `BACKEND_API_REPORT.md`; ưu tiên section mới nhất về Tour Form.
+- Xác nhận backend tour vẫn cần payload `destinationId` và `departureLocation`.
+- Xác nhận `AdminDestinationApiService.getDestinations()` vẫn là nguồn dữ liệu admin destination thật.
+- Chỉ sửa nhóm Admin Tour Form và service/model tỉnh thành; không sửa public pages, AdminLayout, Admin Media, Admin Tours List hoặc backend API.
+
+### Chức Năng Đã Thêm/Sửa
+
+- Tạo `VietnamProvince` model theo response `name`, `code`, `division_type`, `codename`, `phone_code`, `districts`.
+- Tạo `VietnamProvinceApiService.getProvinces()` gọi `https://provinces.open-api.vn/api/v1/`.
+- Thêm `vietnamProvinceApiUrl` vào `environment.ts`.
+- TourForm load song song categories, admin destinations, provinces và tour detail nếu edit mode.
+- Nếu API tỉnh/thành lỗi, form không sập; điểm đến fallback về danh sách Admin Destination hiện có.
+- Field `Điểm đến` dùng danh sách tỉnh/thành Việt Nam làm option hiển thị.
+- Khi chọn tỉnh/thành, form map sang Admin Destination trùng `name/slug/region` với `province.name/codename` và patch `destinationId`.
+- Nếu tỉnh/thành chưa có bản ghi trong Admin > Điểm đến, form hiển thị lỗi dưới select và không cho submit vì `destinationId` vẫn invalid.
+- Field `Điểm khởi hành` dùng danh sách tỉnh/thành Việt Nam; nếu API lỗi thì fallback về 3 option cũ `Hà Nội`, `Đà Nẵng`, `TP. Hồ Chí Minh`.
+- Edit mode và draft restore tự đồng bộ select tỉnh/thành theo `destinationId` cũ nếu map được.
+- SCSS form được chỉnh nhẹ để select cao 44px, input/select đồng bộ border/focus và error/hint nằm ngay dưới control.
+
+### API Đã Nối
+
+- `GET https://provinces.open-api.vn/api/v1/` qua `VietnamProvinceApiService.getProvinces()`.
+- Tiếp tục dùng `GET /api/admin/destinations` để lấy `destinationId` thật cho payload tour.
+- Không đổi endpoint tour backend, không đổi key payload `destinationId` hoặc `departureLocation`.
+
+### Kết Quả Build/Test
+
+- `npx ng build --configuration development`: lần đầu trong sandbox lỗi `spawn EPERM`, rerun ngoài sandbox pass.
+- `npm run build`: lần đầu trong sandbox lỗi `spawn EPERM`; rerun ngoài sandbox phát hiện `tour-form.scss` vượt hard budget, đã trim SCSS và build cuối pass.
+
+### Warning/Lỗi Còn Lại
+
+- Production build còn warning budget: initial bundle vượt 500 kB.
+- `src/app/pages/admin/tours/tour-form/tour-form.scss` còn warning budget 8 kB nhưng còn dưới hard error 10 kB.
+- `src/app/pages/public/home/components/home-hero/home-hero.scss` và `src/app/layouts/public-layout/public-layout.scss` vẫn còn warning budget cũ.
+
+### Ghi Chú Kỹ Thuật Và Rủi Ro
+
+- API tỉnh/thành là API ngoài; nếu trình duyệt không truy cập được hoặc bị CORS/network chặn thì form fallback về Admin Destination cho điểm đến và 3 điểm khởi hành cũ.
+- Chọn tỉnh/thành chỉ submit được khi Admin Destination đã có bản ghi tương ứng; đây là cách giữ nguyên payload backend tour không đổi.
+- Cần test thủ công với dữ liệu Admin Destination thực tế để bảo đảm tên/slug điểm đến khớp tỉnh/thành, ví dụ `Đà Nẵng`, `Hà Nội`, `TP. Hồ Chí Minh`.
+
+## Cập Nhật: Sửa Contract Gallery Tour Từ Admin Media
+
+Thời gian cập nhật: 2026-06-04 16:34:33 +07:00
+
+### File Đã Sửa/Tạo Mới
+
+- `../voyage-backend/src/main/java/com/voyageviet/backend/tour/dto/TourImageFromMediaRequest.java`
+- `../voyage-backend/src/main/java/com/voyageviet/backend/tour/controller/AdminTourImageController.java`
+- `../voyage-backend/src/main/java/com/voyageviet/backend/tour/service/TourImageService.java`
+- `src/app/core/models/admin-tour.model.ts`
+- `src/app/core/api/admin-tour-api.service.ts`
+- `src/app/pages/admin/tours/tour-gallery/tour-gallery.ts`
+- `src/app/pages/admin/tours/tour-gallery/tour-gallery.html`
+- `src/app/pages/admin/tours/tour-gallery/tour-gallery.scss`
+- `VOYAGE_ADMIN_AUDIT_REPORT.md`
+
+### API Backend Mới
+
+- Thêm `POST /api/admin/tours/{id}/images/from-media`.
+- Payload: `mediaId`, `altText`, `sortOrder`, `isThumbnail`.
+- Endpoint multipart cũ `POST /api/admin/tours/{id}/images` vẫn được giữ nguyên cho upload file trực tiếp.
+- Service backend kiểm tra tour tồn tại, media tồn tại, media phải là `IMAGE`, giữ rule tối đa 10 ảnh/tour, xử lý thumbnail độc nhất và trả `TourImageResponse`.
+- Khi xóa tour image có `publicId` trùng Media đang lưu, backend chỉ xóa record tour image, không xóa asset Cloudinary dùng chung bởi Media.
+
+### Frontend Đã Đổi
+
+- Thêm model `AdminTourImageFromMediaRequest`.
+- Thêm `AdminTourApiService.attachTourImageFromMedia(tourId, payload)`.
+- `TourGallery` không còn gửi JSON URL vào endpoint multipart `/images`.
+- Chọn ảnh từ Admin Media sẽ gọi `/images/from-media`.
+- Upload ảnh mới trong gallery sẽ upload qua `AdminMediaApiService.uploadMedia(file, 'tours')`, lấy media id rồi attach bằng `/images/from-media`.
+- Không gọi Cloudinary trực tiếp từ frontend và không dùng base64/object URL làm URL thật gửi backend.
+- Ô dán URL thủ công được bỏ khỏi flow gallery để tránh gọi sai contract; thông báo lỗi thân thiện thay cho raw `Internal server error`.
+
+### Kết Quả Build/Test
+
+- Backend: `.\mvnw.cmd -DskipTests compile` pass sau khi sửa UTF-8 BOM ở các file Java mới/chỉnh.
+- Frontend development: `npx ng build --configuration development` pass khi rerun ngoài sandbox; lần đầu trong sandbox lỗi `spawn EPERM`.
+- Frontend production: `npm run build` pass khi rerun ngoài sandbox; lần đầu trong sandbox lỗi `spawn EPERM`.
+
+### Warning/Lỗi Còn Lại Và Rủi Ro
+
+- Production build còn warning budget hiện hữu: initial bundle vượt 500 kB, `home-hero.scss`, `public-layout.scss`, `tour-form.scss`.
+- Chưa test thủ công đủ checklist với backend chạy thật: upload ở `/admin/media`, vào `/admin/tours/21/edit`, chọn ảnh từ Media, reload gallery, publish checklist.
+- Nếu response upload media không trả `id/mediaId`, frontend sẽ báo không lấy được Media ID và không attach được ảnh.
+
+## Cập Nhật: Cố Định Layout Validation Admin Tour Form
+
+Thời gian cập nhật: 2026-06-04 17:00:17 +07:00
+
+### File Đã Sửa
+
+- `src/app/pages/admin/tours/tour-form/tour-form.html`
+- `src/app/pages/admin/tours/tour-form/tour-form.scss`
+- `src/app/pages/admin/tours/tour-form/tour-form.ts`
+- `VOYAGE_ADMIN_AUDIT_REPORT.md`
+
+### Đầu Việc Đã Làm
+
+- Đọc `VOYAGE_ADMIN_AUDIT_REPORT.md` và `VOYAGE_FRONTEND_AUDIT_REPORT.md`; ưu tiên section admin mới nhất.
+- Chỉ sửa nhóm Admin Tour Form; không sửa public pages, AdminLayout, backend API tour hoặc `VOYAGE_FRONTEND_AUDIT_REPORT.md`.
+
+### Chức Năng Đã Sửa
+
+- Đổi field wrapper trong Tour Form từ label bọc toàn bộ sang cấu trúc thống nhất: `admin-tour-form__field`, `admin-tour-form__label`, `admin-tour-form__control`, `admin-tour-form__message-slot`.
+- Mỗi input/select/textarea trong form chính có vùng message cố định bên dưới control, kể cả field chưa có lỗi.
+- Error/help text dùng `admin-tour-form__field-error` và `admin-tour-form__field-help`, nằm trong message slot để không làm lệch các cột cùng hàng.
+- Rút gọn cảnh báo tỉnh/thành:
+  - Điểm đến: `Đang dùng điểm đến Admin do chưa tải được tỉnh/thành.`
+  - Điểm khởi hành: `Đang dùng danh sách khởi hành dự phòng.`
+- SCSS giữ input/select cao đều 44px, message slot cao cố định 34px và overflow nội dung dài để không đẩy layout grid.
+
+### Kết Quả Build/Test
+
+- `npx ng build --configuration development`: lần đầu trong sandbox lỗi `spawn EPERM`, rerun ngoài sandbox pass.
+- `npm run build`: pass sau khi trim `tour-form.scss` để không vượt hard budget.
+
+### Warning/Lỗi Còn Lại Và Rủi Ro
+
+- Production build còn warning budget hiện hữu: initial bundle vượt 500 kB, `public-layout.scss`, `home-hero.scss`.
+- `src/app/pages/admin/tours/tour-form/tour-form.scss` vẫn warning budget 8 kB và ở sát hard limit 10 kB, nhưng build đã pass.
+- Chưa kiểm tra trực quan bằng browser tại `/admin/tours/new` và `/admin/tours/:id/edit`; cần nhìn lại các trạng thái có/không có validation để xác nhận spacing đúng như mong muốn.
+
+## Cập Nhật: Proxy Tỉnh/Thành Và Fix NG0103 Tour Form
+
+Thời gian cập nhật: 2026-06-04 17:14:31 +07:00
+
+### File Đã Sửa/Tạo Mới
+
+- `../voyage-backend/src/main/java/com/voyageviet/backend/location/controller/AdminLocationController.java`
+- `../voyage-backend/src/main/java/com/voyageviet/backend/location/service/VietnamProvinceService.java`
+- `../voyage-backend/src/main/java/com/voyageviet/backend/location/dto/VietnamProvinceResponse.java`
+- `src/app/core/api/vietnam-province-api.service.ts`
+- `src/app/core/models/vietnam-province.model.ts`
+- `src/environments/environment.ts`
+- `src/app/pages/admin/tours/tour-form/tour-form.ts`
+- `src/app/pages/admin/tours/tour-form/tour-form.html`
+- `VOYAGE_ADMIN_AUDIT_REPORT.md`
+
+### Backend Đã Thêm
+
+- Thêm `GET /api/admin/locations/provinces`.
+- Backend gọi API ngoài `https://provinces.open-api.vn/api/v2/` thay cho Angular browser.
+- `VietnamProvinceService` cache in-memory 12 giờ để tránh gọi API ngoài nhiều lần.
+- Nếu API ngoài lỗi, service dùng cache cũ nếu có; nếu chưa có cache thì trả danh sách fallback tối thiểu gồm Hà Nội, Đà Nẵng, TP. Hồ Chí Minh và một số tỉnh/thành phổ biến.
+- Response trả list đơn giản gồm `code`, `name`, `displayName`, `codename`, `divisionType`.
+
+### Frontend Đã Sửa
+
+- `VietnamProvinceApiService.getProvinces()` chuyển sang gọi `${environment.apiUrl}/admin/locations/provinces`.
+- Bỏ `vietnamProvinceApiUrl` khỏi `environment.ts`; frontend không còn gọi trực tiếp `provinces.open-api.vn`, tránh CORS.
+- `VietnamProvince` model bổ sung `displayName` và `divisionType`, vẫn giữ field cũ `division_type`, `phone_code`, `districts` để tương thích.
+- Tour Form không còn dùng `destinationOptions()` và `departureOptions()` trong template.
+- Thay bằng cached properties:
+  - `destinationSelectOptions`
+  - `departureSelectOptions`
+  - `selectedDestinationMissingAdminRecord`
+  - `destinationProvinceWarning`
+  - `departureProvinceWarning`
+- Recompute option list chỉ chạy khi load dữ liệu, đổi category, đổi departure hoặc restore/patch tour; không tạo array mới trong mỗi change detection.
+- Warning tỉnh/thành được rút gọn và render từ property để không làm vỡ layout.
+
+### Kết Quả Build/Test
+
+- Backend: `.\mvnw.cmd -DskipTests compile` pass.
+- Frontend development: `npx ng build --configuration development` pass khi rerun ngoài sandbox; lần đầu trong sandbox lỗi `spawn EPERM`.
+- Frontend production: `npm run build` pass.
+
+### Warning/Lỗi Còn Lại Và Rủi Ro
+
+- Production build còn warning budget hiện hữu: initial bundle vượt 500 kB, `public-layout.scss`, `home-hero.scss`.
+- `src/app/pages/admin/tours/tour-form/tour-form.scss` vẫn warning budget 8 kB và sát hard limit 10 kB, nhưng build pass.
+- Chưa gọi thử endpoint với backend đang chạy thật; cần test đăng nhập admin rồi gọi `/api/admin/locations/provinces`.
+- Nếu backend server không truy cập được Internet, form vẫn dùng fallback backend nên không còn lỗi CORS, nhưng danh sách tỉnh/thành sẽ chỉ là fallback tối thiểu.
+## Cập Nhật: Admin Tour Form Chọn Nhiều Điểm Đến
+
+Thời gian cập nhật: 2026-06-05 09:02:21 +07:00
+
+### File Đã Sửa
+
+- `src/app/pages/admin/tours/tour-form/tour-form.ts`
+- `src/app/pages/admin/tours/tour-form/tour-form.html`
+- `src/app/pages/admin/tours/tour-form/tour-form.scss`
+- `src/app/core/models/admin-tour.model.ts`
+- `VOYAGE_ADMIN_AUDIT_REPORT.md`
+
+### Đầu Việc Đã Làm
+
+- Đọc `VOYAGE_ADMIN_AUDIT_REPORT.md`, `VOYAGE_FRONTEND_AUDIT_REPORT.md` và `../voyage-backend/BACKEND_API_REPORT.md`; ưu tiên section admin mới nhất về Tour Form/province proxy.
+- Xác nhận TourForm trước bước này dùng `destinationSelectionKey` một giá trị để map tỉnh/thành sang `destinationId`, sau đó submit `destinationId`.
+- Xác nhận backend admin tour create/update hiện chỉ nhận `destinationId`; chưa có `destinationIds` hoặc bảng liên kết nhiều điểm đến.
+- Chỉ sửa nhóm Admin Tour Form và model tour admin; không sửa public pages, không sửa `VOYAGE_FRONTEND_AUDIT_REPORT.md`.
+
+### Chức Năng Đã Sửa
+
+- Đổi field `Điểm đến` từ select một lựa chọn sang multi-select custom có checkbox/selected state.
+- Dropdown option chỉ hiển thị tên ngắn của tỉnh/thành hoặc destination, bỏ hoàn toàn hậu tố `chưa có trong Admin > Điểm đến` khỏi option.
+- Thêm nút `Xóa tất cả` trong dropdown.
+- Thêm state `selectedDestinationIds`, `selectedDestinationOptions` và label cache `selectedDestinationLabel`.
+- Khi chọn nhiều điểm đến, label hiển thị nối bằng ` - `; nếu quá 3 điểm thì hiển thị 3 điểm đầu và `+N điểm`.
+- Preview tour dùng label nhiều điểm đến đã chọn thay vì chỉ đọc destination chính.
+- Draft create lưu/khôi phục được danh sách key điểm đến đã chọn qua form control `destinationSelectionKeys`.
+- Edit mode vẫn patch tour cũ từ `destinationId`; nếu response sau này có `destinationIds`, form có thể đọc để hiển thị nhiều điểm.
+- Warning điểm đến chưa có bản ghi Admin được chuyển xuống `.admin-tour-form__message-slot`.
+- Ghi chú dưới field: `Điểm đến đầu tiên sẽ được dùng làm điểm đến chính của tour.`
+
+### Payload Và Backend
+
+- Tiếp tục submit payload cũ với `destinationId`.
+- Khi chọn nhiều điểm đến, option đầu tiên trong danh sách chọn được dùng làm `destinationId` chính.
+- Không gửi `destinationIds` lên backend vì `BACKEND_API_REPORT.md` chưa ghi nhận contract này.
+- `AdminTour` model chỉ bổ sung field response/frontend-compatible: `destinationIds`, `destinationDisplayName`, `selectedDestinationNames`; request create/update không đổi.
+
+### Kết Quả Build/Test
+
+- `npx ng build --configuration development`: pass.
+- `npm run build`: pass.
+
+### Warning/Lỗi Còn Lại Và Rủi Ro
+
+- Production build còn warning budget hiện hữu: initial bundle, `public-layout.scss`, `home-hero.scss`.
+- `src/app/pages/admin/tours/tour-form/tour-form.scss` còn warning budget ở mức 10.00 kB nhưng không vượt hard error.
+- Multi-select nhiều điểm đến hiện là UI/display an toàn; backend vẫn chỉ lưu một điểm đến chính.
+- TODO backend nếu muốn lưu nhiều điểm đến thật: thêm request `destinationIds: number[]` hoặc bảng liên kết `TOUR_DESTINATIONS`, sau đó cập nhật create/update/detail response và publish/search logic tương ứng.
+
+## Cập Nhật: Polish UI Lịch Trình Và Lịch Khởi Hành Admin Tour Form
+
+Thời gian cập nhật: 2026-06-05 09:52:55 +07:00
+
+### File Đã Sửa
+
+- `src/app/pages/admin/tours/tour-itinerary/tour-itinerary.html`
+- `src/app/pages/admin/tours/tour-itinerary/tour-itinerary.scss`
+- `src/app/pages/admin/tours/tour-schedules/tour-schedules.html`
+- `src/app/pages/admin/tours/tour-schedules/tour-schedules.scss`
+- `VOYAGE_ADMIN_AUDIT_REPORT.md`
+
+### Đầu Việc Đã Làm
+
+- Đọc `VOYAGE_ADMIN_AUDIT_REPORT.md` và `VOYAGE_FRONTEND_AUDIT_REPORT.md`; ưu tiên section admin mới nhất về Admin Tour Form chọn nhiều điểm đến.
+- Kiểm tra UI hiện tại của `TourItinerary` và `TourSchedules`, tập trung vào header section, CTA thêm mới và empty state.
+- Chỉ sửa nhóm Admin Tour Form sub-section liên quan tới Lịch trình/Lịch khởi hành; không sửa public pages, không đổi API/backend payload và không ghi vào frontend audit report.
+
+### Chức Năng Đã Thêm/Sửa
+
+- Header `Lịch trình tour` và `Lịch khởi hành` chuyển sang nền gradient mint rất nhẹ, padding `20px 24px`, title nhỏ gọn hơn.
+- Nút thêm ở header đổi thành soft outline nhỏ, cao 40px, nền `#EAF7F4`, chữ `#1F6F68`, hover `#DDF2EE`.
+- Áp dụng hướng B để tránh lặp nút nặng: khi danh sách rỗng, header không hiển thị nút thêm; khi đã có dữ liệu, nút thêm xuất hiện ở header; empty state có CTA nhỏ để tạo item đầu tiên.
+- Empty state của lịch trình/lịch khởi hành có nội dung giới hạn `max-width: 520px`, padding gọn `32px 24px`, icon tròn 44px nền mint nhạt.
+- Thêm class BEM mới cho itinerary: `admin-tour-itinerary__hero`, `__hero-content`, `__hero-action`, `__empty-inner`, `__empty-icon`, `__empty-title`, `__empty-text`, `__empty-action`.
+- Thêm class BEM mới cho schedules: `admin-tour-schedules__hero`, `__hero-content`, `__hero-action`, `__empty-inner`, `__empty-icon`, `__empty-title`, `__empty-text`, `__empty-action`.
+- Giữ nguyên method click hiện có: `openCreateForm()`, save/edit/delete/reorder/status không đổi.
+- Mobile tiếp tục chuyển header/form head sang column và action stretch theo layout cũ.
+
+### API Đã Nối
+
+- Không nối API mới.
+- Không đổi endpoint, payload, model hoặc service.
+
+### Kết Quả Build/Test
+
+- `npx ng build --configuration development`: pass.
+- `npm run build`: pass.
+
+### Warning/Lỗi Còn Lại
+
+- Production build còn warning budget hiện hữu: initial bundle vượt 500 kB.
+- `src/app/layouts/public-layout/public-layout.scss` và `src/app/pages/public/home/components/home-hero/home-hero.scss` vẫn vượt warning budget cũ.
+- `src/app/pages/admin/tours/tour-form/tour-form.scss` vẫn warning budget ở mức 10.00 kB nhưng không vượt hard error.
+
+### Ghi Chú Kỹ Thuật Và Rủi Ro
+
+- Thay đổi chỉ là HTML/SCSS cho sub-section admin tour; không tác động logic nghiệp vụ hoặc contract backend.
+- Chưa test trực quan bằng browser thật tại `/admin/tours/:id/edit`; cần kiểm tra lại spacing, hover, empty state và responsive với dữ liệu thật.

@@ -4,7 +4,7 @@
   --media-secondary: #2f8f84;
   --media-mint: #4db6a7;
   --media-bg: #f8faf9;
-  --media-border: #e8e8e8;
+  --media-border: #e2e8f0;
   --media-danger: #da0808;
 
   display: grid;
@@ -20,7 +20,7 @@
     border: 1px solid var(--media-border);
     border-radius: 16px;
     background: #fff;
-    box-shadow: 0 12px 30px rgba(20, 83, 79, 0.08);
+    box-shadow: 0 10px 30px rgba(15, 23, 42, 0.06);
   }
 
   &__header {
@@ -36,7 +36,7 @@
       margin: 0;
       color: var(--media-primary-dark);
       font-size: clamp(28px, 4vw, 42px);
-      font-weight: 900;
+      font-weight: 800;
       letter-spacing: -0.04em;
     }
 
@@ -49,16 +49,17 @@
   &__eyebrow {
     margin: 0 0 8px !important;
     color: var(--media-secondary) !important;
-    font-weight: 900;
+    font-weight: 800;
     text-transform: uppercase;
   }
 
   &__summary {
     padding: 16px;
     align-self: flex-start;
+    border: 1px solid rgba(31, 111, 104, 0.16);
     border-radius: 14px;
-    background: linear-gradient(135deg, var(--media-primary), var(--media-mint));
-    color: #fff;
+    background: linear-gradient(135deg, #eaf7f4, #eff6ff);
+    color: var(--media-primary-dark);
     text-align: right;
 
     strong {
@@ -103,7 +104,7 @@
       border: 0;
       background: transparent;
       color: var(--media-danger);
-      font-weight: 900;
+      font-weight: 800;
     }
   }
 
@@ -119,7 +120,7 @@
     span {
       color: var(--media-secondary);
       font-size: 12px;
-      font-weight: 900;
+      font-weight: 800;
       text-transform: uppercase;
     }
 
@@ -173,6 +174,7 @@
 
   &__preview {
     min-height: 210px;
+    max-height: 420px;
     display: grid;
     place-items: center;
     overflow: hidden;
@@ -202,7 +204,7 @@
       flex: 1;
       color: #475569;
       font-size: 13px;
-      font-weight: 900;
+      font-weight: 800;
     }
 
     select,
@@ -211,7 +213,7 @@
       height: 46px;
       margin-top: 8px;
       border-radius: 14px;
-      font-weight: 900;
+      font-weight: 800;
     }
 
     select {
@@ -219,13 +221,23 @@
       border: 1px solid var(--media-border);
       background: #fff;
       color: #12302d;
+
+      &:focus {
+        outline: 0;
+        border-color: var(--media-primary);
+        box-shadow: 0 0 0 3px rgba(31, 111, 104, 0.1);
+      }
     }
 
     button {
       max-width: 220px;
       border: 0;
-      background: linear-gradient(135deg, var(--media-primary), var(--media-secondary));
+      background: var(--media-primary);
       color: #fff;
+
+      &:hover:not(:disabled) {
+        background: var(--media-primary-dark);
+      }
 
       &:disabled {
         opacity: 0.55;
@@ -246,14 +258,15 @@
       border-radius: 999px;
       background: #fff;
       color: var(--media-primary-dark);
-      font-weight: 900;
+      font-weight: 800;
     }
   }
 
   &__filter--active {
-    background: var(--media-primary) !important;
-    color: #fff !important;
-    box-shadow: 0 10px 20px rgba(31, 111, 104, 0.18);
+    border-color: rgba(31, 111, 104, 0.28) !important;
+    background: #eaf7f4 !important;
+    color: var(--media-primary) !important;
+    box-shadow: none;
   }
 
   &__grid {
@@ -306,7 +319,7 @@
       background: rgba(20, 83, 79, 0.88);
       color: #fff;
       font-size: 12px;
-      font-weight: 900;
+      font-weight: 800;
     }
   }
 
@@ -338,7 +351,7 @@
     gap: 8px;
     color: #475569;
     font-size: 12px;
-    font-weight: 900;
+    font-weight: 800;
 
     input {
       width: 100%;
@@ -368,15 +381,19 @@
       justify-content: center;
       border-radius: 11px;
       font-size: 12px;
-      font-weight: 900;
+      font-weight: 800;
       text-decoration: none;
     }
 
     button,
     a {
       border: 1px solid rgba(31, 111, 104, 0.18);
-      background: #f8faf9;
+      background: #fff;
       color: var(--media-primary-dark);
+
+      &:hover {
+        background: #f1f8f6;
+      }
     }
 
     button:disabled,
@@ -389,6 +406,10 @@
   &__delete {
     border-color: rgba(218, 8, 8, 0.18) !important;
     color: var(--media-danger) !important;
+
+    &:hover:not(:disabled) {
+      background: rgba(218, 8, 8, 0.08) !important;
+    }
   }
 
   &__empty {
@@ -413,11 +434,15 @@
     button {
       min-width: 170px;
       height: 44px;
-      border: 0;
+      border: 1px solid #dde7e4;
       border-radius: 999px;
-      background: var(--media-primary-dark);
-      color: #fff;
-      font-weight: 900;
+      background: #fff;
+      color: var(--media-primary);
+      font-weight: 800;
+
+      &:hover {
+        background: #f1f8f6;
+      }
     }
   }
 

@@ -1,21 +1,25 @@
 import { NgFor, NgIf } from '@angular/common';
-import { Component, EventEmitter, Input, OnChanges, OnInit, Output, SimpleChanges, inject } from '@angular/core';
+import { Component, ElementRef, EventEmitter, Input, OnChanges, OnInit, Output, SimpleChanges, ViewChild, inject } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { RouterLink } from '@angular/router';
 import { take } from 'rxjs';
 
+import { AdminMediaApiService } from '../../../../core/api/admin-media-api.service';
 import { AdminTourApiService } from '../../../../core/api/admin-tour-api.service';
-import { AdminTourImage, AdminTourImageCreateRequest } from '../../../../core/models/admin-tour.model';
+import { AdminTourImage } from '../../../../core/models/admin-tour.model';
+import { AdminMediaItem } from '../../../../core/models/media.model';
 import { AdminUiFeedbackService } from '../../../../core/services/admin-ui-feedback.service';
 
 @Component({
   selector: 'app-admin-tour-gallery',
-  imports: [NgFor, NgIf, FormsModule, RouterLink],
+  imports: [NgFor, NgIf, FormsModule],
   templateUrl: './tour-gallery.html',
   styleUrl: './tour-gallery.scss',
 })
 export class TourGallery implements OnInit, OnChanges {
+  @ViewChild('galleryUploadInput') private galleryUploadInput?: ElementRef<HTMLInputElement>;
+
   private readonly adminTourApiService = inject(AdminTourApiService);
+  private readonly adminMediaApiService = inject(AdminMediaApiService);
   private readonly feedback = inject(AdminUiFeedbackService);
 
   @Input() tourId: number | null = null;
@@ -23,6 +27,10 @@ export class TourGallery implements OnInit, OnChanges {
   @Output() thumbnailSelected = new EventEmitter<string>();
 
   readonly fallbackImage = '/hero/bg-home.png';
+  readonly allowedImageTypes = ['image/png', 'image/jpeg', 'image/jpg', 'image/webp'];
+  readonly allowedImageExtensions = ['.png', '.jpg', '.jpeg', '.webp'];
+  readonly maxUploadSize = 5 * 1024 * 1024;
+  readonly mediaSkeletonCards = [1, 2, 3, 4];
 
   galleryLoading = false;
   gallerySaving = false;
@@ -30,7 +38,13 @@ export class TourGallery implements OnInit, OnChanges {
   galleryErrorMessage = '';
   gallerySuccessMessage = '';
   tourImages: AdminTourImage[] = [];
-  imageUrlInput = '';
+  mediaLoading = false;
+  mediaErrorMessage = '';
+  mediaItems: AdminMediaItem[] = [];
+  selectedMediaId: number | null = null;
+  selectedUploadFile: File | null = null;
+  uploadErrorMessage = '';
+  uploading = false;
   altTextInput = '';
   sortOrderInput = 0;
   editingImageId: number | null = null;
@@ -56,6 +70,7 @@ export class TourGallery implements OnInit, OnChanges {
     }
 
     this.loadGallery();
+    this.loadMedia();
   }
 
   loadGallery(): void {
@@ -73,48 +88,188 @@ export class TourGallery implements OnInit, OnChanges {
         this.galleryLoading = false;
       },
       error: (error) => {
-        this.galleryErrorMessage = this.errorText(error, 'Không thể tải gallery ảnh tour. Vui lòng thử lại sau.');
+        this.galleryErrorMessage = this.errorText(error, 'Không thể tải thư viện ảnh tour. Vui lòng thử lại sau.');
         this.galleryLoading = false;
       },
     });
   }
 
   addImage(): void {
+    this.galleryErrorMessage = 'Backend hiện chỉ hỗ trợ upload multipart hoặc attach từ Media. Vui lòng chọn ảnh từ Media hoặc tải ảnh mới.';
+  }
+
+  loadMedia(): void {
+    this.mediaLoading = true;
+    this.mediaErrorMessage = '';
+
+    this.adminMediaApiService.getMedia({
+      module: 'tours',
+      page: 0,
+      size: 12,
+      sortBy: 'createdAt',
+      sortDir: 'desc',
+    }).subscribe({
+      next: (response) => {
+        this.mediaItems = this.extractMediaList(response);
+        this.mediaLoading = false;
+      },
+      error: (error) => {
+        this.mediaErrorMessage = this.errorText(error, 'Không thể tải danh sách Media. Vui lòng thử lại sau.');
+        this.mediaLoading = false;
+      },
+    });
+  }
+
+  selectMedia(item: AdminMediaItem): void {
+    if (!item.id || !this.getMediaUrl(item)) {
+      this.galleryErrorMessage = 'Ảnh Media này chưa có đủ ID hoặc URL để gắn vào gallery.';
+      return;
+    }
+
+    this.selectedMediaId = item.id;
+    if (!this.altTextInput.trim()) {
+      this.altTextInput = item.originalFilename || item.publicId || '';
+    }
+  }
+
+  attachSelectedMedia(): void {
     if (!this.tourId) {
-      this.galleryErrorMessage = 'Vui lòng lưu tour trước khi quản lý gallery ảnh.';
+      this.galleryErrorMessage = 'Vui lòng lưu tour trước khi quản lý thư viện ảnh.';
       return;
     }
 
-    const imageUrl = this.imageUrlInput.trim();
-
-    if (!imageUrl) {
-      this.galleryErrorMessage = 'Vui lòng paste URL ảnh Cloudinary trước khi thêm.';
+    if (!this.selectedMediaId) {
+      this.galleryErrorMessage = 'Vui lòng chọn ảnh từ Media trước khi thêm vào gallery.';
       return;
     }
 
-    const payload: AdminTourImageCreateRequest = {
-      url: imageUrl,
-      imageUrl,
-      altText: this.altTextInput.trim() || undefined,
-      sortOrder: Number(this.sortOrderInput) || 0,
-      isThumbnail: false,
-    };
+    this.attachMedia(this.selectedMediaId);
+  }
+
+  onUploadFileSelected(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    const file = input.files?.[0] || null;
+
+    this.uploadErrorMessage = '';
+
+    if (!file) {
+      this.selectedUploadFile = null;
+      return;
+    }
+
+    if (!this.isAllowedImage(file)) {
+      this.uploadErrorMessage = 'Chỉ hỗ trợ ảnh PNG, JPG, JPEG hoặc WEBP.';
+      input.value = '';
+      this.selectedUploadFile = null;
+      return;
+    }
+
+    if (file.size > this.maxUploadSize) {
+      this.uploadErrorMessage = 'Ảnh tải lên tối đa 5MB.';
+      input.value = '';
+      this.selectedUploadFile = null;
+      return;
+    }
+
+    this.selectedUploadFile = file;
+  }
+
+  uploadAndAttachImage(): void {
+    if (!this.tourId) {
+      this.galleryErrorMessage = 'Vui lòng lưu tour trước khi quản lý thư viện ảnh.';
+      return;
+    }
+
+    if (!this.selectedUploadFile) {
+      this.uploadErrorMessage = 'Vui lòng chọn ảnh trước khi tải lên.';
+      return;
+    }
+
+    this.uploading = true;
+    this.uploadErrorMessage = '';
+    this.galleryErrorMessage = '';
+
+    this.adminMediaApiService.uploadMedia(this.selectedUploadFile, 'tours').subscribe({
+      next: (response) => {
+        const media = this.extractUploadItem(response);
+
+        if (!media?.id) {
+          this.uploading = false;
+          this.uploadErrorMessage = 'Tải ảnh thành công nhưng backend chưa trả mediaId để gắn vào gallery.';
+          this.loadMedia();
+          return;
+        }
+
+        this.mediaItems = [media, ...this.mediaItems.filter((item) => item.id !== media.id)];
+        this.attachMedia(media.id, true);
+      },
+      error: (error) => {
+        this.uploadErrorMessage = this.errorText(error, 'Không thể tải ảnh mới. Vui lòng thử lại sau.');
+        this.uploading = false;
+      },
+    });
+  }
+
+  clearSelectedUploadFile(): void {
+    this.selectedUploadFile = null;
+    this.uploadErrorMessage = '';
+
+    if (this.galleryUploadInput) {
+      this.galleryUploadInput.nativeElement.value = '';
+    }
+  }
+
+  isSelectedMedia(item: AdminMediaItem): boolean {
+    return !!item.id && item.id === this.selectedMediaId;
+  }
+
+  getMediaUrl(item: AdminMediaItem | null): string {
+    if (!item) {
+      return '';
+    }
+
+    return item.url
+      || item.secureUrl
+      || item.imageUrl
+      || item.fileUrl
+      || item.mediaUrl
+      || item.data?.url
+      || item.data?.secureUrl
+      || item.data?.imageUrl
+      || '';
+  }
+
+  mediaTitle(item: AdminMediaItem): string {
+    return item.originalFilename || item.publicId || 'Ảnh chưa đặt tên';
+  }
+
+  private attachMedia(mediaId: number, fromUpload = false): void {
+    if (!this.tourId) {
+      return;
+    }
 
     this.gallerySaving = true;
     this.galleryErrorMessage = '';
     this.gallerySuccessMessage = '';
 
-    this.adminTourApiService.addTourImage(this.tourId, payload).subscribe({
+    this.adminTourApiService.attachTourImageFromMedia(this.tourId, {
+      mediaId,
+      altText: this.altTextInput.trim() || undefined,
+      sortOrder: Number(this.sortOrderInput) || 0,
+      isThumbnail: false,
+    }).subscribe({
       next: (response) => {
         const savedImage = this.extractItem(response);
-        this.gallerySuccessMessage = 'Đã thêm ảnh vào gallery tour.';
+        this.gallerySuccessMessage = 'Đã thêm ảnh vào thư viện tour.';
         this.gallerySaving = false;
-        this.imageUrlInput = '';
+        this.uploading = false;
+        this.selectedMediaId = null;
         this.altTextInput = '';
         this.sortOrderInput = 0;
+        this.clearSelectedUploadFile();
 
         if (savedImage?.id || this.getImageUrl(savedImage || {})) {
-          this.upsertImage(savedImage || { ...payload, tourId: this.tourId ?? undefined });
+          this.upsertImage(savedImage || {});
         } else {
           this.loadGallery();
         }
@@ -122,9 +277,13 @@ export class TourGallery implements OnInit, OnChanges {
       error: (error) => {
         this.galleryErrorMessage = this.errorText(
           error,
-          'Không thể thêm ảnh bằng URL. Backend hiện có thể chỉ hỗ trợ multipart file cho endpoint này.'
+          'Không thể thêm ảnh vào gallery. Vui lòng kiểm tra định dạng request hoặc backend attach URL.'
         );
         this.gallerySaving = false;
+        this.uploading = false;
+        if (fromUpload) {
+          this.loadMedia();
+        }
       },
     });
   }
@@ -171,7 +330,7 @@ export class TourGallery implements OnInit, OnChanges {
         }
       },
       error: (error) => {
-        this.galleryErrorMessage = this.errorText(error, 'Không thể cập nhật alt text ảnh. Vui lòng thử lại sau.');
+        this.galleryErrorMessage = this.errorText(error, 'Không thể cập nhật mô tả ảnh. Vui lòng thử lại sau.');
         this.gallerySaving = false;
       },
     });
@@ -181,7 +340,7 @@ export class TourGallery implements OnInit, OnChanges {
     const imageUrl = this.getImageUrl(image);
 
     if (!this.tourId || !image.id || !imageUrl) {
-      this.galleryErrorMessage = 'Ảnh này chưa có URL hợp lệ để đặt làm thumbnail.';
+      this.galleryErrorMessage = 'Ảnh này chưa có URL hợp lệ để đặt làm ảnh đại diện.';
       return;
     }
 
@@ -193,12 +352,12 @@ export class TourGallery implements OnInit, OnChanges {
       next: () => {
         this.tourImages = this.tourImages.map((item) => ({ ...item, isThumbnail: item.id === image.id }));
         this.thumbnailSelected.emit(imageUrl);
-        this.gallerySuccessMessage = 'Đã đặt ảnh làm thumbnail tour.';
+        this.gallerySuccessMessage = 'Đã đặt ảnh làm ảnh đại diện tour.';
         this.feedback.success(this.gallerySuccessMessage);
         this.settingThumbnailId = null;
       },
       error: (error) => {
-        this.galleryErrorMessage = this.errorText(error, 'Không thể đặt thumbnail. Vui lòng thử lại sau.');
+        this.galleryErrorMessage = this.errorText(error, 'Không thể đặt ảnh đại diện. Vui lòng thử lại sau.');
         this.feedback.error(this.galleryErrorMessage);
         this.settingThumbnailId = null;
       },
@@ -212,7 +371,7 @@ export class TourGallery implements OnInit, OnChanges {
 
     this.feedback
       .confirmDanger(
-        'Thao t\u00e1c n\u00e0y kh\u00f4ng th\u1ec3 ho\u00e0n t\u00e1c. B\u1ea1n c\u00f3 ch\u1eafc mu\u1ed1n x\u00f3a \u1ea3nh n\u00e0y kh\u1ecfi gallery tour?',
+        'Thao t\u00e1c n\u00e0y kh\u00f4ng th\u1ec3 ho\u00e0n t\u00e1c. B\u1ea1n c\u00f3 ch\u1eafc mu\u1ed1n x\u00f3a \u1ea3nh n\u00e0y kh\u1ecfi th\u01b0 vi\u1ec7n tour?',
       )
       .pipe(take(1))
       .subscribe((confirmed) => {
@@ -227,7 +386,7 @@ export class TourGallery implements OnInit, OnChanges {
         this.adminTourApiService.deleteTourImage(this.tourId, image.id).subscribe({
           next: () => {
             this.tourImages = this.tourImages.filter((item) => item.id !== image.id);
-            this.gallerySuccessMessage = '\u0110\u00e3 x\u00f3a \u1ea3nh kh\u1ecfi gallery.';
+            this.gallerySuccessMessage = '\u0110\u00e3 x\u00f3a \u1ea3nh kh\u1ecfi th\u01b0 vi\u1ec7n tour.';
             this.feedback.success(this.gallerySuccessMessage);
             this.galleryDeletingId = null;
           },
@@ -279,7 +438,7 @@ export class TourGallery implements OnInit, OnChanges {
           this.tourImages = reorderedImages.sort((a, b) => this.sortImage(a, b));
         }
 
-        this.gallerySuccessMessage = 'Đã cập nhật thứ tự gallery.';
+        this.gallerySuccessMessage = 'Đã cập nhật thứ tự thư viện ảnh.';
         this.reorderSaving = false;
       },
       error: (error) => {
@@ -294,7 +453,7 @@ export class TourGallery implements OnInit, OnChanges {
     const imageUrl = this.getImageUrl(image);
 
     if (!imageUrl) {
-      this.galleryErrorMessage = 'Ảnh này chưa có URL để copy.';
+      this.galleryErrorMessage = 'Ảnh này chưa có URL để sao chép.';
       return;
     }
 
@@ -304,8 +463,8 @@ export class TourGallery implements OnInit, OnChanges {
     }
 
     navigator.clipboard.writeText(imageUrl).then(() => {
-      this.gallerySuccessMessage = 'Đã copy URL ảnh.';
-    this.feedback.success(this.gallerySuccessMessage);
+      this.gallerySuccessMessage = 'Đã sao chép URL ảnh.';
+      this.feedback.success(this.gallerySuccessMessage);
     }).catch(() => {
       this.gallerySuccessMessage = imageUrl;
     });
@@ -319,10 +478,6 @@ export class TourGallery implements OnInit, OnChanges {
     }
 
     window.open(imageUrl, '_blank', 'noopener,noreferrer');
-  }
-
-  addPreviewUrl(): string {
-    return this.imageUrlInput.trim();
   }
 
   getImageUrl(image: AdminTourImage | null): string {
@@ -408,7 +563,87 @@ export class TourGallery implements OnInit, OnChanges {
       return null;
     }
 
-    return raw as AdminTourImage;
+    const image = raw as AdminTourImage;
+    return {
+      ...image,
+      isThumbnail: image.isThumbnail ?? Boolean(image['thumbnail']),
+    };
+  }
+
+  private extractMediaList(response: unknown): AdminMediaItem[] {
+    const list = this.extractUnknownList(response);
+    return list.map((item) => this.normalizeMediaItem(item)).filter((item): item is AdminMediaItem => !!item);
+  }
+
+  private extractUploadItem(response: unknown): AdminMediaItem | null {
+    if (this.isRecord(response)) {
+      const data = response['data'];
+
+      if (this.isRecord(data)) {
+        if (this.isRecord(data['media'])) {
+          return this.normalizeMediaItem(data['media']);
+        }
+
+        return this.normalizeMediaItem(data);
+      }
+
+      if (this.isRecord(response['media'])) {
+        return this.normalizeMediaItem(response['media']);
+      }
+    }
+
+    return this.normalizeMediaItem(response);
+  }
+
+  private normalizeMediaItem(raw: unknown): AdminMediaItem | null {
+    if (!this.isRecord(raw)) {
+      return null;
+    }
+
+    const media = raw as AdminMediaItem;
+    const url = this.getMediaUrl(media);
+
+    return {
+      ...media,
+      url: media.url || url || undefined,
+      sizeBytes: media.sizeBytes ?? media.bytes,
+      type: media.type || media.mediaType || media.resourceType,
+      module: media.module || media.folder,
+    };
+  }
+
+  private extractUnknownList(response: unknown): unknown[] {
+    if (Array.isArray(response)) {
+      return response;
+    }
+
+    if (!this.isRecord(response)) {
+      return [];
+    }
+
+    const data = response['data'];
+
+    if (Array.isArray(data)) {
+      return data;
+    }
+
+    if (this.isRecord(data) && Array.isArray(data['content'])) {
+      return data['content'];
+    }
+
+    if (Array.isArray(response['content'])) {
+      return response['content'];
+    }
+
+    return [];
+  }
+
+  private isAllowedImage(file: File): boolean {
+    const lowerName = file.name.toLowerCase();
+    const validType = this.allowedImageTypes.includes(file.type);
+    const validExtension = this.allowedImageExtensions.some((extension) => lowerName.endsWith(extension));
+
+    return validType || (!file.type && validExtension);
   }
 
   private sortImage(a: AdminTourImage, b: AdminTourImage): number {
@@ -427,7 +662,7 @@ export class TourGallery implements OnInit, OnChanges {
       const status = Number(error['status']);
 
       if (status === 401 || status === 403) {
-        return 'Phiên đăng nhập admin không hợp lệ hoặc không đủ quyền quản lý gallery tour.';
+        return 'Phiên đăng nhập admin không hợp lệ hoặc không đủ quyền quản lý thư viện ảnh tour.';
       }
 
       const errorBody = error['error'];

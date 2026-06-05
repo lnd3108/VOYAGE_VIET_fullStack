@@ -1,18 +1,29 @@
 <section class="admin-tour-form">
   <header class="admin-tour-form__header">
     <div>
-      <nav class="admin-tour-form__breadcrumb">Admin &gt; Tour &gt; {{ breadcrumbTail }}</nav>
+      <nav class="admin-tour-form__breadcrumb">Quản trị &gt; Tour &gt; {{ breadcrumbTail }}</nav>
       <h1>{{ pageTitle }}</h1>
-      <p>Nhập thông tin cơ bản, giá, thời lượng và ảnh đại diện tour</p>
+      <p>Nhập thông tin cơ bản, phân loại, giá, thời lượng và ảnh đại diện tour.</p>
     </div>
 
     <div class="admin-tour-form__actions">
       <button type="button" class="admin-tour-form__ghost" (click)="backToList()">Quay lại</button>
-      <button type="button" [disabled]="saving || loading" (click)="submitForm()">
+      <button type="button" class="admin-tour-form__primary-button" [disabled]="saving || loading" (click)="submitForm()">
         {{ saving ? 'Đang lưu...' : isEditMode ? 'Lưu thay đổi' : 'Lưu nháp' }}
       </button>
     </div>
   </header>
+
+  <div class="admin-tour-form__draft-banner" *ngIf="showDraftBanner && !isEditMode">
+    <div>
+      <strong>Bạn có bản nháp chưa lưu.</strong>
+      <span>Khôi phục để tiếp tục nhập tour mới, hoặc bỏ qua để bắt đầu lại.</span>
+    </div>
+    <div class="admin-tour-form__draft-actions">
+      <button type="button" class="admin-tour-form__soft-button" (click)="restoreDraft()">Khôi phục</button>
+      <button type="button" class="admin-tour-form__danger-button" (click)="discardDraft()">Bỏ qua</button>
+    </div>
+  </div>
 
   <div class="admin-tour-form__message" *ngIf="successMessage">{{ successMessage }}</div>
 
@@ -33,33 +44,40 @@
           <span>01</span>
           <div>
             <h2>Thông tin cơ bản</h2>
-            <p>Tên, slug và mô tả ngắn dùng cho public listing.</p>
+            <p>Tên, slug và mô tả ngắn dùng để hiển thị trên trang public.</p>
           </div>
         </div>
 
         <div class="admin-tour-form__grid">
-          <label class="admin-tour-form__field">
-            Tên tour
-            <input type="text" formControlName="title" placeholder="Ví dụ: Khám phá Đà Nẵng 3N2Đ" (input)="handleTitleInput()" />
-            <small *ngIf="hasFieldError('title')">Tên tour tối thiểu 3 ký tự.</small>
-          </label>
+          <div class="admin-tour-form__field">
+            <label class="admin-tour-form__label">Tên tour</label>
+            <input class="admin-tour-form__control" type="text" formControlName="title" placeholder="Ví dụ: Khám phá Đà Nẵng 3N2Đ" (input)="handleTitleInput()" />
+            <div class="admin-tour-form__message-slot">
+              <p class="admin-tour-form__field-error" *ngIf="hasFieldError('title')">Tên tour tối thiểu 3 ký tự.</p>
+            </div>
+          </div>
 
-          <label class="admin-tour-form__field">
-            Slug
-            <input type="text" formControlName="slug" placeholder="kham-pha-da-nang-3n2d" (input)="markSlugEdited()" />
-            <small *ngIf="hasFieldError('slug')">Slug là bắt buộc.</small>
-          </label>
+          <div class="admin-tour-form__field">
+            <label class="admin-tour-form__label">Slug</label>
+            <input class="admin-tour-form__control" type="text" formControlName="slug" placeholder="kham-pha-da-nang-3n2d" (input)="markSlugEdited()" />
+            <div class="admin-tour-form__message-slot">
+              <p class="admin-tour-form__field-error" *ngIf="hasFieldError('slug')">Slug là bắt buộc.</p>
+            </div>
+          </div>
 
-          <label class="admin-tour-form__field admin-tour-form__field--wide">
-            Mô tả ngắn
-            <textarea rows="3" formControlName="shortDescription" placeholder="Tóm tắt điểm nổi bật của tour"></textarea>
-            <small *ngIf="hasFieldError('shortDescription')">Mô tả ngắn là bắt buộc.</small>
-          </label>
+          <div class="admin-tour-form__field admin-tour-form__field--wide">
+            <label class="admin-tour-form__label">Mô tả ngắn</label>
+            <textarea class="admin-tour-form__control" rows="3" formControlName="shortDescription" placeholder="Tóm tắt điểm nổi bật của tour"></textarea>
+            <div class="admin-tour-form__message-slot">
+              <p class="admin-tour-form__field-error" *ngIf="hasFieldError('shortDescription')">Mô tả ngắn là bắt buộc.</p>
+            </div>
+          </div>
 
-          <label class="admin-tour-form__field admin-tour-form__field--wide">
-            Mô tả chi tiết
-            <textarea rows="5" formControlName="description" placeholder="Nội dung giới thiệu tour chi tiết hơn"></textarea>
-          </label>
+          <div class="admin-tour-form__field admin-tour-form__field--wide">
+            <label class="admin-tour-form__label">Mô tả chi tiết</label>
+            <textarea class="admin-tour-form__control" rows="5" formControlName="description" placeholder="Nội dung giới thiệu tour chi tiết hơn"></textarea>
+            <div class="admin-tour-form__message-slot" aria-hidden="true"></div>
+          </div>
         </div>
       </section>
 
@@ -73,23 +91,71 @@
         </div>
 
         <div class="admin-tour-form__grid">
-          <label class="admin-tour-form__field">
-            Danh mục
-            <select formControlName="categoryId">
+          <div class="admin-tour-form__field">
+            <label class="admin-tour-form__label">Danh mục</label>
+            <select class="admin-tour-form__control" formControlName="categoryId">
               <option [ngValue]="0">Chọn danh mục</option>
-              <option *ngFor="let category of categories" [ngValue]="category.id">{{ category.name || category.slug || ('#' + category.id) }}</option>
+              <option *ngFor="let category of categories" [ngValue]="category.id">{{ categoryLabel(category) }}</option>
             </select>
-            <small *ngIf="hasFieldError('categoryId')">Vui lòng chọn danh mục.</small>
-          </label>
+            <div class="admin-tour-form__message-slot">
+              <p class="admin-tour-form__field-error" *ngIf="hasFieldError('categoryId')">Vui lòng chọn danh mục.</p>
+            </div>
+          </div>
 
-          <label class="admin-tour-form__field">
-            Điểm đến
-            <select formControlName="destinationId">
-              <option [ngValue]="0">Chọn điểm đến</option>
-              <option *ngFor="let destination of destinations" [ngValue]="destination.id">{{ destination.name || destination.slug || ('#' + destination.id) }}</option>
-            </select>
-            <small *ngIf="hasFieldError('destinationId')">Vui lòng chọn điểm đến.</small>
-          </label>
+          <div class="admin-tour-form__field">
+            <label class="admin-tour-form__label">Điểm đến</label>
+            <div class="admin-tour-form__multi-select" style="position: relative;">
+              <button
+                type="button"
+                class="admin-tour-form__control admin-tour-form__soft-button admin-tour-form__ms-trigger"
+                style="width: 100%; justify-content: space-between;"
+                [class.admin-tour-form__ms-trigger--placeholder]="!selectedDestinationOptions.length"
+                (click)="toggleDestinationDropdown()"
+              >
+                <span>{{ selectedDestinationLabel }}</span>
+                <b aria-hidden="true">⌄</b>
+              </button>
+
+              <div class="admin-tour-form__ms-panel" style="position: absolute; z-index: 30; inset: 100% 0 auto; max-height: 240px; overflow: auto; background: #fff;" *ngIf="isDestinationDropdownOpen">
+                <button
+                  type="button"
+                  class="admin-tour-form__soft-button admin-tour-form__ms-clear"
+                  style="width: 100%; justify-content: flex-start;"
+                  [disabled]="!selectedDestinationOptions.length"
+                  (click)="clearDestinationSelection()"
+                >
+                  Xóa tất cả
+                </button>
+
+                <button
+                  type="button"
+                  class="admin-tour-form__soft-button admin-tour-form__ms-option"
+                  style="width: 100%; justify-content: flex-start; gap: 8px;"
+                  *ngFor="let destination of destinationSelectOptions"
+                  [class.admin-tour-form__soft-button--active]="isDestinationOptionSelected(destination)"
+                  (click)="toggleDestinationOption(destination)"
+                >
+                  <span class="admin-tour-form__ms-check" style="width: 18px; flex: 0 0 auto;">{{ isDestinationOptionSelected(destination) ? '✓' : '' }}</span>
+                  <span>{{ destination.label }}</span>
+                </button>
+              </div>
+            </div>
+            <div class="admin-tour-form__message-slot">
+              <p class="admin-tour-form__field-error" *ngIf="hasFieldError('destinationId') && !selectedDestinationMissingAdminRecord">Vui lòng chọn điểm đến.</p>
+              <p class="admin-tour-form__field-error" *ngIf="selectedDestinationMissingAdminRecord">Một số điểm đến chưa được tạo trong Admin &gt; Điểm đến.</p>
+              <p class="admin-tour-form__field-help" *ngIf="destinationProvinceWarning">{{ destinationProvinceWarning }}</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="admin-tour-form__media-empty" *ngIf="!categories.length">
+          <span>Chưa có danh mục. Vui lòng tạo danh mục trong Admin &gt; Danh mục.</span>
+          <a routerLink="/admin/categories">Mở danh mục</a>
+        </div>
+
+        <div class="admin-tour-form__media-empty" *ngIf="!destinations.length">
+          <span>Chưa có điểm đến. Vui lòng tạo điểm đến trong Admin &gt; Điểm đến.</span>
+          <a routerLink="/admin/destinations">Mở điểm đến</a>
         </div>
       </section>
 
@@ -103,29 +169,37 @@
         </div>
 
         <div class="admin-tour-form__grid admin-tour-form__grid--four">
-          <label class="admin-tour-form__field">
-            Giá gốc
-            <input type="number" min="0" formControlName="originalPrice" />
-            <small *ngIf="hasFieldError('originalPrice')">Giá gốc không hợp lệ.</small>
-          </label>
+          <div class="admin-tour-form__field">
+            <label class="admin-tour-form__label">Giá gốc</label>
+            <input class="admin-tour-form__control" type="number" min="0" formControlName="originalPrice" />
+            <div class="admin-tour-form__message-slot">
+              <p class="admin-tour-form__field-error" *ngIf="hasFieldError('originalPrice')">Giá gốc không hợp lệ.</p>
+            </div>
+          </div>
 
-          <label class="admin-tour-form__field">
-            Giá sale
-            <input type="number" min="0" formControlName="salePrice" />
-            <small *ngIf="hasFieldError('salePrice')">Giá sale không hợp lệ.</small>
-          </label>
+          <div class="admin-tour-form__field">
+            <label class="admin-tour-form__label">Giá sale</label>
+            <input class="admin-tour-form__control" type="number" min="0" formControlName="salePrice" />
+            <div class="admin-tour-form__message-slot">
+              <p class="admin-tour-form__field-error" *ngIf="hasFieldError('salePrice')">Giá sale không hợp lệ.</p>
+            </div>
+          </div>
 
-          <label class="admin-tour-form__field">
-            Số ngày
-            <input type="number" min="1" formControlName="durationDays" />
-            <small *ngIf="hasFieldError('durationDays')">Số ngày tối thiểu 1.</small>
-          </label>
+          <div class="admin-tour-form__field">
+            <label class="admin-tour-form__label">Số ngày</label>
+            <input class="admin-tour-form__control" type="number" min="1" formControlName="durationDays" />
+            <div class="admin-tour-form__message-slot">
+              <p class="admin-tour-form__field-error" *ngIf="hasFieldError('durationDays')">Số ngày tối thiểu 1.</p>
+            </div>
+          </div>
 
-          <label class="admin-tour-form__field">
-            Số đêm
-            <input type="number" min="0" formControlName="durationNights" />
-            <small *ngIf="hasFieldError('durationNights')">Số đêm không hợp lệ.</small>
-          </label>
+          <div class="admin-tour-form__field">
+            <label class="admin-tour-form__label">Số đêm</label>
+            <input class="admin-tour-form__control" type="number" min="0" formControlName="durationNights" />
+            <div class="admin-tour-form__message-slot">
+              <p class="admin-tour-form__field-error" *ngIf="hasFieldError('durationNights')">Số đêm không hợp lệ.</p>
+            </div>
+          </div>
         </div>
 
         <div class="admin-tour-form__error admin-tour-form__error--inline" *ngIf="hasFormError('salePriceTooHigh')">
@@ -141,40 +215,51 @@
           <span>04</span>
           <div>
             <h2>Số chỗ và trạng thái</h2>
-            <p>Mặc định tạo tour ở trạng thái nháp để bổ sung schedule/gallery/itinerary sau.</p>
+            <p>Mặc định tạo tour ở trạng thái nháp để bổ sung lịch khởi hành, thư viện ảnh và lịch trình sau.</p>
           </div>
         </div>
 
         <div class="admin-tour-form__grid">
-          <label class="admin-tour-form__field">
-            Điểm khởi hành
-            <input type="text" formControlName="departureLocation" placeholder="Ví dụ: TP. Hồ Chí Minh" />
-            <small *ngIf="hasFieldError('departureLocation')">Điểm khởi hành là bắt buộc.</small>
-          </label>
+          <div class="admin-tour-form__field">
+            <label class="admin-tour-form__label">Điểm khởi hành</label>
+            <select class="admin-tour-form__control" formControlName="departureLocation">
+              <option value="">Chọn điểm khởi hành</option>
+              <option *ngFor="let option of departureSelectOptions" [ngValue]="option.value">{{ option.label }}</option>
+            </select>
+            <div class="admin-tour-form__message-slot">
+              <p class="admin-tour-form__field-error" *ngIf="hasFieldError('departureLocation')">Vui lòng chọn điểm khởi hành.</p>
+              <p class="admin-tour-form__field-help" *ngIf="departureProvinceWarning">{{ departureProvinceWarning }}</p>
+            </div>
+          </div>
 
-          <label class="admin-tour-form__field">
-            Trạng thái
-            <select formControlName="status">
+          <div class="admin-tour-form__field">
+            <label class="admin-tour-form__label">Trạng thái</label>
+            <select class="admin-tour-form__control" formControlName="status">
               <option *ngFor="let option of statusOptions" [ngValue]="option.value">{{ option.label }}</option>
             </select>
-          </label>
+            <div class="admin-tour-form__message-slot" aria-hidden="true"></div>
+          </div>
 
-          <label class="admin-tour-form__field">
-            Số khách tối đa
-            <input type="number" min="1" formControlName="maxParticipants" />
-            <small *ngIf="hasFieldError('maxParticipants')">Số khách tối đa tối thiểu 1.</small>
-          </label>
+          <div class="admin-tour-form__field">
+            <label class="admin-tour-form__label">Số khách tối đa</label>
+            <input class="admin-tour-form__control" type="number" min="1" formControlName="maxParticipants" />
+            <div class="admin-tour-form__message-slot">
+              <p class="admin-tour-form__field-error" *ngIf="hasFieldError('maxParticipants')">Số khách tối đa tối thiểu 1.</p>
+            </div>
+          </div>
 
-          <label class="admin-tour-form__field">
-            Số chỗ còn lại
-            <input type="number" min="0" formControlName="availableSeats" />
-            <small *ngIf="hasFieldError('availableSeats')">Số chỗ còn lại không hợp lệ.</small>
-          </label>
+          <div class="admin-tour-form__field">
+            <label class="admin-tour-form__label">Số chỗ còn lại</label>
+            <input class="admin-tour-form__control" type="number" min="0" formControlName="availableSeats" />
+            <div class="admin-tour-form__message-slot">
+              <p class="admin-tour-form__field-error" *ngIf="hasFieldError('availableSeats')">Số chỗ còn lại không hợp lệ.</p>
+            </div>
+          </div>
 
-          <label class="admin-tour-form__field admin-tour-form__field--switch">
+          <div class="admin-tour-form__field admin-tour-form__field--switch">
             <input type="checkbox" formControlName="featured" />
             <span>Đánh dấu tour nổi bật</span>
-          </label>
+          </div>
         </div>
 
         <div class="admin-tour-form__error admin-tour-form__error--inline" *ngIf="hasFormError('availableSeatsTooHigh')">
@@ -182,29 +267,143 @@
         </div>
       </section>
 
-      <section class="admin-tour-form__section">
+      <section class="admin-tour-form__section admin-tour-form__media-card">
         <div class="admin-tour-form__section-head">
           <span>05</span>
           <div>
-            <h2>Ảnh đại diện</h2>
-            <p>Upload ảnh ở Media, copy URL Cloudinary rồi paste vào thumbnail URL.</p>
+            <h2>Ảnh đại diện tour</h2>
+            <p>Chọn ảnh từ Media, tải ảnh mới hoặc nhập URL thủ công.</p>
           </div>
         </div>
 
-        <label class="admin-tour-form__field">
-          Thumbnail URL Cloudinary
-          <input type="url" formControlName="thumbnailUrl" placeholder="Dán URL ảnh từ /admin/media" (input)="updateThumbnail($event)" />
-          <small>Form này không upload ảnh trực tiếp, không lưu base64/object URL.</small>
-        </label>
+        <div class="admin-tour-form__media-tabs" role="tablist" aria-label="Chọn cách nhập ảnh đại diện tour">
+          <button
+            type="button"
+            *ngFor="let tab of mediaTabs"
+            [class.admin-tour-form__media-tab--active]="activeMediaTab === tab.value"
+            (click)="setActiveMediaTab(tab.value)"
+          >
+            {{ tab.label }}
+          </button>
+        </div>
+
+        <div class="admin-tour-form__media-panel" *ngIf="activeMediaTab === 'library'">
+          <div class="admin-tour-form__media-toolbar">
+            <div class="admin-tour-form__media-filters">
+              <button
+                type="button"
+                class="admin-tour-form__soft-button"
+                *ngFor="let option of mediaModuleOptions"
+                [class.admin-tour-form__soft-button--active]="selectedMediaModule === option.value"
+                (click)="applyMediaModuleFilter(option.value)"
+              >
+                {{ option.label }}
+              </button>
+            </div>
+            <input type="search" placeholder="Tìm theo tên file" [value]="mediaSearchTerm" (input)="updateMediaSearch($event)" />
+          </div>
+
+          <div class="admin-tour-form__media-error" *ngIf="mediaErrorMessage">
+            <span>{{ mediaErrorMessage }}</span>
+            <button type="button" class="admin-tour-form__soft-button" (click)="loadMedia(0, false)">Thử lại</button>
+          </div>
+
+          <div class="admin-tour-form__media-grid" *ngIf="mediaLoading">
+            <div class="admin-tour-form__media-skeleton" *ngFor="let item of mediaSkeletonCards"></div>
+          </div>
+
+          <div class="admin-tour-form__media-empty" *ngIf="!mediaLoading && !mediaErrorMessage && !filteredMediaItems.length">
+            <strong>Chưa có ảnh trong Media</strong>
+            <span>Tải ảnh mới để dùng ngay trong form tour.</span>
+            <button type="button" class="admin-tour-form__soft-button" (click)="setActiveMediaTab('upload')">Tải ảnh mới</button>
+          </div>
+
+          <div class="admin-tour-form__media-grid" *ngIf="!mediaLoading && filteredMediaItems.length">
+            <article
+              class="admin-tour-form__media-item"
+              *ngFor="let item of filteredMediaItems"
+              [class.admin-tour-form__media-item--selected]="isSelectedMedia(item)"
+            >
+              <div class="admin-tour-form__media-image">
+                <img *ngIf="getMediaUrl(item); else mediaNoUrl" [src]="getMediaUrl(item)" [alt]="mediaTitle(item)" (error)="handleImageError($event)" />
+                <ng-template #mediaNoUrl>
+                  <span>Chưa có URL</span>
+                </ng-template>
+                <b *ngIf="isSelectedMedia(item)">Đang chọn</b>
+              </div>
+              <div class="admin-tour-form__media-info">
+                <strong>{{ mediaTitle(item) }}</strong>
+                <span>{{ moduleLabel(item.module || item.folder) }}</span>
+              </div>
+              <div class="admin-tour-form__media-actions">
+                <button type="button" class="admin-tour-form__soft-button" [disabled]="!getMediaUrl(item)" (click)="selectMedia(item)">
+              {{ getMediaUrl(item) ? 'Chọn từ Media' : 'Chưa có URL' }}
+                </button>
+              </div>
+            </article>
+          </div>
+
+          <div class="admin-tour-form__media-load-more" *ngIf="!mediaLoading && hasMoreMedia">
+            <button type="button" class="admin-tour-form__soft-button" [disabled]="mediaLoadingMore" (click)="loadMoreMedia()">
+              {{ mediaLoadingMore ? 'Đang tải...' : 'Xem thêm' }}
+            </button>
+          </div>
+        </div>
+
+        <div class="admin-tour-form__media-panel" *ngIf="activeMediaTab === 'upload'">
+          <div class="admin-tour-form__upload-box">
+            <input
+              #tourUploadInput
+              type="file"
+              accept="image/png,image/jpeg,image/jpg,image/webp"
+              (change)="onUploadFileSelected($event)"
+            />
+            <div>
+              <strong>Tải ảnh vào module tours</strong>
+              <span>Chỉ dùng PNG, JPG, JPEG hoặc WEBP. Tối đa 5MB. Backend sẽ tải ảnh lên Cloudinary.</span>
+            </div>
+          </div>
+
+          <div class="admin-tour-form__upload-preview" *ngIf="uploadPreviewUrl">
+            <img [src]="uploadPreviewUrl" alt="Preview ảnh trước khi upload" />
+            <div>
+              <strong>{{ selectedUploadFile?.name }}</strong>
+              <span>Preview này chỉ dùng tạm trước khi upload, không lưu vào backend.</span>
+            </div>
+          </div>
+
+          <small class="admin-tour-form__validation" *ngIf="uploadErrorMessage">{{ uploadErrorMessage }}</small>
+
+          <div class="admin-tour-form__media-actions">
+            <button type="button" class="admin-tour-form__primary-button" [disabled]="uploading || !selectedUploadFile" (click)="uploadTourImage()">
+              {{ uploading ? 'Đang tải...' : 'Tải ảnh mới' }}
+            </button>
+            <button type="button" class="admin-tour-form__soft-button" *ngIf="selectedUploadFile" [disabled]="uploading" (click)="clearSelectedUploadFile()">Xóa file</button>
+          </div>
+        </div>
+
+        <div class="admin-tour-form__media-panel" *ngIf="activeMediaTab === 'manual'">
+          <div class="admin-tour-form__field">
+            <label class="admin-tour-form__label">URL ảnh</label>
+            <input class="admin-tour-form__control" type="url" formControlName="thumbnailUrl" placeholder="Dán URL ảnh Cloudinary" (input)="updateThumbnail($event)" />
+            <div class="admin-tour-form__message-slot">
+              <p class="admin-tour-form__field-help">Vẫn có thể nhập URL thủ công nếu đã có sẵn URL ảnh.</p>
+            </div>
+          </div>
+          <div class="admin-tour-form__media-actions">
+            <a class="admin-tour-form__soft-button" routerLink="/admin/media">Mở Media</a>
+            <button type="button" class="admin-tour-form__danger-button" [disabled]="!thumbnailPreviewUrl()" (click)="clearThumbnail()">Xóa ảnh</button>
+          </div>
+        </div>
       </section>
     </main>
 
     <aside class="admin-tour-form__side">
       <section class="admin-tour-form__preview">
         <div class="admin-tour-form__thumbnail">
-          <img *ngIf="thumbnailPreviewUrl(); else noThumbnail" [src]="thumbnailPreviewUrl()" alt="Preview thumbnail tour" (error)="handleImageError($event)" />
+          <img *ngIf="thumbnailPreviewUrl(); else noThumbnail" [src]="thumbnailPreviewUrl()" alt="Xem trước ảnh đại diện tour" (error)="handleImageError($event)" />
           <ng-template #noThumbnail>
-            <div>Chưa có thumbnail. Mở Media để lấy URL Cloudinary.</div>
+            <div>Chưa có ảnh đại diện. Chọn từ Media, tải ảnh mới hoặc nhập URL thủ công.</div>
           </ng-template>
         </div>
 
@@ -216,6 +415,7 @@
           <div class="admin-tour-form__preview-meta">
             <span>{{ previewCategoryName() }}</span>
             <span>{{ previewDestinationName() }}</span>
+            <span>{{ previewDepartureName() }}</span>
             <span>{{ previewDurationText() }}</span>
           </div>
 
@@ -227,14 +427,14 @@
       </section>
 
       <section class="admin-tour-form__section admin-tour-form__media-note">
-        <h2>Workflow ảnh Cloudinary</h2>
-        <p>Upload ảnh tại Admin Media, copy URL thật và paste vào `thumbnailUrl`. Gallery tour sẽ làm ở bước sau.</p>
+        <h2>Quản lý ảnh tour</h2>
+        <p>Form hiện có thể chọn ảnh từ Media hoặc tải ảnh mới trực tiếp. URL thật vẫn được lưu vào trường thumbnailUrl như payload cũ.</p>
         <a routerLink="/admin/media">Mở Media</a>
       </section>
 
       <section class="admin-tour-form__section admin-tour-form__next-step">
         <h2>Bước tiếp theo</h2>
-        <p>Sau khi lưu thông tin cơ bản, các bước sau sẽ bổ sung lịch khởi hành, lịch trình, gallery và publish checklist.</p>
+        <p>Sau khi tạo tour thành công, hệ thống chuyển sang trang chỉnh sửa để tiếp tục bổ sung lịch khởi hành, lịch trình và thư viện ảnh.</p>
       </section>
     </aside>
   </form>

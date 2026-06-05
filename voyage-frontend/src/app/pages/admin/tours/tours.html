@@ -87,62 +87,69 @@
     </div>
   </section>
 
+  <section
+    class="admin-tours__publish-warning"
+    *ngIf="checklistTourId && (checklistMessage || checklistItems.length || checklistLoadingId === checklistTourId)"
+  >
+    <div>
+      <h2>{{ checklistLoadingId === checklistTourId ? 'Đang kiểm tra điều kiện xuất bản' : 'Chưa đủ điều kiện xuất bản' }}</h2>
+      <p>{{ checklistLoadingId === checklistTourId ? 'Đang kiểm tra checklist publish...' : 'Tour còn thiếu dữ liệu trước khi publish.' }}</p>
+      <ul *ngIf="checklistItems.length">
+        <li *ngFor="let item of checklistItems">{{ item }}</li>
+      </ul>
+    </div>
+    <button type="button" (click)="closePublishWarning()">Đóng</button>
+  </section>
+
   <section class="admin-tours__table" *ngIf="loading">
     <div class="admin-tours__row admin-tours__row--skeleton" *ngFor="let item of [1, 2, 3, 4, 5]"></div>
   </section>
 
   <section class="admin-tours__table" *ngIf="!loading && filteredTours.length">
     <div class="admin-tours__table-head">
-      <span>Thumbnail</span>
-      <span>Tên tour</span>
-      <span>Category/Destination</span>
+      <span>Tour</span>
       <span>Giá</span>
       <span>Thời lượng</span>
       <span>Số chỗ</span>
       <span>Featured</span>
-      <span>Status</span>
+      <span>Trạng thái</span>
       <span>Cập nhật</span>
       <span>Hành động</span>
     </div>
 
     <article class="admin-tours__row" *ngFor="let tour of filteredTours">
-      <div class="admin-tours__thumbnail" data-label="Thumbnail">
+      <div class="admin-tours__tour-cell" data-label="Tour">
         <img [src]="getThumbnail(tour)" [alt]="tour.title || 'Tour'" (error)="handleImageError($event)" />
+        <div class="admin-tours__tour-info">
+          <strong class="admin-tours__tour-title">{{ tour.title || 'Chưa đặt tên' }}</strong>
+          <small class="admin-tours__tour-slug">{{ tour.slug || 'dang-cap-nhat' }}</small>
+          <small class="admin-tours__tour-meta">{{ tour.departureLocation || 'Chưa có điểm khởi hành' }}</small>
+        </div>
       </div>
 
-      <div data-label="Tên tour">
-        <strong>{{ tour.title || 'Chưa đặt tên' }}</strong>
-        <small>{{ tour.slug || 'dang-cap-nhat' }}</small>
-        <small>{{ tour.departureLocation || 'Chưa có điểm khởi hành' }}</small>
-      </div>
-
-      <div data-label="Category/Destination">
-        <strong>{{ tour.categoryName || 'Chưa có danh mục' }}</strong>
-        <small>{{ tour.destinationName || 'Chưa có điểm đến' }}</small>
-      </div>
-
-      <div class="admin-tours__price" data-label="Giá">
+      <div class="admin-tours__cell admin-tours__price" data-label="Giá">
         <strong>{{ priceText(tour) }}</strong>
         <small *ngIf="originalPriceText(tour)">{{ originalPriceText(tour) }}</small>
       </div>
 
-      <div data-label="Thời lượng">{{ durationText(tour) }}</div>
-      <div data-label="Số chỗ">{{ seatsText(tour) }}</div>
+      <div class="admin-tours__cell" data-label="Thời lượng">{{ durationText(tour) }}</div>
 
-      <div data-label="Featured">
+      <div class="admin-tours__cell" data-label="Số chỗ">{{ seatsText(tour) }}</div>
+
+      <div class="admin-tours__cell" data-label="Featured">
         <span class="admin-tours__featured" [ngClass]="{ 'admin-tours__featured--on': tour.featured }">
           {{ tour.featured ? 'Nổi bật' : 'Thường' }}
         </span>
       </div>
 
-      <div data-label="Status">
+      <div class="admin-tours__cell" data-label="Trạng thái">
         <span class="admin-tours__status" [ngClass]="statusClass(tour.status)">{{ statusLabel(tour.status) }}</span>
       </div>
 
-      <div data-label="Cập nhật">{{ formatDate(tour.updatedAt || tour.createdAt) }}</div>
+      <div class="admin-tours__cell" data-label="Cập nhật">{{ formatDate(tour.updatedAt || tour.createdAt) }}</div>
 
-      <div class="admin-tours__row-actions" data-label="Hành động" (click)="$event.stopPropagation()">
-        <div class="admin-tours__actions-menu">
+      <div class="admin-tours__action-cell" data-label="Hành động" (click)="$event.stopPropagation()">
+        <div class="admin-tours__action-wrap">
           <button
             type="button"
             class="admin-tours__action-trigger"
@@ -150,47 +157,67 @@
             [attr.aria-expanded]="isActionMenuOpen(tour)"
             [disabled]="!tour.id"
             (click)="toggleActionMenu(tour, $event)"
+            (keydown)="onActionTriggerKeydown(tour, $event)"
           >
-            ⋮
+            <tui-icon icon="@tui.more-vertical" />
           </button>
 
-          <div class="admin-tours__action-dropdown" *ngIf="isActionMenuOpen(tour)">
-            <button type="button" class="admin-tours__action-item" (click)="closeActionMenu(); openTourSummary(tour)">
-              Xem nhanh
-            </button>
-            <button type="button" class="admin-tours__action-item" [disabled]="!tour.id" [routerLink]="['/admin/tours', tour.id, 'edit']" (click)="closeActionMenu()">
-              Sửa
-            </button>
-            <button type="button" class="admin-tours__action-item" [disabled]="!tour.slug" (click)="closeActionMenu(); openPublicTour(tour)">
-              Xem public
-            </button>
-            <button type="button" class="admin-tours__action-item" (click)="closeActionMenu(); openThumbnailPanel(tour)">
-              Cập nhật ảnh
+          <div
+            class="admin-tours__action-menu"
+            [ngClass]="{ 'admin-tours__action-menu--top': isActionMenuTop(tour) }"
+            *ngIf="isActionMenuOpen(tour)"
+          >
+            <button type="button" class="admin-tours__action-item admin-tours__action-item--preview" (click)="closeActionMenu(); openTourSummary(tour)">
+              <tui-icon class="admin-tours__action-item-icon" icon="@tui.eye" />
+              <span class="admin-tours__action-item-label">Xem trước</span>
             </button>
             <button
               type="button"
-              class="admin-tours__action-item"
-              [disabled]="publishingId === tour.id || checklistLoadingId === tour.id"
-              (click)="closeActionMenu(); publishTour(tour)"
+              class="admin-tours__action-item admin-tours__action-item--edit"
+              [disabled]="!tour.id"
+              [routerLink]="['/admin/tours', tour.id, 'edit']"
+              (click)="closeActionMenu()"
             >
-              {{ publishingId === tour.id ? 'Đang publish...' : checklistLoadingId === tour.id ? 'Đang check...' : 'Publish / Kiểm tra xuất bản' }}
+              <tui-icon class="admin-tours__action-item-icon" icon="@tui.edit-2" />
+              <span class="admin-tours__action-item-label">Chỉnh sửa</span>
+            </button>
+            <button type="button" class="admin-tours__action-item admin-tours__action-item--duplicate" (click)="closeActionMenu(); duplicateTour(tour)">
+              <tui-icon class="admin-tours__action-item-icon" icon="@tui.copy" />
+              <span class="admin-tours__action-item-label">Nhân bản</span>
+            </button>
+            <button type="button" class="admin-tours__action-item admin-tours__action-item--image" (click)="closeActionMenu(); openThumbnailPanel(tour)">
+              <tui-icon class="admin-tours__action-item-icon" icon="@tui.image-up" />
+              <span class="admin-tours__action-item-label">Cập nhật ảnh</span>
             </button>
 
-            <div class="admin-tours__action-group">
-              <span>Đổi trạng thái</span>
-              <button
-                type="button"
-                class="admin-tours__action-item"
-                *ngFor="let option of statusOptions"
-                [disabled]="statusValue(tour) === option.value || updatingStatusId === tour.id || publishingId === tour.id || checklistLoadingId === tour.id"
-                (click)="changeStatusFromMenu(tour, option.value)"
-              >
-                {{ option.label }}
-              </button>
-            </div>
+            <div class="admin-tours__action-separator" aria-hidden="true"></div>
+
+            <button
+              type="button"
+              class="admin-tours__action-item admin-tours__action-item--primary"
+              [ngClass]="primaryActionClass(tour)"
+              [disabled]="isPrimaryActionDisabled(tour)"
+              (click)="closeActionMenu(); runPrimaryTourAction(tour)"
+            >
+              <tui-icon class="admin-tours__action-item-icon" [icon]="primaryActionIcon(tour)" />
+              <span class="admin-tours__action-item-label">
+                {{
+                  publishingId === tour.id
+                    ? 'Đang publish...'
+                    : checklistLoadingId === tour.id
+                      ? 'Đang check...'
+                      : updatingStatusId === tour.id
+                        ? 'Đang cập nhật...'
+                        : primaryActionLabel(tour)
+                }}
+              </span>
+            </button>
+
+            <div class="admin-tours__action-separator" aria-hidden="true"></div>
 
             <button type="button" class="admin-tours__action-item admin-tours__action-item--danger" [disabled]="deletingId === tour.id" (click)="closeActionMenu(); deleteTour(tour)">
-              {{ deletingId === tour.id ? 'Đang xóa...' : 'Xóa' }}
+              <tui-icon class="admin-tours__action-item-icon" icon="@tui.trash-2" />
+              <span class="admin-tours__action-item-label">{{ deletingId === tour.id ? 'Đang xóa...' : 'Xóa' }}</span>
             </button>
           </div>
         </div>
@@ -225,14 +252,6 @@
           <button type="button" [disabled]="saving" (click)="saveThumbnail()">{{ saving ? 'Đang lưu...' : 'Lưu thumbnail' }}</button>
           <button type="button" (click)="openThumbnailPanel(tour)">Đóng</button>
         </div>
-      </div>
-
-      <div class="admin-tours__checklist" *ngIf="checklistTourId === tour.id && (checklistMessage || checklistItems.length || checklistLoadingId === tour.id)">
-        <h3>Publish checklist</h3>
-        <p>{{ checklistLoadingId === tour.id ? 'Đang kiểm tra checklist...' : checklistMessage }}</p>
-        <ul *ngIf="checklistItems.length">
-          <li *ngFor="let item of checklistItems">{{ item }}</li>
-        </ul>
       </div>
     </article>
   </section>

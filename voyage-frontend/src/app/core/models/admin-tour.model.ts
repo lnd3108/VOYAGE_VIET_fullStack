@@ -21,7 +21,10 @@ export interface AdminTour {
   categoryName?: string;
   categorySlug?: string;
   destinationId?: number;
+  destinationIds?: number[];
   destinationName?: string;
+  destinationDisplayName?: string;
+  selectedDestinationNames?: string[];
   destinationSlug?: string;
   scheduleCount?: number;
   imageCount?: number;
@@ -82,6 +85,13 @@ export interface AdminTourImage {
 export interface AdminTourImageCreateRequest {
   url?: string;
   imageUrl?: string;
+  altText?: string;
+  sortOrder?: number;
+  isThumbnail?: boolean;
+}
+
+export interface AdminTourImageFromMediaRequest {
+  mediaId: number;
   altText?: string;
   sortOrder?: number;
   isThumbnail?: boolean;

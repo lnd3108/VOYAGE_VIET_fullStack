@@ -8,6 +8,7 @@ import {
   AdminTourCreateRequest,
   AdminTourImage,
   AdminTourImageCreateRequest,
+  AdminTourImageFromMediaRequest,
   AdminTourImageReorderRequest,
   AdminTourImageUpdateRequest,
   AdminTourItinerary,
@@ -92,6 +93,10 @@ export class AdminTourApiService {
 
   addTourImage(tourId: number, payload: AdminTourImageCreateRequest) {
     return this.http.post<ApiResponse<AdminTourImage> | AdminTourImage>(`${this.apiUrl}/admin/tours/${tourId}/images`, payload);
+  }
+
+  attachTourImageFromMedia(tourId: number, payload: AdminTourImageFromMediaRequest) {
+    return this.http.post<ApiResponse<AdminTourImage> | AdminTourImage>(`${this.apiUrl}/admin/tours/${tourId}/images/from-media`, payload);
   }
 
   updateTourImage(tourId: number, imageId: number, payload: AdminTourImageUpdateRequest) {

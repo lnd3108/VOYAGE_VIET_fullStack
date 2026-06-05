@@ -1,11 +1,11 @@
 <section class="admin-tour-itinerary">
-  <header class="admin-tour-itinerary__header">
-    <div>
-      <p>Tour Itinerary</p>
+  <header class="admin-tour-itinerary__header admin-tour-itinerary__hero">
+    <div class="admin-tour-itinerary__hero-content">
+      <p>Lịch trình tour</p>
       <h2>Lịch trình tour</h2>
-      <span>Quản lý nội dung từng ngày của hành trình</span>
+      <span>Quản lý nội dung từng ngày của hành trình.</span>
     </div>
-    <button type="button" *ngIf="isEditMode && tourId" (click)="openCreateForm()">Thêm ngày</button>
+    <button type="button" class="admin-tour-itinerary__hero-action" *ngIf="isEditMode && tourId && itineraries.length" (click)="openCreateForm()">+ Thêm ngày</button>
   </header>
 
   <div class="admin-tour-itinerary__empty" *ngIf="!isEditMode || !tourId">
@@ -18,7 +18,7 @@
 
     <div class="admin-tour-itinerary__error" *ngIf="itineraryErrorMessage">
       <p>{{ itineraryErrorMessage }}</p>
-      <button type="button" (click)="loadItineraries()">Thu lai</button>
+      <button type="button" (click)="loadItineraries()">Thử lại</button>
     </div>
 
     <section class="admin-tour-itinerary__form" *ngIf="isItineraryFormOpen">
@@ -27,7 +27,7 @@
           <span>{{ editingItineraryId ? 'Cập nhật ngày' : 'Thêm ngày mới' }}</span>
           <h3>{{ editingItineraryId ? 'Sửa lịch trình' : 'Thông tin ngày lịch trình' }}</h3>
         </div>
-        <button type="button" (click)="closeForm()">Dong</button>
+        <button type="button" (click)="closeForm()">Đóng</button>
       </div>
 
       <div class="admin-tour-itinerary__grid">
@@ -36,31 +36,31 @@
           <input type="number" [(ngModel)]="form.dayNumber" min="1" />
         </label>
         <label>
-          Title
+          Tiêu đề
           <input type="text" [(ngModel)]="form.title" placeholder="Ví dụ: Đến Đà Nẵng - Sơn Trà" />
         </label>
         <label class="admin-tour-itinerary__field--wide">
-          Description
+          Mô tả
           <textarea rows="4" [(ngModel)]="form.description" placeholder="Mô tả chi tiết lịch trình trong ngày"></textarea>
         </label>
         <label>
-          Hotel name
+          Tên khách sạn
           <input type="text" [(ngModel)]="form.hotelName" placeholder="Tên khách sạn nếu có" />
         </label>
         <label>
-          Meals
+          Bữa ăn
           <input type="text" [(ngModel)]="form.meals" placeholder="Sáng, trưa, tối" />
         </label>
         <label>
-          Transport modes
+          Phương tiện
           <input type="text" [(ngModel)]="form.transportModes" placeholder="Máy bay, xe du lịch" />
         </label>
         <label>
-          Place names
+          Điểm tham quan
           <input type="text" [(ngModel)]="form.placeNames" placeholder="Các điểm tham quan" />
         </label>
         <label class="admin-tour-itinerary__field--wide">
-          Activities
+          Hoạt động
           <textarea rows="3" [(ngModel)]="form.activities" placeholder="Các hoạt động chính trong ngày"></textarea>
         </label>
       </div>
@@ -69,7 +69,7 @@
         <button type="button" [disabled]="itinerarySaving" (click)="saveForm()">
           {{ itinerarySaving ? 'Đang lưu...' : 'Lưu' }}
         </button>
-        <button type="button" (click)="closeForm()">Huy</button>
+        <button type="button" (click)="closeForm()">Hủy</button>
       </div>
     </section>
 
@@ -85,18 +85,18 @@
           <p>{{ item.description || 'Chưa có mô tả lịch trình.' }}</p>
 
           <div class="admin-tour-itinerary__meta">
-            <span *ngIf="item.hotelName">Hotel: {{ item.hotelName }}</span>
-            <span *ngIf="item.meals">Meals: {{ item.meals }}</span>
-            <span *ngIf="item.transportModes">Transport: {{ item.transportModes }}</span>
-            <span *ngIf="item.placeNames">Places: {{ item.placeNames }}</span>
-            <span *ngIf="item.activities">Activities: {{ item.activities }}</span>
+            <span *ngIf="item.hotelName">Khách sạn: {{ item.hotelName }}</span>
+            <span *ngIf="item.meals">Bữa ăn: {{ item.meals }}</span>
+            <span *ngIf="item.transportModes">Phương tiện: {{ item.transportModes }}</span>
+            <span *ngIf="item.placeNames">Điểm tham quan: {{ item.placeNames }}</span>
+            <span *ngIf="item.activities">Hoạt động: {{ item.activities }}</span>
           </div>
         </div>
 
         <div class="admin-tour-itinerary__actions">
           <button type="button" (click)="openEditForm(item)">Sửa</button>
-          <button type="button" [disabled]="index === 0 || itinerarySaving || reorderSaving" (click)="moveItinerary(item, -1)">Len</button>
-          <button type="button" [disabled]="index === itineraries.length - 1 || itinerarySaving || reorderSaving" (click)="moveItinerary(item, 1)">Xuong</button>
+          <button type="button" [disabled]="index === 0 || itinerarySaving || reorderSaving" (click)="moveItinerary(item, -1)">Lên</button>
+          <button type="button" [disabled]="index === itineraries.length - 1 || itinerarySaving || reorderSaving" (click)="moveItinerary(item, 1)">Xuống</button>
           <button type="button" class="admin-tour-itinerary__danger" [disabled]="itineraryDeletingId === (item.id || item.dayNumber)" (click)="deleteItinerary(item)">
             {{ itineraryDeletingId === (item.id || item.dayNumber) ? 'Đang xóa...' : 'Xóa' }}
           </button>
@@ -105,9 +105,12 @@
     </section>
 
     <div class="admin-tour-itinerary__empty" *ngIf="!itineraryLoading && !itineraries.length && !itineraryErrorMessage">
-      <strong>Tour chưa có lịch trình</strong>
-      <p>Thêm Ngày 1 để bắt đầu xây dựng nội dung hành trình.</p>
-      <button type="button" (click)="openCreateForm()">Thêm ngày</button>
+      <div class="admin-tour-itinerary__empty-inner">
+        <span class="admin-tour-itinerary__empty-icon" aria-hidden="true">01</span>
+        <strong class="admin-tour-itinerary__empty-title">Tour chưa có lịch trình</strong>
+        <p class="admin-tour-itinerary__empty-text">Thêm Ngày 1 để bắt đầu xây dựng nội dung hành trình.</p>
+        <button type="button" class="admin-tour-itinerary__empty-action" (click)="openCreateForm()">+ Thêm ngày</button>
+      </div>
     </div>
   </ng-container>
 </section>

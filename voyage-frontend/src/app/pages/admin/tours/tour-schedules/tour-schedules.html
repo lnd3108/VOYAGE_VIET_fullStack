@@ -1,11 +1,11 @@
 <section class="admin-tour-schedules">
-  <header class="admin-tour-schedules__header">
-    <div>
-      <p>Tour schedules</p>
+  <header class="admin-tour-schedules__header admin-tour-schedules__hero">
+    <div class="admin-tour-schedules__hero-content">
+      <p>Lịch khởi hành</p>
       <h2>Lịch khởi hành</h2>
-      <span>Quản lý ngày đi, ngày về, giá và số chỗ theo từng lịch</span>
+      <span>Quản lý ngày đi, ngày về, giá và số chỗ theo từng lịch.</span>
     </div>
-    <button type="button" *ngIf="isEditMode && tourId" (click)="openCreateForm()">Thêm lịch khởi hành</button>
+    <button type="button" class="admin-tour-schedules__hero-action" *ngIf="isEditMode && tourId && schedules.length" (click)="openCreateForm()">+ Thêm lịch khởi hành</button>
   </header>
 
   <section class="admin-tour-schedules__notice" *ngIf="!isEditMode || !tourId">
@@ -142,9 +142,12 @@
     </div>
 
     <section class="admin-tour-schedules__empty" *ngIf="!schedulesLoading && !schedules.length && !schedulesErrorMessage">
-      <strong>Tour chưa có lịch khởi hành</strong>
-      <p>Thêm lịch đầu tiên để tour có ngày đi, giá theo lịch và số chỗ cho booking.</p>
-      <button type="button" (click)="openCreateForm()">Thêm lịch khởi hành</button>
+      <div class="admin-tour-schedules__empty-inner">
+        <span class="admin-tour-schedules__empty-icon" aria-hidden="true">31</span>
+        <strong class="admin-tour-schedules__empty-title">Tour chưa có lịch khởi hành</strong>
+        <p class="admin-tour-schedules__empty-text">Thêm lịch đầu tiên để tour có ngày đi, giá theo lịch và số chỗ cho booking.</p>
+        <button type="button" class="admin-tour-schedules__empty-action" (click)="openCreateForm()">+ Thêm lịch khởi hành</button>
+      </div>
     </section>
   </ng-container>
 </section>
