@@ -7,6 +7,8 @@ import {
   AdminDestination,
   AdminDestinationCreateRequest,
   AdminDestinationUpdateRequest,
+  CountriesNowCitiesResponse,
+  CountryOption,
   DestinationStatus,
 } from '../models/destination.model';
 import { PageResponse } from '../models/page-response.model';
@@ -22,9 +24,23 @@ export type AdminDestinationListResponse =
 export class AdminDestinationApiService {
   private readonly http = inject(HttpClient);
   private readonly apiUrl = environment.apiUrl;
+  private readonly restCountriesUrl = 'https://restcountries.com/v3.1/all';
+  private readonly countriesNowUrl = 'https://countriesnow.space/api/v0.1/countries/cities';
 
   getDestinations() {
     return this.http.get<AdminDestinationListResponse>(`${this.apiUrl}/admin/destinations`);
+  }
+
+  getCountries() {
+    return this.http.get<CountryOption[]>(this.restCountriesUrl, {
+      params: {
+        fields: 'name,flags,population,cca2,translations',
+      },
+    });
+  }
+
+  getCitiesByCountry(country: string) {
+    return this.http.post<CountriesNowCitiesResponse>(this.countriesNowUrl, { country });
   }
 
   createDestination(payload: AdminDestinationCreateRequest) {

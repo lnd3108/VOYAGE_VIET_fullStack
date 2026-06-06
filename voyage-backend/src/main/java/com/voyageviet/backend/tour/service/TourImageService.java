@@ -10,6 +10,7 @@ import com.voyageviet.backend.media.service.MediaService;
 import com.voyageviet.backend.tour.dto.*;
 import com.voyageviet.backend.tour.entity.Tour;
 import com.voyageviet.backend.tour.entity.TourImage;
+import com.voyageviet.backend.tour.entity.TourImageSourceType;
 import com.voyageviet.backend.tour.repository.TourImageRepository;
 import com.voyageviet.backend.tour.repository.TourRepository;
 import lombok.RequiredArgsConstructor;
@@ -58,6 +59,7 @@ public class TourImageService {
                 .tour(tour)
                 .url(uploaded.secureUrl())
                 .publicId(uploaded.publicId())
+                .sourceType(TourImageSourceType.DIRECT_UPLOAD)
                 .altText(trimToNull(altText))
                 .sortOrder((int) imageCount)
                 .thumbnail(firstImage)
@@ -94,7 +96,7 @@ public class TourImageService {
             throw new BusinessException(ErrorCode.TOUR_IMAGE_INVALID, "Tối đa 10 ảnh cho một tour");
         }
 
-        boolean thumbnail = Boolean.TRUE.equals(request.isThumbnail()) || imageCount == 0;
+        boolean thumbnail = request.thumbnailRequested() || imageCount == 0;
         if (thumbnail) {
             imageRepository.unsetThumbnailByTourId(tourId);
             tour.setThumbnailUrl(imageUrl);
@@ -104,6 +106,8 @@ public class TourImageService {
                 .tour(tour)
                 .url(imageUrl)
                 .publicId(media.getPublicId())
+                .sourceType(TourImageSourceType.MEDIA)
+                .mediaId(media.getId())
                 .altText(trimToNull(request.altText()))
                 .sortOrder(request.sortOrder() == null ? (int) imageCount : request.sortOrder())
                 .thumbnail(thumbnail)
@@ -123,7 +127,7 @@ public class TourImageService {
             throw new BusinessException(ErrorCode.TOUR_IMAGE_INVALID, "Không thể xóa thumbnail khi tour còn ảnh khác. Hãy chọn thumbnail khác trước.");
         }
 
-        if (mediaRepository.findByPublicId(image.getPublicId()).isEmpty()) {
+        if (image.getSourceType() != TourImageSourceType.MEDIA && mediaRepository.findByPublicId(image.getPublicId()).isEmpty()) {
             mediaService.deleteImageByPublicId(image.getPublicId());
         }
         imageRepository.delete(image);
@@ -202,6 +206,8 @@ public class TourImageService {
                 image.getTour().getId(),
                 image.getUrl(),
                 image.getPublicId(),
+                image.getSourceType() == null ? null : image.getSourceType().name(),
+                image.getMediaId(),
                 image.getAltText(),
                 image.getSortOrder(),
                 image.getThumbnail(),

@@ -1,8 +1,9 @@
 import { NgClass, NgFor, NgIf } from '@angular/common';
-import { Component, DestroyRef, OnInit, inject } from '@angular/core';
+import { Component, DestroyRef, HostListener, OnInit, inject } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { RouterLink } from '@angular/router';
+import { TuiIcon } from '@taiga-ui/core';
 import { take } from 'rxjs';
 
 import { AdminCategoryApiService } from '../../../core/api/admin-category-api.service';
@@ -24,7 +25,7 @@ interface StatusFilterOption {
 
 @Component({
   selector: 'app-admin-categories',
-  imports: [NgClass, NgFor, NgIf, ReactiveFormsModule, RouterLink],
+  imports: [NgClass, NgFor, NgIf, ReactiveFormsModule, RouterLink, TuiIcon],
   templateUrl: './categories.html',
   styleUrl: './categories.scss',
 })
@@ -55,6 +56,7 @@ export class AdminCategories implements OnInit {
   selectedCategory: AdminCategory | null = null;
   isFormOpen = false;
   isEditMode = false;
+  focusedSelect: 'status' | 'statusFilter' | null = null;
   private slugManuallyEdited = false;
 
   readonly form = this.formBuilder.nonNullable.group({
@@ -162,7 +164,41 @@ export class AdminCategories implements OnInit {
 
   updateStatusFilter(event: Event): void {
     this.statusFilter = (event.target as HTMLSelectElement).value as CategoryStatusFilter;
+    this.closeFocusedSelect(event);
     this.applyFilters();
+  }
+
+  toggleSelect(selectName: 'status' | 'statusFilter'): void {
+    this.focusedSelect = this.focusedSelect === selectName ? null : selectName;
+  }
+
+  selectFormStatus(status: CategoryStatus): void {
+    this.form.controls.status.setValue(status);
+    this.focusedSelect = null;
+  }
+
+  selectStatusFilter(status: CategoryStatusFilter): void {
+    this.statusFilter = status;
+    this.focusedSelect = null;
+    this.applyFilters();
+  }
+
+  closeFocusedSelect(event?: Event): void {
+    this.focusedSelect = null;
+    (event?.target as HTMLSelectElement | null)?.blur();
+  }
+
+  statusFilterLabel(status: CategoryStatusFilter): string {
+    return this.statusFilters.find((option) => option.value === status)?.label || 'Tất cả';
+  }
+
+  @HostListener('document:mousedown', ['$event'])
+  closeSelectOnOutsideClick(event: MouseEvent): void {
+    const target = event.target as HTMLElement | null;
+
+    if (!target?.closest('.admin-categories__control-wrap--select')) {
+      this.focusedSelect = null;
+    }
   }
 
   submitForm(): void {

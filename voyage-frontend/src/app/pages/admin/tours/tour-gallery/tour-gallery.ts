@@ -256,7 +256,7 @@ export class TourGallery implements OnInit, OnChanges {
       mediaId,
       altText: this.altTextInput.trim() || undefined,
       sortOrder: Number(this.sortOrderInput) || 0,
-      isThumbnail: false,
+      thumbnail: false,
     }).subscribe({
       next: (response) => {
         const savedImage = this.extractItem(response);

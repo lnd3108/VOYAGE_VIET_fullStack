@@ -14,6 +14,12 @@ public record TourImageFromMediaRequest(
         @Min(value = 0, message = "Sort order must be greater than or equal to 0")
         Integer sortOrder,
 
+        Boolean thumbnail,
+
         Boolean isThumbnail
 ) {
+
+    public boolean thumbnailRequested() {
+        return Boolean.TRUE.equals(thumbnail) || Boolean.TRUE.equals(isThumbnail);
+    }
 }

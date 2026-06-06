@@ -15,6 +15,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDate;
+import java.util.List;
 
 @Service
 @RequiredArgsConstructor
@@ -63,6 +64,41 @@ public class TourStatsService {
                     "Không thể tính điểm đánh giá của tour."
             );
         }
+    }
+
+    @Transactional
+    public void recomputeAllTourStats() {
+        List<Tour> tours = tourRepository.findAll();
+        for (Tour tour : tours) {
+            BigDecimal minPrice = tourScheduleRepository.findMinPriceAdultByTourIdAndStatusFromDate(
+                    tour.getId(),
+                    TourScheduleStatus.OPEN,
+                    LocalDate.now()
+            );
+            Long totalReviews = reviewRepository.countByTourIdAndStatus(tour.getId(), ReviewStatus.ACTIVE);
+            Double averageRating = reviewRepository.averageRatingByTourIdAndStatus(tour.getId(), ReviewStatus.ACTIVE);
+
+            tour.setMinPrice(minPrice);
+            tour.setTotalReviews(Math.toIntExact(totalReviews == null ? 0L : totalReviews));
+            tour.setAvgRating(averageRating == null
+                    ? BigDecimal.ZERO
+                    : BigDecimal.valueOf(averageRating).setScale(1, RoundingMode.HALF_UP));
+            if (tour.getIsDomestic() == null) {
+                tour.setIsDomestic(inferDomestic(tour));
+            }
+        }
+    }
+
+    private Boolean inferDomestic(Tour tour) {
+        if (tour.getDestination() == null || tour.getDestination().getCountry() == null) {
+            return null;
+        }
+
+        String country = tour.getDestination().getCountry().trim();
+        return "Vietnam".equalsIgnoreCase(country)
+                || "Viet Nam".equalsIgnoreCase(country)
+                || "Việt Nam".equalsIgnoreCase(country)
+                || "Viá»‡t Nam".equalsIgnoreCase(country);
     }
 
     private Tour findTour(Long tourId) {

@@ -7,6 +7,8 @@ public record TourImageResponse(
         Long tourId,
         String url,
         String publicId,
+        String sourceType,
+        Long mediaId,
         String altText,
         Integer sortOrder,
         Boolean thumbnail,

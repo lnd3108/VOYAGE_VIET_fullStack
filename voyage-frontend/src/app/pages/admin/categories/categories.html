@@ -60,10 +60,37 @@
 
         <label class="admin-categories__field" *ngIf="isEditMode">
           Trạng thái
-          <select formControlName="status">
-            <option value="ACTIVE">Đang hiển thị</option>
-            <option value="INACTIVE">Tạm ẩn</option>
-          </select>
+          <div
+            class="admin-categories__control-wrap admin-categories__control-wrap--select"
+            [class.admin-categories__control-wrap--open]="focusedSelect === 'status'"
+          >
+            <button
+              type="button"
+              class="admin-categories__select-trigger"
+              (click)="toggleSelect('status')"
+            >
+              {{ statusLabel(form.controls.status.value) }}
+            </button>
+            <tui-icon class="admin-categories__chevron-icon admin-categories__chevron-icon--select" icon="@tui.chevron-down" />
+            <div class="admin-categories__select-menu" *ngIf="focusedSelect === 'status'">
+              <button
+                type="button"
+                class="admin-categories__select-option"
+                [class.admin-categories__select-option--selected]="form.controls.status.value === 'ACTIVE'"
+                (click)="selectFormStatus('ACTIVE')"
+              >
+                Đang hiển thị
+              </button>
+              <button
+                type="button"
+                class="admin-categories__select-option"
+                [class.admin-categories__select-option--selected]="form.controls.status.value === 'INACTIVE'"
+                (click)="selectFormStatus('INACTIVE')"
+              >
+                Tạm ẩn
+              </button>
+            </div>
+          </div>
         </label>
 
         <div class="admin-categories__preview admin-categories__field--wide">
@@ -100,9 +127,30 @@
 
     <label>
       Trạng thái
-      <select [value]="statusFilter" (change)="updateStatusFilter($event)">
-        <option *ngFor="let option of statusFilters" [value]="option.value">{{ option.label }}</option>
-      </select>
+      <div
+        class="admin-categories__control-wrap admin-categories__control-wrap--select"
+        [class.admin-categories__control-wrap--open]="focusedSelect === 'statusFilter'"
+      >
+        <button
+          type="button"
+          class="admin-categories__select-trigger"
+          (click)="toggleSelect('statusFilter')"
+        >
+          {{ statusFilterLabel(statusFilter) }}
+        </button>
+        <tui-icon class="admin-categories__chevron-icon admin-categories__chevron-icon--select" icon="@tui.chevron-down" />
+        <div class="admin-categories__select-menu" *ngIf="focusedSelect === 'statusFilter'">
+          <button
+            type="button"
+            class="admin-categories__select-option"
+            [class.admin-categories__select-option--selected]="statusFilter === option.value"
+            *ngFor="let option of statusFilters"
+            (click)="selectStatusFilter(option.value)"
+          >
+            {{ option.label }}
+          </button>
+        </div>
+      </div>
     </label>
 
     <div>

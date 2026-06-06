@@ -36,6 +36,14 @@ public class TourImage {
     @Column(name = "PUBLIC_ID", nullable = false, length = 200)
     private String publicId;
 
+    @Builder.Default
+    @Enumerated(EnumType.STRING)
+    @Column(name = "SOURCE_TYPE", nullable = false, length = 30)
+    private TourImageSourceType sourceType = TourImageSourceType.DIRECT_UPLOAD;
+
+    @Column(name = "MEDIA_ID")
+    private Long mediaId;
+
     @Column(name = "ALT_TEXT", length = 150)
     private String altText;
 

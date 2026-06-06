@@ -116,7 +116,7 @@
                 <b aria-hidden="true">⌄</b>
               </button>
 
-              <div class="admin-tour-form__ms-panel" style="position: absolute; z-index: 30; inset: 100% 0 auto; max-height: 240px; overflow: auto; background: #fff;" *ngIf="isDestinationDropdownOpen">
+              <div class="admin-tour-form__ms-panel" style="position: absolute; z-index: 30; inset: 100% 0 auto; max-height: 280px; overflow: auto; background: #fff;" *ngIf="isDestinationDropdownOpen">
                 <button
                   type="button"
                   class="admin-tour-form__soft-button admin-tour-form__ms-clear"
@@ -141,9 +141,9 @@
               </div>
             </div>
             <div class="admin-tour-form__message-slot">
-              <p class="admin-tour-form__field-error" *ngIf="hasFieldError('destinationId') && !selectedDestinationMissingAdminRecord">Vui lòng chọn điểm đến.</p>
-              <p class="admin-tour-form__field-error" *ngIf="selectedDestinationMissingAdminRecord">Một số điểm đến chưa được tạo trong Admin &gt; Điểm đến.</p>
-              <p class="admin-tour-form__field-help" *ngIf="destinationProvinceWarning">{{ destinationProvinceWarning }}</p>
+              <p class="admin-tour-form__field-error" *ngIf="hasFieldError('destinationId')">Vui lòng chọn điểm đến.</p>
+              <p class="admin-tour-form__field-help" *ngIf="destinations.length">Điểm đến đầu tiên sẽ được dùng làm điểm đến chính của tour.</p>
+              <p class="admin-tour-form__field-help" *ngIf="!destinations.length">Chưa có điểm đến. Vui lòng tạo điểm đến trong Admin &gt; Điểm đến.</p>
             </div>
           </div>
         </div>
@@ -228,7 +228,6 @@
             </select>
             <div class="admin-tour-form__message-slot">
               <p class="admin-tour-form__field-error" *ngIf="hasFieldError('departureLocation')">Vui lòng chọn điểm khởi hành.</p>
-              <p class="admin-tour-form__field-help" *ngIf="departureProvinceWarning">{{ departureProvinceWarning }}</p>
             </div>
           </div>
 

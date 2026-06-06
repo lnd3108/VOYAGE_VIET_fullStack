@@ -1611,3 +1611,109 @@ TODO production:
 
 - Thay runner tạm bằng migration tool chính thức nếu dự án đưa Flyway/Liquibase vào production.
 - Backfill `MIN_PRICE`, `AVG_RATING`, `TOTAL_REVIEWS`, `IS_DOMESTIC` cho dữ liệu tour cũ sau khi cột đã tồn tại.
+
+## Cập Nhật 04/06/2026 — Phase 9A: Oracle Schema Hardening và Admin Tour Contract
+
+### Mục tiêu phase
+
+- Làm cứng schema Oracle cho enum/check constraint Phase 8/9 để backend không phụ thuộc mù quáng vào `ddl-auto=update`.
+- Đảm bảo role `STAFF`, `FeatureCode` mới, `AuditAction` mới và các field thống kê tour không làm lỗi startup hoặc lỗi runtime với Oracle DB thật.
+- Chuẩn hóa contract Admin Tour Gallery để attach ảnh từ Admin Media bằng `mediaId`, không upload lại Cloudinary và không xóa asset gốc khi xóa ảnh gallery attach từ Media.
+
+### File backend đã thêm/sửa
+
+- `src/main/resources/db/manual/oracle/V20260604_01_schema_hardening.sql`: migration SQL manual Oracle idempotent cho enum/check constraint, cột tour stats, cột nguồn ảnh gallery và backfill stats.
+- `src/main/java/com/voyageviet/backend/tour/entity/TourImageSourceType.java`: enum `DIRECT_UPLOAD`, `MEDIA`.
+- `src/main/java/com/voyageviet/backend/tour/entity/TourImage.java`: thêm `SOURCE_TYPE`, `MEDIA_ID`.
+- `src/main/java/com/voyageviet/backend/tour/dto/TourImageFromMediaRequest.java`: hỗ trợ cả `thumbnail` và `isThumbnail` để backward-compatible.
+- `src/main/java/com/voyageviet/backend/tour/dto/TourImageResponse.java`: trả thêm `sourceType`, `mediaId`.
+- `src/main/java/com/voyageviet/backend/tour/service/TourImageService.java`: attach từ Media set `sourceType=MEDIA`, `mediaId`; delete ảnh Media chỉ xóa record `TOUR_IMAGES`, không gọi xóa Cloudinary.
+- `src/main/java/com/voyageviet/backend/tour/service/TourService.java`: duplicate tour copy thêm `sourceType/mediaId`.
+- `src/main/java/com/voyageviet/backend/tour/service/TourStatsService.java`: thêm `recomputeAllTourStats()` để backfill `minPrice`, `avgRating`, `totalReviews`, `isDomestic` khi cần chạy thủ công/service job.
+- `src/main/java/com/voyageviet/backend/common/config/Phase8SchemaMigration.java`: runner tạm cũng đảm bảo thêm `TOUR_IMAGES.SOURCE_TYPE` và `TOUR_IMAGES.MEDIA_ID` khi app chạy local chưa apply SQL manual.
+
+### Migration SQL đã tạo
+
+- File: `src/main/resources/db/manual/oracle/V20260604_01_schema_hardening.sql`.
+- Add cột `TOURS.IS_DOMESTIC`, `AVG_RATING`, `TOTAL_REVIEWS`, `HIGHLIGHT_TAGS`, `MIN_PRICE` nếu thiếu.
+- Add cột `TOUR_IMAGES.SOURCE_TYPE`, `MEDIA_ID` nếu thiếu.
+- Drop/recreate check constraint ổn định:
+  - `CK_ROLES_CODE` cho `USER`, `STAFF`, `ADMIN`, `SUPER_ADMIN`.
+  - `CK_FEATURE_FLAGS_CODE` cho toàn bộ `FeatureCode` hiện tại.
+  - `CK_AUDIT_LOGS_ACTION` cho toàn bộ `AuditAction` hiện tại.
+  - `CK_TOUR_IMAGES_SOURCE_TYPE` cho `DIRECT_UPLOAD`, `MEDIA`.
+- Backfill:
+  - `TOUR_IMAGES.SOURCE_TYPE/MEDIA_ID` dựa theo `MEDIA.PUBLIC_ID`.
+  - `TOURS.MIN_PRICE` từ schedule `OPEN` và `DEPARTURE_DATE >= TRUNC(SYSDATE)`.
+  - `TOURS.AVG_RATING/TOTAL_REVIEWS` từ review `ACTIVE`.
+  - `TOURS.IS_DOMESTIC` từ `DESTINATIONS.COUNTRY` (`Vietnam`, `Viet Nam`, `Việt Nam`).
+
+### Constraint/enum/schema đã xử lý
+
+- `RoleCode.STAFF`: có trong Java enum, seeder idempotent, migration mở check constraint `ROLES.CODE`.
+- `FeatureCode` mới: migration mở check constraint `FEATURE_FLAGS.FEATURE_CODE` theo toàn bộ enum hiện tại.
+- `AuditAction` mới: migration mở check constraint `AUDIT_LOGS.ACTION` theo toàn bộ enum hiện tại.
+- Tour stats fields: migration đảm bảo `IS_DOMESTIC`, `AVG_RATING`, `TOTAL_REVIEWS`, `HIGHLIGHT_TAGS`, `MIN_PRICE` có type Oracle đề xuất.
+- Gallery source fields: thêm `TOUR_IMAGES.SOURCE_TYPE`, `TOUR_IMAGES.MEDIA_ID` để phân biệt ảnh upload riêng và ảnh dùng lại từ Media library.
+
+### Seeder/backfill
+
+- `DataSeeder` hiện vẫn seed role `STAFF` và feature code mới idempotent; nếu DB chưa migrate constraint thì catch `DataIntegrityViolationException` để không làm app fail startup.
+- Backfill SQL đã có trong migration manual.
+- `TourStatsService.recomputeAllTourStats()` có thể dùng cho job/manual service backfill trong môi trường local/production nhỏ.
+
+### API mới/sửa
+
+- Giữ endpoint hiện có: `POST /api/admin/tours/{id}/images/from-media`.
+- Request khuyến nghị:
+
+```json
+{
+  "mediaId": 1,
+  "altText": "Anh tour",
+  "sortOrder": 0,
+  "thumbnail": false
+}
+```
+
+- Backend vẫn nhận alias cũ `isThumbnail` để không làm vỡ frontend/build cũ.
+- Response `TourImageResponse` trả thêm `sourceType`, `mediaId`; không đổi response wrapper `ApiResponse`.
+- Không thêm endpoint `from-url` trong phase này vì flow ưu tiên `from-media` đã hoạt động.
+
+### Business rule
+
+- Attach ảnh từ Media không upload lại Cloudinary.
+- Ảnh đầu tiên của tour tự trở thành thumbnail.
+- Nếu `thumbnail=true` hoặc `isThumbnail=true`, backend unset thumbnail cũ và set thumbnail mới.
+- Vẫn giới hạn tối đa 10 ảnh/tour.
+- Xóa `TourImage` có `sourceType=MEDIA` chỉ xóa record gallery, không xóa Cloudinary asset và không xóa record `MEDIA`.
+- Xóa `TourImage` upload trực tiếp chỉ gọi xóa Cloudinary nếu `PUBLIC_ID` không còn trong Media library.
+- `minPrice` chỉ tính từ schedule `OPEN` future/today; public schedules chỉ trả `OPEN` future.
+- `avgRating/totalReviews` chỉ tính review `ACTIVE`.
+
+### Kết quả backend compile/startup/API thật
+
+- `./mvnw.cmd -DskipTests compile`: `BUILD SUCCESS` lúc 2026-06-06 10:29 +07.
+- Port `8081` đã có Java process chạy từ trước task, nên không restart process này để tránh dừng server không do task tạo.
+- Backend thật đang chạy trả `GET /api/public/ping` thành công.
+- Login ADMIN thật thành công với `admin@voyageviet.local`.
+- API E2E thật đã tạo tour test `id=41`, slug `phase-9-e2e-admin-tour-20260606103234`:
+  - publish checklist trước gallery/itinerary/schedule: `canPublish=false`.
+  - attach Media `id=32` vào gallery qua `POST /api/admin/tours/{id}/images/from-media`: thành công.
+  - lưu itinerary 2 ngày: thành công.
+  - tạo schedule `OPEN` future: thành công.
+  - publish checklist sau khi đủ dữ liệu: `canPublish=true`.
+  - publish tour: thành công.
+  - `GET /api/public/tours/{slug}`: trả tour `PUBLISHED`.
+  - `GET /api/public/tours/{slug}/schedules`: trả 1 schedule khi `OPEN`, trả 0 khi đổi `CLOSED`, trả lại 1 khi reopen.
+  - `GET /api/public/tours/{slug}/itinerary`: trả 2 ngày.
+  - Xóa ảnh gallery attach từ Media không xóa Media library; `GET /api/admin/media` vẫn thấy media `id=32`.
+
+### TODO còn lại
+
+- Apply `V20260604_01_schema_hardening.sql` trực tiếp trên Oracle DB thật trước production deploy.
+- Restart backend để load code mới `sourceType/mediaId`; E2E API ở trên chạy trên process backend có sẵn từ trước task nên chỉ xác nhận contract cũ đang hoạt động, còn code mới đã xác nhận bằng compile.
+- Thiết kế permission chi tiết cho `STAFF`/feature permissions.
+- WebSocket JWT handshake vẫn chưa làm.
+- Admin Booking Detail frontend vẫn chưa làm.
+- Nếu dữ liệu lớn, chuyển `recomputeAllTourStats()` sang job/batch có phân trang.

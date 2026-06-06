@@ -1,0 +1,48 @@
+<div class="admin-image-upload">
+  <label class="admin-image-upload__label">{{ label }}</label>
+
+  <div class="admin-image-upload__body">
+    <label class="admin-image-upload__dropzone" [class.admin-image-upload__dropzone--disabled]="disabled || uploading">
+      <input
+        #fileInput
+        type="file"
+        accept="image/png,image/jpeg,image/jpg,image/webp"
+        [disabled]="disabled || uploading"
+        (change)="onFileSelected($event)"
+      />
+
+      <tui-icon class="admin-image-upload__icon" icon="@tui.image-up" />
+      <strong>{{ selectedFile?.name || 'Chọn ảnh từ máy' }}</strong>
+      <small>PNG, JPG, JPEG, WEBP. Tối đa 5MB.</small>
+    </label>
+
+    <div class="admin-image-upload__preview">
+      <img *ngIf="previewSource(); else emptyPreview" [src]="previewSource()" alt="Preview ảnh" />
+      <ng-template #emptyPreview>
+        <div>
+          <span>Preview</span>
+          <p>Ảnh đã chọn hoặc URL hiện tại sẽ hiển thị tại đây.</p>
+        </div>
+      </ng-template>
+    </div>
+  </div>
+
+  <div class="admin-image-upload__url-row">
+    <input
+      type="url"
+      [value]="value"
+      [placeholder]="placeholder"
+      [disabled]="disabled || uploading"
+      (input)="updateUrl($any($event.target).value)"
+      (blur)="markTouched()"
+    />
+
+    <button type="button" [disabled]="disabled || uploading || !selectedFile" (click)="uploadSelectedFile()">
+      {{ uploading ? 'Đang upload...' : 'Upload ảnh' }}
+    </button>
+  </div>
+
+  <p class="admin-image-upload__message admin-image-upload__message--error" *ngIf="errorMessage">{{ errorMessage }}</p>
+  <p class="admin-image-upload__message admin-image-upload__message--success" *ngIf="successMessage">{{ successMessage }}</p>
+  <p class="admin-image-upload__message" *ngIf="!errorMessage && !successMessage">{{ helpText }}</p>
+</div>

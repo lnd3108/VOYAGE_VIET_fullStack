@@ -1,0 +1,153 @@
+﻿-- Phase 9A Oracle schema hardening for VoyageViet.
+-- Run manually on Oracle before relying on new enum values/stats fields in production.
+-- Idempotent where possible: column additions are guarded, enum check constraints are recreated by stable names.
+
+SET DEFINE OFF;
+
+DECLARE
+    v_count NUMBER;
+BEGIN
+    SELECT COUNT(*) INTO v_count FROM USER_TAB_COLUMNS WHERE TABLE_NAME = 'TOURS' AND COLUMN_NAME = 'IS_DOMESTIC';
+    IF v_count = 0 THEN
+        EXECUTE IMMEDIATE 'ALTER TABLE TOURS ADD IS_DOMESTIC NUMBER(1)';
+    END IF;
+
+    SELECT COUNT(*) INTO v_count FROM USER_TAB_COLUMNS WHERE TABLE_NAME = 'TOURS' AND COLUMN_NAME = 'AVG_RATING';
+    IF v_count = 0 THEN
+        EXECUTE IMMEDIATE 'ALTER TABLE TOURS ADD AVG_RATING NUMBER(4,2) DEFAULT 0';
+    END IF;
+
+    SELECT COUNT(*) INTO v_count FROM USER_TAB_COLUMNS WHERE TABLE_NAME = 'TOURS' AND COLUMN_NAME = 'TOTAL_REVIEWS';
+    IF v_count = 0 THEN
+        EXECUTE IMMEDIATE 'ALTER TABLE TOURS ADD TOTAL_REVIEWS NUMBER(10) DEFAULT 0 NOT NULL';
+    END IF;
+
+    SELECT COUNT(*) INTO v_count FROM USER_TAB_COLUMNS WHERE TABLE_NAME = 'TOURS' AND COLUMN_NAME = 'HIGHLIGHT_TAGS';
+    IF v_count = 0 THEN
+        EXECUTE IMMEDIATE 'ALTER TABLE TOURS ADD HIGHLIGHT_TAGS CLOB';
+    END IF;
+
+    SELECT COUNT(*) INTO v_count FROM USER_TAB_COLUMNS WHERE TABLE_NAME = 'TOURS' AND COLUMN_NAME = 'MIN_PRICE';
+    IF v_count = 0 THEN
+        EXECUTE IMMEDIATE 'ALTER TABLE TOURS ADD MIN_PRICE NUMBER(19,2)';
+    END IF;
+
+    SELECT COUNT(*) INTO v_count FROM USER_TAB_COLUMNS WHERE TABLE_NAME = 'TOUR_IMAGES' AND COLUMN_NAME = 'SOURCE_TYPE';
+    IF v_count = 0 THEN
+        EXECUTE IMMEDIATE q'[ALTER TABLE TOUR_IMAGES ADD SOURCE_TYPE VARCHAR2(30) DEFAULT 'DIRECT_UPLOAD' NOT NULL]';
+    END IF;
+
+    SELECT COUNT(*) INTO v_count FROM USER_TAB_COLUMNS WHERE TABLE_NAME = 'TOUR_IMAGES' AND COLUMN_NAME = 'MEDIA_ID';
+    IF v_count = 0 THEN
+        EXECUTE IMMEDIATE 'ALTER TABLE TOUR_IMAGES ADD MEDIA_ID NUMBER(19)';
+    END IF;
+END;
+/
+
+DECLARE
+    PROCEDURE drop_column_checks(p_table VARCHAR2, p_column VARCHAR2, p_keep_name VARCHAR2) IS
+    BEGIN
+        FOR c IN (
+            SELECT DISTINCT uc.constraint_name
+            FROM user_constraints uc
+            JOIN user_cons_columns ucc ON ucc.constraint_name = uc.constraint_name
+            WHERE uc.table_name = UPPER(p_table)
+              AND ucc.column_name = UPPER(p_column)
+              AND uc.constraint_type = 'C'
+              AND uc.constraint_name <> UPPER(p_keep_name)
+              AND (uc.search_condition_vc IS NULL OR UPPER(uc.search_condition_vc) NOT LIKE '%' || UPPER(p_column) || '%IS NOT NULL%')
+        ) LOOP
+            EXECUTE IMMEDIATE 'ALTER TABLE ' || p_table || ' DROP CONSTRAINT ' || c.constraint_name;
+        END LOOP;
+    END;
+
+    PROCEDURE drop_constraint_if_exists(p_table VARCHAR2, p_name VARCHAR2) IS
+        v_count NUMBER;
+    BEGIN
+        SELECT COUNT(*) INTO v_count
+        FROM user_constraints
+        WHERE table_name = UPPER(p_table)
+          AND constraint_name = UPPER(p_name);
+
+        IF v_count > 0 THEN
+            EXECUTE IMMEDIATE 'ALTER TABLE ' || p_table || ' DROP CONSTRAINT ' || p_name;
+        END IF;
+    END;
+BEGIN
+    drop_constraint_if_exists('ROLES', 'CK_ROLES_CODE');
+    drop_column_checks('ROLES', 'CODE', 'CK_ROLES_CODE');
+    EXECUTE IMMEDIATE q'[ALTER TABLE ROLES ADD CONSTRAINT CK_ROLES_CODE CHECK (CODE IN ('USER','STAFF','ADMIN','SUPER_ADMIN'))]';
+
+    drop_constraint_if_exists('FEATURE_FLAGS', 'CK_FEATURE_FLAGS_CODE');
+    drop_column_checks('FEATURE_FLAGS', 'FEATURE_CODE', 'CK_FEATURE_FLAGS_CODE');
+    EXECUTE IMMEDIATE q'[ALTER TABLE FEATURE_FLAGS ADD CONSTRAINT CK_FEATURE_FLAGS_CODE CHECK (FEATURE_CODE IN ('PUBLIC_BOOKING','PUBLIC_REVIEW','PUBLIC_PAYMENT','CHAT_SUPPORT','GOOGLE_LOGIN','TOUR_SEARCH','TOUR_FILTER','ADMIN_DASHBOARD','TOUR_VIEW','TOUR_CREATE','TOUR_UPDATE','TOUR_DELETE','TOUR_PUBLISH','BOOKING_VIEW','BOOKING_UPDATE','BOOKING_CONFIRM','BOOKING_CANCEL','USER_MANAGE','REVIEW_MANAGE','CATEGORY_MANAGE','DESTINATION_MANAGE','MEDIA_MANAGE','PROMOTION_MANAGE','PAYMENT_VIEW','PAYMENT_REFUND','REVENUE_VIEW','ANALYTICS_VIEW','NOTIFICATION_VIEW','FEATURE_MANAGE','AUDIT_VIEW','SUPPORT_CHAT','BANNER_MANAGE','BLOG_MANAGE'))]';
+
+    drop_constraint_if_exists('AUDIT_LOGS', 'CK_AUDIT_LOGS_ACTION');
+    drop_column_checks('AUDIT_LOGS', 'ACTION', 'CK_AUDIT_LOGS_ACTION');
+    EXECUTE IMMEDIATE q'[ALTER TABLE AUDIT_LOGS ADD CONSTRAINT CK_AUDIT_LOGS_ACTION CHECK (ACTION IN ('USER_STATUS_UPDATED','USER_ROLE_UPDATED','BOOKING_STATUS_UPDATED','FEATURE_FLAG_UPDATED','FEATURE_TOGGLE','TOUR_CREATED','TOUR_UPDATED','TOUR_PUBLISHED','TOUR_ARCHIVED','TOUR_DUPLICATED','TOUR_DELETED','BOOKING_CREATED','BOOKING_CONFIRMED','BOOKING_CANCELLED','BOOKING_COMPLETED','PAYMENT_REFUNDED','PROMOTION_CREATED','PROMOTION_UPDATED','PROMOTION_STATUS_UPDATED','PROMOTION_DELETED','REVIEW_APPROVED','REVIEW_REJECTED','MEDIA_UPLOADED','MEDIA_DELETED'))]';
+
+    drop_constraint_if_exists('TOUR_IMAGES', 'CK_TOUR_IMAGES_SOURCE_TYPE');
+    drop_column_checks('TOUR_IMAGES', 'SOURCE_TYPE', 'CK_TOUR_IMAGES_SOURCE_TYPE');
+    EXECUTE IMMEDIATE q'[ALTER TABLE TOUR_IMAGES ADD CONSTRAINT CK_TOUR_IMAGES_SOURCE_TYPE CHECK (SOURCE_TYPE IN ('DIRECT_UPLOAD','MEDIA'))]';
+END;
+/
+
+UPDATE TOUR_IMAGES ti
+SET SOURCE_TYPE = 'MEDIA',
+    MEDIA_ID = (SELECT MIN(m.ID) FROM MEDIA m WHERE m.PUBLIC_ID = ti.PUBLIC_ID)
+WHERE EXISTS (SELECT 1 FROM MEDIA m WHERE m.PUBLIC_ID = ti.PUBLIC_ID);
+
+MERGE INTO TOURS t
+USING (
+    SELECT tour_id, MIN(price_adult) AS min_price
+    FROM TOUR_SCHEDULES
+    WHERE status = 'OPEN'
+      AND departure_date >= TRUNC(SYSDATE)
+    GROUP BY tour_id
+) s
+ON (t.id = s.tour_id)
+WHEN MATCHED THEN UPDATE SET t.min_price = s.min_price;
+
+UPDATE TOURS t
+SET MIN_PRICE = NULL
+WHERE NOT EXISTS (
+    SELECT 1
+    FROM TOUR_SCHEDULES s
+    WHERE s.tour_id = t.id
+      AND s.status = 'OPEN'
+      AND s.departure_date >= TRUNC(SYSDATE)
+);
+
+MERGE INTO TOURS t
+USING (
+    SELECT tour_id, ROUND(AVG(rating), 2) AS avg_rating, COUNT(*) AS total_reviews
+    FROM REVIEWS
+    WHERE status = 'ACTIVE'
+    GROUP BY tour_id
+) r
+ON (t.id = r.tour_id)
+WHEN MATCHED THEN UPDATE SET t.avg_rating = r.avg_rating, t.total_reviews = r.total_reviews;
+
+UPDATE TOURS t
+SET AVG_RATING = 0,
+    TOTAL_REVIEWS = 0
+WHERE NOT EXISTS (
+    SELECT 1
+    FROM REVIEWS r
+    WHERE r.tour_id = t.id
+      AND r.status = 'ACTIVE'
+);
+
+UPDATE TOURS t
+SET IS_DOMESTIC = CASE
+    WHEN EXISTS (
+        SELECT 1
+        FROM DESTINATIONS d
+        WHERE d.id = t.destination_id
+          AND UPPER(TRIM(d.country)) IN ('VIETNAM', 'VIET NAM', 'VIỆT NAM')
+    ) THEN 1
+    ELSE 0
+END
+WHERE t.IS_DOMESTIC IS NULL;
+
+COMMIT;

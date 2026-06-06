@@ -44,42 +44,92 @@
       <input type="search" [value]="keyword" placeholder="Tìm title, slug, danh mục, điểm đến" (input)="updateKeyword($event)" />
     </label>
 
-    <label>
-      Trạng thái
-      <select [value]="statusFilter" (change)="updateStatusFilter($event)">
-        <option *ngFor="let option of statusFilters" [value]="option.value">{{ option.label }}</option>
-      </select>
-    </label>
+    <div class="admin-tours__filter-field">
+      <span class="admin-tours__filter-label">Trạng thái</span>
+      <div class="admin-tours__dropdown" [class.admin-tours__dropdown--open]="openedFilter === 'status'" (click)="$event.stopPropagation()">
+        <button type="button" class="admin-tours__dropdown-trigger" (click)="toggleFilterDropdown('status', $event)">
+          <span class="admin-tours__dropdown-value">{{ statusFilterLabel() }}</span>
+          <svg class="admin-tours__dropdown-icon" viewBox="0 0 20 20" aria-hidden="true" focusable="false">
+            <path d="M5.5 7.5L10 12l4.5-4.5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+          </svg>
+        </button>
+        <div class="admin-tours__dropdown-menu" *ngIf="openedFilter === 'status'">
+          <button type="button" class="admin-tours__dropdown-option" *ngFor="let option of statusFilters" [class.admin-tours__dropdown-option--active]="statusFilter === option.value" (click)="selectStatusFilter(option.value)">
+            {{ option.label }}
+          </button>
+        </div>
+      </div>
+    </div>
 
-    <label>
-      Featured
-      <select [value]="featuredFilter" (change)="updateFeaturedFilter($event)">
-        <option *ngFor="let option of featuredFilters" [value]="option.value">{{ option.label }}</option>
-      </select>
-    </label>
+    <div class="admin-tours__filter-field">
+      <span class="admin-tours__filter-label">Featured</span>
+      <div class="admin-tours__dropdown" [class.admin-tours__dropdown--open]="openedFilter === 'featured'" (click)="$event.stopPropagation()">
+        <button type="button" class="admin-tours__dropdown-trigger" (click)="toggleFilterDropdown('featured', $event)">
+          <span class="admin-tours__dropdown-value">{{ featuredFilterLabel() }}</span>
+          <svg class="admin-tours__dropdown-icon" viewBox="0 0 20 20" aria-hidden="true" focusable="false">
+            <path d="M5.5 7.5L10 12l4.5-4.5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+          </svg>
+        </button>
+        <div class="admin-tours__dropdown-menu" *ngIf="openedFilter === 'featured'">
+          <button type="button" class="admin-tours__dropdown-option" *ngFor="let option of featuredFilters" [class.admin-tours__dropdown-option--active]="featuredFilter === option.value" (click)="selectFeaturedFilter(option.value)">
+            {{ option.label }}
+          </button>
+        </div>
+      </div>
+    </div>
 
-    <label>
-      Danh mục
-      <select [value]="categoryFilter" (change)="updateCategoryFilter($event)">
-        <option value="ALL">Tất cả danh mục</option>
-        <option *ngFor="let option of categoryOptions" [value]="option.value">{{ option.label }}</option>
-      </select>
-    </label>
+    <div class="admin-tours__filter-field">
+      <span class="admin-tours__filter-label">Danh mục</span>
+      <div class="admin-tours__dropdown" [class.admin-tours__dropdown--open]="openedFilter === 'category'" (click)="$event.stopPropagation()">
+        <button type="button" class="admin-tours__dropdown-trigger" (click)="toggleFilterDropdown('category', $event)">
+          <span class="admin-tours__dropdown-value">{{ categoryFilterLabel() }}</span>
+          <svg class="admin-tours__dropdown-icon" viewBox="0 0 20 20" aria-hidden="true" focusable="false">
+            <path d="M5.5 7.5L10 12l4.5-4.5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+          </svg>
+        </button>
+        <div class="admin-tours__dropdown-menu" *ngIf="openedFilter === 'category'">
+          <button type="button" class="admin-tours__dropdown-option" [class.admin-tours__dropdown-option--active]="categoryFilter === 'ALL'" (click)="selectCategoryFilter('ALL')">Tất cả danh mục</button>
+          <button type="button" class="admin-tours__dropdown-option" *ngFor="let option of categoryOptions" [class.admin-tours__dropdown-option--active]="categoryFilter === option.value" (click)="selectCategoryFilter(option.value)">
+            {{ option.label }}
+          </button>
+        </div>
+      </div>
+    </div>
 
-    <label>
-      Điểm đến
-      <select [value]="destinationFilter" (change)="updateDestinationFilter($event)">
-        <option value="ALL">Tất cả điểm đến</option>
-        <option *ngFor="let option of destinationOptions" [value]="option.value">{{ option.label }}</option>
-      </select>
-    </label>
+    <div class="admin-tours__filter-field">
+      <span class="admin-tours__filter-label">Điểm đến</span>
+      <div class="admin-tours__dropdown" [class.admin-tours__dropdown--open]="openedFilter === 'destination'" (click)="$event.stopPropagation()">
+        <button type="button" class="admin-tours__dropdown-trigger" (click)="toggleFilterDropdown('destination', $event)">
+          <span class="admin-tours__dropdown-value">{{ destinationFilterLabel() }}</span>
+          <svg class="admin-tours__dropdown-icon" viewBox="0 0 20 20" aria-hidden="true" focusable="false">
+            <path d="M5.5 7.5L10 12l4.5-4.5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+          </svg>
+        </button>
+        <div class="admin-tours__dropdown-menu" *ngIf="openedFilter === 'destination'">
+          <button type="button" class="admin-tours__dropdown-option" [class.admin-tours__dropdown-option--active]="destinationFilter === 'ALL'" (click)="selectDestinationFilter('ALL')">Tất cả điểm đến</button>
+          <button type="button" class="admin-tours__dropdown-option" *ngFor="let option of destinationOptions" [class.admin-tours__dropdown-option--active]="destinationFilter === option.value" (click)="selectDestinationFilter(option.value)">
+            {{ option.label }}
+          </button>
+        </div>
+      </div>
+    </div>
 
-    <label>
-      Sắp xếp
-      <select [value]="sortOption" (change)="updateSortOption($event)">
-        <option *ngFor="let option of sortOptions" [value]="option.value">{{ option.label }}</option>
-      </select>
-    </label>
+    <div class="admin-tours__filter-field">
+      <span class="admin-tours__filter-label">Sắp xếp</span>
+      <div class="admin-tours__dropdown" [class.admin-tours__dropdown--open]="openedFilter === 'sort'" (click)="$event.stopPropagation()">
+        <button type="button" class="admin-tours__dropdown-trigger" (click)="toggleFilterDropdown('sort', $event)">
+          <span class="admin-tours__dropdown-value">{{ sortOptionLabel() }}</span>
+          <svg class="admin-tours__dropdown-icon" viewBox="0 0 20 20" aria-hidden="true" focusable="false">
+            <path d="M5.5 7.5L10 12l4.5-4.5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+          </svg>
+        </button>
+        <div class="admin-tours__dropdown-menu" *ngIf="openedFilter === 'sort'">
+          <button type="button" class="admin-tours__dropdown-option" *ngFor="let option of sortOptions" [class.admin-tours__dropdown-option--active]="sortOption === option.value" (click)="selectSortOption(option.value)">
+            {{ option.label }}
+          </button>
+        </div>
+      </div>
+    </div>
 
     <div>
       <strong>{{ filteredTours.length }}</strong>

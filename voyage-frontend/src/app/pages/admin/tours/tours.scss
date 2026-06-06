@@ -166,14 +166,19 @@
       font-weight: 800;
     }
 
-    input,
-    select {
+    input {
       height: 42px;
       padding: 0 12px;
       border: 1px solid var(--tour-border);
       border-radius: 12px;
       background: #fff;
       color: #143734;
+    }
+
+    input:focus {
+      outline: 0;
+      border-color: var(--tour-primary);
+      box-shadow: 0 0 0 3px rgba(31, 111, 104, 0.1);
     }
 
     div {
@@ -184,6 +189,109 @@
     strong {
       color: var(--tour-primary);
       font-size: 24px;
+    }
+  }
+
+  &__filter-field {
+    display: grid;
+    gap: 8px;
+    text-align: left !important;
+  }
+
+  &__filter-label {
+    color: #475569;
+    font-size: 13px;
+    font-weight: 800;
+  }
+
+  &__dropdown {
+    position: relative;
+    text-align: left !important;
+  }
+
+  button#{&}__dropdown-trigger {
+    width: 100%;
+    height: 42px;
+    min-height: 42px;
+    padding: 0 38px 0 12px;
+    justify-content: flex-start;
+    border: 1px solid #dde7e4;
+    border-radius: 12px;
+    background: #fff;
+    color: #143734;
+    font-size: 13px;
+    font-weight: 700;
+    cursor: pointer;
+
+    &:hover {
+      border-color: rgba(31, 111, 104, 0.35);
+      background: #fff;
+    }
+  }
+
+  &__dropdown--open &__dropdown-trigger {
+    border-color: var(--tour-primary);
+    box-shadow: 0 0 0 3px rgba(31, 111, 104, 0.1);
+  }
+
+  &__dropdown-value {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  &__dropdown-icon {
+    position: absolute;
+    top: 50%;
+    right: 13px;
+    width: 18px;
+    height: 18px;
+    pointer-events: none;
+    color: #64748b;
+    transform: translateY(-50%);
+    transition: color 0.18s ease, transform 0.18s ease;
+  }
+
+  &__dropdown:hover &__dropdown-icon,
+  &__dropdown--open &__dropdown-icon {
+    color: var(--tour-primary);
+  }
+
+  &__dropdown--open &__dropdown-icon {
+    transform: translateY(-50%) rotate(180deg);
+  }
+
+  &__dropdown-menu {
+    position: absolute;
+    top: calc(100% + 2px);
+    left: 0;
+    right: 0;
+    z-index: 90;
+    max-height: 240px;
+    overflow-y: auto;
+    padding: 0;
+    border: 1px solid #bfc9c7;
+    border-radius: 0 0 6px 6px;
+    background: #fff;
+  }
+
+  button#{&}__dropdown-option {
+    width: 100%;
+    min-height: 32px;
+    padding: 6px 14px;
+    justify-content: flex-start;
+    border: 0;
+    border-radius: 0;
+    background: #fff;
+    color: #0f172a;
+    font-size: 14px;
+    font-weight: 500;
+    text-align: left;
+
+    &:hover,
+    &--active {
+      background: #dcebff;
+      color: #0f172a;
     }
   }
 

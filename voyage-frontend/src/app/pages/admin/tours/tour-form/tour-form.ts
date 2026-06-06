@@ -3,19 +3,17 @@ import { Component, DestroyRef, ElementRef, OnDestroy, OnInit, ViewChild, inject
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { AbstractControl, ReactiveFormsModule, ValidationErrors, ValidatorFn, Validators, FormBuilder } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
-import { catchError, debounceTime, forkJoin, of } from 'rxjs';
+import { debounceTime, forkJoin } from 'rxjs';
 
 import { AdminCategoryApiService } from '../../../../core/api/admin-category-api.service';
 import { AdminDestinationApiService } from '../../../../core/api/admin-destination-api.service';
 import { AdminMediaApiService } from '../../../../core/api/admin-media-api.service';
 import { AdminTourApiService } from '../../../../core/api/admin-tour-api.service';
-import { VietnamProvinceApiService } from '../../../../core/api/vietnam-province-api.service';
 import { AdminCategory } from '../../../../core/models/category.model';
 import { AdminDestination } from '../../../../core/models/destination.model';
 import { AdminMediaItem } from '../../../../core/models/media.model';
 import { PageResponse } from '../../../../core/models/page-response.model';
 import { AdminTour, AdminTourCreateRequest, AdminTourUpdateRequest, TourStatus } from '../../../../core/models/admin-tour.model';
-import { VietnamProvince } from '../../../../core/models/vietnam-province.model';
 import { AdminUiFeedbackService } from '../../../../core/services/admin-ui-feedback.service';
 import { TourGallery } from '../tour-gallery/tour-gallery';
 import { TourItinerary } from '../tour-itinerary/tour-itinerary';
@@ -38,9 +36,9 @@ interface DepartureOption {
 
 interface DestinationSelectOption {
   label: string;
+  displayLabel: string;
   value: string;
   destinationId: number;
-  missingAdminRecord: boolean;
 }
 
 type MediaTab = 'library' | 'upload' | 'manual';
@@ -62,7 +60,6 @@ export class TourForm implements OnInit, OnDestroy {
   private readonly adminDestinationApiService = inject(AdminDestinationApiService);
   private readonly adminMediaApiService = inject(AdminMediaApiService);
   private readonly feedback = inject(AdminUiFeedbackService);
-  private readonly vietnamProvinceApiService = inject(VietnamProvinceApiService);
   private readonly destroyRef = inject(DestroyRef);
   private readonly draftStorageKey = 'vv_admin_tour_create_draft';
 
@@ -102,16 +99,12 @@ export class TourForm implements OnInit, OnDestroy {
   tourId: number | null = null;
   categories: AdminCategory[] = [];
   destinations: AdminDestination[] = [];
-  provinces: VietnamProvince[] = [];
   destinationSelectOptions: DestinationSelectOption[] = [];
   departureSelectOptions: DepartureOption[] = [];
   selectedDestinationOptions: DestinationSelectOption[] = [];
   selectedDestinationIds: number[] = [];
   selectedDestinationLabel = 'Chọn điểm đến';
   isDestinationDropdownOpen = false;
-  selectedDestinationMissingAdminRecord = false;
-  destinationProvinceWarning = '';
-  departureProvinceWarning = '';
   selectedThumbnailUrl = '';
   showDraftBanner = false;
   draftRestored = false;
@@ -210,13 +203,11 @@ export class TourForm implements OnInit, OnDestroy {
       ? forkJoin({
           categories: this.adminCategoryApiService.getCategories(),
           destinations: this.adminDestinationApiService.getDestinations(),
-          provinces: this.vietnamProvinceApiService.getProvinces().pipe(catchError(() => of([] as VietnamProvince[]))),
           tour: this.adminTourApiService.getTour(this.tourId),
         })
       : forkJoin({
           categories: this.adminCategoryApiService.getCategories(),
           destinations: this.adminDestinationApiService.getDestinations(),
-          provinces: this.vietnamProvinceApiService.getProvinces().pipe(catchError(() => of([] as VietnamProvince[]))),
         });
 
     request
@@ -225,7 +216,6 @@ export class TourForm implements OnInit, OnDestroy {
         next: (response) => {
           this.categories = this.normalizeCategories(this.extractList<AdminCategory>(response.categories));
           this.destinations = this.extractList<AdminDestination>(response.destinations).filter((item) => !!item.id);
-          this.provinces = this.normalizeProvinces(response.provinces);
 
           if ('tour' in response) {
             const tour = this.extractItem<AdminTour>(response.tour);
@@ -675,13 +665,15 @@ export class TourForm implements OnInit, OnDestroy {
   }
 
   destinationLabel(destination: AdminDestination): string {
-    const parts = [
-      destination.name || destination.slug || `#${destination.id}`,
-      destination.country,
-      destination.region,
-    ].filter((part): part is string => !!part);
+    const name = destination.name || destination.slug || `#${destination.id}`;
+    const country = destination.country?.trim();
+    const region = destination.region?.trim();
 
-    return parts.join(' - ');
+    if (this.destinationMatchesRegion(destination, 'DOMESTIC')) {
+      return [name, country || 'Việt Nam', region && region !== 'DOMESTIC' ? region : ''].filter(Boolean).join(' - ');
+    }
+
+    return [name, country].filter(Boolean).join(' - ');
   }
 
   destinationShortLabel(destination: AdminDestination): string {
@@ -708,7 +700,7 @@ export class TourForm implements OnInit, OnDestroy {
     }
 
     const visibleOptions = this.selectedDestinationOptions.slice(0, 3);
-    const label = visibleOptions.map((option) => option.label).join(' - ');
+    const label = visibleOptions.map((option) => option.displayLabel).join(' - ');
     const remainingCount = this.selectedDestinationOptions.length - visibleOptions.length;
 
     return remainingCount > 0 ? `${label} - +${remainingCount} điểm` : label;
@@ -831,24 +823,6 @@ export class TourForm implements OnInit, OnDestroy {
   private rebuildDestinationSelectOptions(): void {
     const regionHint = this.selectedCategoryRegionHint();
 
-    this.destinationProvinceWarning = this.provinces.length ? '' : 'Đang dùng điểm đến Admin.';
-
-    if (this.provinces.length) {
-      this.destinationSelectOptions = this.provinces.map((province) => {
-        const destination = this.findDestinationForProvince(province);
-        const label = province.displayName || province.name;
-
-        return {
-          label,
-          value: this.provinceSelectionKey(province),
-          destinationId: this.parseNumber(destination?.id) ?? 0,
-          missingAdminRecord: !destination,
-        };
-      });
-      this.updateSelectedDestinationState();
-      return;
-    }
-
     const sortedDestinations = regionHint
       ? [...this.destinations].sort((a, b) => {
           const aMatch = this.destinationMatchesRegion(a, regionHint) ? 0 : 1;
@@ -858,26 +832,20 @@ export class TourForm implements OnInit, OnDestroy {
       : this.destinations;
 
     this.destinationSelectOptions = sortedDestinations.map((destination) => ({
-      label: this.destinationShortLabel(destination),
+      label: this.destinationLabel(destination),
+      displayLabel: this.destinationShortLabel(destination),
       value: this.destinationSelectionKey(destination),
       destinationId: this.parseNumber(destination.id) ?? 0,
-      missingAdminRecord: false,
     }));
     this.updateSelectedDestinationState();
   }
 
   private rebuildDepartureSelectOptions(): void {
     const current = this.form.controls.departureLocation.value.trim();
-    const provinceOptions = this.provinces.map((province) => {
-      const label = province.displayName || province.name;
-      return { label, value: label };
-    });
-    const baseOptions = provinceOptions.length ? provinceOptions : this.standardDepartureOptions;
-
-    this.departureProvinceWarning = this.provinces.length ? '' : 'Đang dùng danh sách dự phòng.';
-    this.departureSelectOptions = !current || baseOptions.some((option) => option.value === current)
-      ? baseOptions
-      : [{ label: `Khác: ${current}`, value: current }, ...baseOptions];
+    const hasCurrent = this.standardDepartureOptions.some((option) => option.value === current);
+    this.departureSelectOptions = !current || hasCurrent
+      ? this.standardDepartureOptions
+      : [{ label: `Khác: ${current}`, value: current }, ...this.standardDepartureOptions];
   }
 
   private updateSelectedDestinationState(): void {
@@ -885,7 +853,6 @@ export class TourForm implements OnInit, OnDestroy {
       this.selectedDestinationOptions = [];
       this.selectedDestinationIds = [];
       this.selectedDestinationLabel = 'Chọn điểm đến';
-      this.selectedDestinationMissingAdminRecord = false;
       return;
     }
 
@@ -900,7 +867,6 @@ export class TourForm implements OnInit, OnDestroy {
       this.selectedDestinationOptions = [];
       this.selectedDestinationIds = [];
       this.selectedDestinationLabel = 'Chọn điểm đến';
-      this.selectedDestinationMissingAdminRecord = false;
       this.form.controls.destinationSelectionKey.setValue('', { emitEvent: false });
       this.form.controls.destinationId.setValue(0, { emitEvent: false });
       return;
@@ -912,7 +878,6 @@ export class TourForm implements OnInit, OnDestroy {
     this.selectedDestinationIds = this.selectedDestinationOptions
       .map((option) => option.destinationId)
       .filter((id) => id > 0);
-    this.selectedDestinationMissingAdminRecord = this.selectedDestinationOptions.some((option) => option.missingAdminRecord || !option.destinationId);
     this.selectedDestinationLabel = this.getSelectedDestinationLabel();
 
     const primaryOption = this.selectedDestinationOptions[0];
@@ -1006,61 +971,6 @@ export class TourForm implements OnInit, OnDestroy {
     return activeCategories.length ? activeCategories : validCategories;
   }
 
-  private normalizeProvinces(provinces: VietnamProvince[]): VietnamProvince[] {
-    return provinces
-      .filter((province) => !!province?.name && this.parseNumber(province.code) !== undefined)
-      .map((province) => ({
-        ...province,
-        displayName: province.displayName || this.shortProvinceName(province.name),
-        divisionType: province.divisionType || province.division_type,
-      }))
-      .sort((a, b) => (a.displayName || a.name).localeCompare(b.displayName || b.name, 'vi'));
-  }
-
-  private findDestinationForProvince(province: VietnamProvince): AdminDestination | null {
-    const provinceKeys = new Set([
-      this.normalizeText(province.name),
-      this.normalizeText(province.displayName || ''),
-      this.normalizeText(province.codename || ''),
-    ].filter(Boolean));
-
-    return this.destinations.find((destination) => {
-      const destinationKeys = [
-        destination.name,
-        destination.slug,
-        destination.region,
-      ].map((value) => this.normalizeText(value || ''));
-
-      return destinationKeys.some((key) => provinceKeys.has(key));
-    }) || null;
-  }
-
-  private findProvinceForDestination(destination: AdminDestination | undefined): VietnamProvince | null {
-    if (!destination) {
-      return null;
-    }
-
-    const destinationKeys = new Set([
-      this.normalizeText(destination.name || ''),
-      this.normalizeText(destination.slug || ''),
-      this.normalizeText(destination.region || ''),
-    ].filter(Boolean));
-
-    return this.provinces.find((province) => {
-      const provinceKeys = [
-        this.normalizeText(province.name),
-        this.normalizeText(province.displayName || ''),
-        this.normalizeText(province.codename || ''),
-      ];
-
-      return provinceKeys.some((key) => destinationKeys.has(key));
-    }) || null;
-  }
-
-  private provinceSelectionKey(province: VietnamProvince): string {
-    return `province:${province.code}`;
-  }
-
   private destinationSelectionKey(destination: AdminDestination): string {
     return `destination:${destination.id}`;
   }
@@ -1072,8 +982,7 @@ export class TourForm implements OnInit, OnDestroy {
       return '';
     }
 
-    const province = this.findProvinceForDestination(destination);
-    return province ? this.provinceSelectionKey(province) : this.destinationSelectionKey(destination);
+    return this.destinationSelectionKey(destination);
   }
 
   private categoryNameFromSlug(slug?: string): string {
@@ -1140,14 +1049,6 @@ export class TourForm implements OnInit, OnDestroy {
       .replace(/-+/g, '-')
       .replace(/^-|-$/g, '');
   }
-
-  private shortProvinceName(name: string): string {
-    return name
-      .replace(/^Thành phố\s+/i, '')
-      .replace(/^Tỉnh\s+/i, '')
-      .trim();
-  }
-
 
   private revokeUploadPreviewUrl(): void {
     if (this.uploadPreviewUrl) {

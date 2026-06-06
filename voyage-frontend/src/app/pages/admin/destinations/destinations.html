@@ -30,63 +30,248 @@
 
     <form [formGroup]="form" (ngSubmit)="submitForm()">
       <div class="admin-destinations__form-grid">
-        <label class="admin-destinations__field">
-          Tên điểm đến
-          <input type="text" formControlName="name" placeholder="Ví dụ: Đà Nẵng" (input)="handleNameInput()" />
-          <small *ngIf="form.controls.name.touched && form.controls.name.invalid">Tên điểm đến là bắt buộc.</small>
-        </label>
+        <div class="admin-destinations__field admin-destinations__field--full">
+          <label class="admin-destinations__label admin-destinations__label--required">Loại điểm đến</label>
+          <div class="admin-destinations__control-wrap">
+            <div class="admin-destinations__mode">
+              <button
+                type="button"
+                class="admin-destinations__mode-option"
+                [class.admin-destinations__mode-option--active]="form.controls.region.value === 'DOMESTIC'"
+                (click)="selectRegion('DOMESTIC')"
+              >
+                <span class="admin-destinations__mode-title">Trong nước</span>
+                <span class="admin-destinations__mode-text">Chọn miền và tỉnh/thành Việt Nam</span>
+              </button>
+              <button
+                type="button"
+                class="admin-destinations__mode-option"
+                [class.admin-destinations__mode-option--active]="form.controls.region.value === 'INTERNATIONAL'"
+                (click)="selectRegion('INTERNATIONAL')"
+              >
+                <span class="admin-destinations__mode-title">Quốc tế</span>
+                <span class="admin-destinations__mode-text">Chọn quốc gia và thành phố</span>
+              </button>
+            </div>
+          </div>
+          <div class="admin-destinations__message-slot">
+            <p class="admin-destinations__field-error" *ngIf="form.controls.region.touched && form.controls.region.invalid">Loại điểm đến là bắt buộc.</p>
+          </div>
+        </div>
 
-        <label class="admin-destinations__field">
-          Slug
-          <input type="text" formControlName="slug" placeholder="da-nang" (input)="markSlugEdited()" />
-          <small *ngIf="form.controls.slug.touched && form.controls.slug.invalid">Slug là bắt buộc.</small>
-        </label>
-
-        <label class="admin-destinations__field">
-          Khu vực
-          <input type="text" formControlName="region" list="destination-region-options" placeholder="DOMESTIC hoặc Miền Bắc" (input)="handleRegionChange($event)" />
-          <datalist id="destination-region-options">
-            <option *ngFor="let option of regionOptions" [value]="option.value">{{ option.label }}</option>
-          </datalist>
-          <small *ngIf="form.controls.region.touched && form.controls.region.invalid">Khu vực là bắt buộc.</small>
-        </label>
-
-        <label class="admin-destinations__field">
-          Quốc gia
-          <input type="text" formControlName="country" placeholder="Việt Nam" />
-          <small *ngIf="form.controls.country.touched && form.controls.country.invalid">Quốc gia là bắt buộc.</small>
-        </label>
-
-        <label class="admin-destinations__field admin-destinations__field--wide">
-          Mô tả
-          <textarea rows="3" formControlName="description" placeholder="Mô tả ngắn về điểm đến"></textarea>
-        </label>
-
-        <label class="admin-destinations__field admin-destinations__field--wide">
-          URL ảnh Cloudinary
-          <input type="url" formControlName="imageUrl" placeholder="Dán URL ảnh từ /admin/media" />
-          <small>Upload ảnh tại Media, copy URL Cloudinary rồi paste vào đây. Destinations không upload ảnh trực tiếp.</small>
-        </label>
-
-        <label class="admin-destinations__field">
-          Latitude
-          <input type="number" formControlName="latitude" step="0.000001" placeholder="16.054407" />
-        </label>
-
-        <label class="admin-destinations__field">
-          Longitude
-          <input type="number" formControlName="longitude" step="0.000001" placeholder="108.202167" />
-        </label>
-
-        <label class="admin-destinations__field" *ngIf="isEditMode">
-          Trạng thái
-          <select formControlName="status">
-            <option value="ACTIVE">Đang hiển thị</option>
-            <option value="INACTIVE">Tạm ẩn</option>
+        <div class="admin-destinations__field" *ngIf="isDomesticForm()">
+          <label class="admin-destinations__label admin-destinations__label--required">Mi&#7873;n</label>
+          <select class="admin-destinations__select" formControlName="subRegion">
+            <option value="">Ch&#7885;n mi&#7873;n</option>
+            <option value="NORTH">Mi&#7873;n B&#7855;c</option>
+            <option value="CENTRAL">Mi&#7873;n Trung</option>
+            <option value="SOUTH">Mi&#7873;n Nam</option>
           </select>
-        </label>
+          <div class="admin-destinations__message-slot"></div>
+        </div>
 
-        <div class="admin-destinations__preview admin-destinations__field--wide">
+        <div class="admin-destinations__field" *ngIf="isDomesticForm()">
+          <label class="admin-destinations__label admin-destinations__label--required">Tỉnh/Thành điểm đến</label>
+          <div
+            class="admin-destinations__control-wrap admin-destinations__autocomplete"
+            [class.admin-destinations__control-wrap--open]="isProvinceDropdownOpen"
+          >
+            <input
+              class="admin-destinations__input admin-destinations__input--with-chevron"
+              type="text"
+              [value]="provinceSearchKeyword"
+              [placeholder]="form.controls.subRegion.value ? 'Nhập hoặc tìm tỉnh/thành' : 'Vui lòng chọn miền trước'"
+              autocomplete="off"
+              [disabled]="!shouldShowProvincePicker()"
+              (mousedown)="handleProvinceInputMouseDown($event)"
+              (focus)="openProvinceDropdown()"
+              (input)="onProvinceInput($any($event.target).value)"
+              (keydown)="onProvinceKeydown($event)"
+            />
+            <button
+              type="button"
+              class="admin-destinations__chevron-button"
+              [disabled]="!shouldShowProvincePicker()"
+              (mousedown)="toggleProvinceDropdown($event)"
+            >
+              <tui-icon class="admin-destinations__chevron-icon" icon="@tui.chevron-down" />
+            </button>
+            <div class="admin-destinations__autocomplete-menu" *ngIf="isProvinceDropdownOpen && filteredDomesticProvinces.length">
+              <button
+                type="button"
+                class="admin-destinations__autocomplete-option admin-destinations__province-option"
+                [class.admin-destinations__autocomplete-option--active]="provinceIndex === activeProvinceIndex"
+                [class.admin-destinations__autocomplete-option--selected]="selectedProvince === province"
+                *ngFor="let province of filteredDomesticProvinces; let provinceIndex = index"
+                (mousedown)="selectProvince(province); $event.preventDefault()"
+              >
+                {{ provinceDisplayName(province) }}
+              </button>
+            </div>
+          </div>
+          <div class="admin-destinations__message-slot">
+            <p class="admin-destinations__field-help" *ngIf="isDomesticForm() && !form.controls.subRegion.value">Chọn miền trước để lọc tỉnh/thành.</p>
+          </div>
+        </div>
+
+        <div class="admin-destinations__field" *ngIf="isInternationalForm()">
+          <label class="admin-destinations__label admin-destinations__label--required">Quốc gia</label>
+          <div
+            class="admin-destinations__control-wrap admin-destinations__autocomplete"
+            [class.admin-destinations__control-wrap--open]="isCountryDropdownOpen"
+          >
+            <input
+              class="admin-destinations__input admin-destinations__input--with-chevron"
+              type="text"
+              [value]="countrySearchKeyword"
+              placeholder="Nhập hoặc tìm quốc gia"
+              autocomplete="off"
+              (mousedown)="handleCountryInputMouseDown($event)"
+              (focus)="openCountryDropdown()"
+              (input)="onCountryInput($any($event.target).value)"
+              (keydown)="onCountryKeydown($event)"
+            />
+            <button
+              type="button"
+              class="admin-destinations__chevron-button"
+              (mousedown)="toggleCountryDropdown($event)"
+            >
+              <tui-icon class="admin-destinations__chevron-icon" icon="@tui.chevron-down" />
+            </button>
+            <div class="admin-destinations__autocomplete-menu" *ngIf="isCountryDropdownOpen && filteredCountryOptions.length">
+              <button
+                type="button"
+                class="admin-destinations__autocomplete-option admin-destinations__country-option"
+                [class.admin-destinations__autocomplete-option--active]="countryIndex === activeCountryIndex"
+                [class.admin-destinations__autocomplete-option--selected]="selectedCountryOption === country"
+                *ngFor="let country of filteredCountryOptions; let countryIndex = index"
+                (mousedown)="selectCountry(country); $event.preventDefault()"
+              >
+                {{ countryOptionLabel(country) }}
+              </button>
+            </div>
+          </div>
+          <div class="admin-destinations__message-slot">
+            <p class="admin-destinations__field-error" *ngIf="form.controls.country.touched && form.controls.country.invalid">Quốc gia là bắt buộc.</p>
+          </div>
+        </div>
+
+        <div class="admin-destinations__field" *ngIf="isInternationalForm()">
+          <label class="admin-destinations__label admin-destinations__label--required">Thành phố</label>
+          <div
+            class="admin-destinations__control-wrap admin-destinations__autocomplete"
+            [class.admin-destinations__control-wrap--open]="isCityDropdownOpen"
+          >
+            <input
+              class="admin-destinations__input admin-destinations__input--with-chevron"
+              type="text"
+              [value]="citySearchKeyword"
+              [placeholder]="shouldShowInternationalCityPicker() ? 'Nhập hoặc tìm thành phố' : 'Vui lòng chọn quốc gia trước'"
+              autocomplete="off"
+              [disabled]="!shouldShowInternationalCityPicker() || loadingCities"
+              (mousedown)="handleCityInputMouseDown($event)"
+              (focus)="openCityDropdown()"
+              (input)="onCityInput($any($event.target).value)"
+              (blur)="commitManualCity()"
+              (keydown)="handleCityKeydown($event)"
+            />
+            <button
+              type="button"
+              class="admin-destinations__chevron-button"
+              [disabled]="!shouldShowInternationalCityPicker() || loadingCities"
+              (mousedown)="toggleCityDropdown($event)"
+            >
+              <tui-icon class="admin-destinations__chevron-icon" icon="@tui.chevron-down" />
+            </button>
+            <div class="admin-destinations__autocomplete-menu" *ngIf="isCityDropdownOpen && filteredCityOptions.length">
+              <button
+                type="button"
+                class="admin-destinations__autocomplete-option admin-destinations__city-option"
+                [class.admin-destinations__autocomplete-option--active]="cityIndex === activeCityIndex"
+                [class.admin-destinations__autocomplete-option--selected]="selectedCityName === city"
+                *ngFor="let city of filteredCityOptions; let cityIndex = index"
+                (mousedown)="selectCity(city); $event.preventDefault()"
+              >
+                {{ city }}
+              </button>
+            </div>
+          </div>
+          <div class="admin-destinations__message-slot">
+            <p class="admin-destinations__field-help" *ngIf="loadingCities">Đang tải thành phố...</p>
+            <p class="admin-destinations__field-warning" *ngIf="!loadingCities && cityApiErrorMessage">{{ cityApiErrorMessage }}</p>
+          </div>
+        </div>
+
+        <div class="admin-destinations__field">
+          <label class="admin-destinations__label admin-destinations__label--required">Tên điểm đến</label>
+          <div class="admin-destinations__control-wrap">
+            <input class="admin-destinations__input" type="text" formControlName="name" placeholder="Tự động theo tỉnh/thành hoặc thành phố" readonly />
+          </div>
+          <div class="admin-destinations__message-slot">
+            <p class="admin-destinations__field-error" *ngIf="form.controls.name.touched && form.controls.name.invalid">Tên điểm đến là bắt buộc.</p>
+          </div>
+        </div>
+        <div class="admin-destinations__field">
+          <label class="admin-destinations__label admin-destinations__label--required">Slug</label>
+          <div class="admin-destinations__control-wrap">
+            <input class="admin-destinations__input" type="text" formControlName="slug" placeholder="ha-long" (input)="markSlugEdited()" />
+          </div>
+          <div class="admin-destinations__message-slot">
+            <p class="admin-destinations__field-error" *ngIf="form.controls.slug.touched && form.controls.slug.invalid">Slug là bắt buộc.</p>
+          </div>
+        </div>
+
+        <div class="admin-destinations__field admin-destinations__field--full" *ngIf="destinationDataWarning">
+          <label class="admin-destinations__label">Cảnh báo dữ liệu</label>
+          <div class="admin-destinations__control-wrap">
+            <div class="admin-destinations__data-warning">{{ destinationDataWarning }}</div>
+          </div>
+          <div class="admin-destinations__message-slot"></div>
+        </div>
+
+        <div class="admin-destinations__field admin-destinations__field--full">
+          <label class="admin-destinations__label">Mô tả</label>
+          <div class="admin-destinations__control-wrap">
+            <textarea class="admin-destinations__textarea" rows="3" formControlName="description" placeholder="Mô tả ngắn về điểm đến"></textarea>
+          </div>
+          <div class="admin-destinations__message-slot"></div>
+        </div>
+
+        <div class="admin-destinations__field admin-destinations__field--full">
+          <app-admin-image-upload
+            formControlName="imageUrl"
+            label="Ảnh điểm đến"
+            uploadModule="destinations"
+            helpText="Upload ảnh trực tiếp hoặc dán URL Cloudinary đã có. URL này vẫn được lưu vào trường imageUrl."
+          />
+        </div>
+
+        <div class="admin-destinations__field">
+          <label class="admin-destinations__label">Vĩ độ</label>
+          <div class="admin-destinations__control-wrap">
+            <input class="admin-destinations__input" type="text" inputmode="decimal" formControlName="latitude" placeholder="Ví dụ: 16.054407" />
+          </div>
+          <div class="admin-destinations__message-slot"></div>
+        </div>
+
+        <div class="admin-destinations__field">
+          <label class="admin-destinations__label">Kinh độ</label>
+          <div class="admin-destinations__control-wrap">
+            <input class="admin-destinations__input" type="text" inputmode="decimal" formControlName="longitude" placeholder="Ví dụ: 108.202167" />
+          </div>
+          <div class="admin-destinations__message-slot"></div>
+        </div>
+
+        <div class="admin-destinations__field" *ngIf="isEditMode">
+          <label class="admin-destinations__label">Tr&#7841;ng th&#225;i</label>
+          <select class="admin-destinations__select" formControlName="status">
+            <option value="ACTIVE">&#272;ang hi&#7875;n th&#7883;</option>
+            <option value="INACTIVE">T&#7841;m &#7849;n</option>
+          </select>
+          <div class="admin-destinations__message-slot"></div>
+        </div>
+
+        <div class="admin-destinations__preview admin-destinations__field--full">
           <span>Preview ảnh</span>
           <img
             *ngIf="imagePreviewUrl(); else noPreview"
@@ -99,7 +284,6 @@
           </ng-template>
         </div>
       </div>
-
       <div class="admin-destinations__form-actions">
         <a routerLink="/admin/media">Mở Media</a>
         <button type="button" *ngIf="isEditMode" [disabled]="updatingImage || saving" (click)="updateImageOnly()">
@@ -120,16 +304,58 @@
 
     <label>
       Trạng thái
-      <select [value]="statusFilter" (change)="updateStatusFilter($event)">
-        <option *ngFor="let option of statusFilters" [value]="option.value">{{ option.label }}</option>
-      </select>
+      <div
+        class="admin-destinations__control-wrap admin-destinations__control-wrap--select"
+        [class.admin-destinations__control-wrap--open]="focusedSelect === 'statusFilter'"
+      >
+        <button
+          type="button"
+          class="admin-destinations__select-trigger"
+          (click)="toggleSelect('statusFilter')"
+        >
+          {{ statusFilterLabel(statusFilter) }}
+        </button>
+        <tui-icon class="admin-destinations__chevron-icon admin-destinations__chevron-icon--select" icon="@tui.chevron-down" />
+        <div class="admin-destinations__select-menu" *ngIf="focusedSelect === 'statusFilter'">
+          <button
+            type="button"
+            class="admin-destinations__select-option"
+            [class.admin-destinations__select-option--selected]="statusFilter === option.value"
+            *ngFor="let option of statusFilters"
+            (click)="selectStatusFilter(option.value)"
+          >
+            {{ option.label }}
+          </button>
+        </div>
+      </div>
     </label>
 
     <label>
       Khu vực
-      <select [value]="regionFilter" (change)="updateRegionFilter($event)">
-        <option *ngFor="let option of regionFilters" [value]="option.value">{{ option.label }}</option>
-      </select>
+      <div
+        class="admin-destinations__control-wrap admin-destinations__control-wrap--select"
+        [class.admin-destinations__control-wrap--open]="focusedSelect === 'regionFilter'"
+      >
+        <button
+          type="button"
+          class="admin-destinations__select-trigger"
+          (click)="toggleSelect('regionFilter')"
+        >
+          {{ regionFilterLabel(regionFilter) }}
+        </button>
+        <tui-icon class="admin-destinations__chevron-icon admin-destinations__chevron-icon--select" icon="@tui.chevron-down" />
+        <div class="admin-destinations__select-menu" *ngIf="focusedSelect === 'regionFilter'">
+          <button
+            type="button"
+            class="admin-destinations__select-option"
+            [class.admin-destinations__select-option--selected]="regionFilter === option.value"
+            *ngFor="let option of regionFilters"
+            (click)="selectRegionFilter(option.value)"
+          >
+            {{ option.label }}
+          </button>
+        </div>
+      </div>
     </label>
 
     <div>

@@ -69,6 +69,8 @@ export interface AdminTourImage {
   imageUrl?: string;
   secureUrl?: string;
   publicId?: string;
+  sourceType?: 'MEDIA' | 'DIRECT_UPLOAD' | string;
+  mediaId?: number;
   altText?: string;
   sortOrder?: number;
   isThumbnail?: boolean;
@@ -94,6 +96,7 @@ export interface AdminTourImageFromMediaRequest {
   mediaId: number;
   altText?: string;
   sortOrder?: number;
+  thumbnail?: boolean;
   isThumbnail?: boolean;
 }
 

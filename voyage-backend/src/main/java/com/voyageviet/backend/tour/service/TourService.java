@@ -609,6 +609,8 @@ public class TourService {
                         .tour(targetTour)
                         .url(image.getUrl())
                         .publicId(image.getPublicId())
+                        .sourceType(image.getSourceType())
+                        .mediaId(image.getMediaId())
                         .altText(image.getAltText())
                         .sortOrder(image.getSortOrder())
                         .thumbnail(image.getThumbnail())

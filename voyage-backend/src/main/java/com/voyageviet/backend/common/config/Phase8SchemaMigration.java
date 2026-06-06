@@ -23,6 +23,8 @@ public class Phase8SchemaMigration implements CommandLineRunner {
         addColumnIfMissing("TOURS", "TOTAL_REVIEWS", "NUMBER(10) DEFAULT 0 NOT NULL");
         addColumnIfMissing("TOURS", "HIGHLIGHT_TAGS", "CLOB");
         addColumnIfMissing("TOURS", "MIN_PRICE", "NUMBER(15,2)");
+        addColumnIfMissing("TOUR_IMAGES", "SOURCE_TYPE", "VARCHAR2(30) DEFAULT 'DIRECT_UPLOAD' NOT NULL");
+        addColumnIfMissing("TOUR_IMAGES", "MEDIA_ID", "NUMBER(19)");
     }
 
     private void addColumnIfMissing(String tableName, String columnName, String columnDefinition) {

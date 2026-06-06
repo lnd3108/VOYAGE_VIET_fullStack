@@ -12,6 +12,7 @@ import { AdminUiFeedbackService } from '../../../core/services/admin-ui-feedback
 type TourStatusFilter = 'ALL' | TourStatus;
 type FeaturedFilter = 'ALL' | 'FEATURED' | 'NORMAL';
 type TourSortOption = 'UPDATED_DESC' | 'TITLE_ASC' | 'PRICE_ASC' | 'PRICE_DESC' | 'SEATS_ASC';
+type TourFilterDropdown = 'status' | 'featured' | 'category' | 'destination' | 'sort';
 
 interface FilterOption<T> {
   label: string;
@@ -91,20 +92,26 @@ export class AdminTours implements OnInit {
   checklistItems: string[] = [];
   openedActionTourId: number | null = null;
   actionMenuPlacement: 'bottom' | 'top' = 'bottom';
+  openedFilter: TourFilterDropdown | null = null;
 
   ngOnInit(): void {
     this.loadTours();
   }
 
   @HostListener('document:click')
+  closeOverlayMenus(): void {
+    this.closeFilterDropdown();
+    this.closeActionMenu();
+  }
+
   closeActionMenu(): void {
     this.openedActionTourId = null;
     this.actionMenuPlacement = 'bottom';
   }
 
   @HostListener('document:keydown.escape')
-  closeActionMenuByEscape(): void {
-    this.closeActionMenu();
+  closeOverlayMenusByEscape(): void {
+    this.closeOverlayMenus();
   }
 
   get stats(): TourStats {
@@ -155,6 +162,74 @@ export class AdminTours implements OnInit {
 
   updateKeyword(event: Event): void {
     this.keyword = (event.target as HTMLInputElement).value;
+    this.applyFilters();
+  }
+
+  toggleFilterDropdown(filter: TourFilterDropdown, event?: Event): void {
+    event?.stopPropagation();
+    this.openedActionTourId = null;
+    this.openedFilter = this.openedFilter === filter ? null : filter;
+  }
+
+  closeFilterDropdown(): void {
+    this.openedFilter = null;
+  }
+
+  statusFilterLabel(): string {
+    return this.statusFilters.find((option) => option.value === this.statusFilter)?.label || 'Tất cả trạng thái';
+  }
+
+  featuredFilterLabel(): string {
+    return this.featuredFilters.find((option) => option.value === this.featuredFilter)?.label || 'Tất cả loại tour';
+  }
+
+  categoryFilterLabel(): string {
+    if (this.categoryFilter === 'ALL') {
+      return 'Tất cả danh mục';
+    }
+
+    return this.categoryOptions.find((option) => option.value === this.categoryFilter)?.label || 'Tất cả danh mục';
+  }
+
+  destinationFilterLabel(): string {
+    if (this.destinationFilter === 'ALL') {
+      return 'Tất cả điểm đến';
+    }
+
+    return this.destinationOptions.find((option) => option.value === this.destinationFilter)?.label || 'Tất cả điểm đến';
+  }
+
+  sortOptionLabel(): string {
+    return this.sortOptions.find((option) => option.value === this.sortOption)?.label || 'Mới cập nhật';
+  }
+
+  selectStatusFilter(value: TourStatusFilter): void {
+    this.statusFilter = value;
+    this.closeFilterDropdown();
+    this.applyFilters();
+  }
+
+  selectFeaturedFilter(value: FeaturedFilter): void {
+    this.featuredFilter = value;
+    this.closeFilterDropdown();
+    this.applyFilters();
+  }
+
+  selectCategoryFilter(value: string): void {
+    this.categoryFilter = value;
+    this.closeFilterDropdown();
+    this.applyFilters();
+  }
+
+  selectDestinationFilter(value: string): void {
+    this.destinationFilter = value;
+    this.closeFilterDropdown();
+    this.applyFilters();
+  }
+
+  selectSortOption(value: TourSortOption): void {
+    this.sortOption = value;
+    this.closeFilterDropdown();
     this.applyFilters();
   }
 
