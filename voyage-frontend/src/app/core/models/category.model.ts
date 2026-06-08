@@ -9,7 +9,13 @@ export interface CategoryResponse {
   status: CategoryStatus;
   displayOrder?: number;
   createdAt?: string;
+  createdDate?: string;
+  createdOn?: string;
   updatedAt?: string;
+  updatedDate?: string;
+  updatedOn?: string;
+  modifiedAt?: string;
+  lastModifiedAt?: string;
 }
 
 export interface AdminCategory {
@@ -25,7 +31,13 @@ export interface AdminCategory {
   order?: number;
   position?: number;
   createdAt?: string;
+  createdDate?: string;
+  createdOn?: string;
   updatedAt?: string;
+  updatedDate?: string;
+  updatedOn?: string;
+  modifiedAt?: string;
+  lastModifiedAt?: string;
 }
 
 export interface AdminCategoryCreateRequest {

@@ -26,6 +26,101 @@
     }
   }
 
+  &__action-cell {
+    display: flex;
+    justify-content: center;
+  }
+
+  &__action-wrap {
+    position: relative;
+  }
+
+  button#{&}__action-trigger {
+    width: 38px;
+    min-height: 38px;
+    padding: 0;
+    border: 1px solid #d6e6e2;
+    border-radius: 13px;
+    background: #fff;
+    color: var(--cat-primary);
+
+    &:hover:not(:disabled),
+    &:focus-visible {
+      border-color: rgba(31, 111, 104, 0.35);
+      background: #eef8f6;
+      outline: 0;
+    }
+  }
+
+  &__action-menu {
+    position: absolute;
+    top: calc(100% + 6px);
+    right: 0;
+    z-index: 520;
+    width: 190px;
+    padding: 8px;
+    border: 1px solid #dde7e4;
+    border-radius: 14px;
+    background: #fff;
+    box-shadow: 0 18px 50px rgba(15, 23, 42, 0.14);
+  }
+
+  &__action-menu--top {
+    top: auto;
+    bottom: calc(100% + 6px);
+  }
+
+  button#{&}__action-item {
+    width: 100%;
+    min-height: 38px;
+    padding: 0 10px;
+    justify-content: flex-start;
+    gap: 10px;
+    border: 0;
+    border-radius: 10px;
+    background: #fff;
+    color: var(--c, #334155);
+    font-size: 13px;
+    font-weight: 800;
+    text-align: left;
+
+    &:hover:not(:disabled),
+    &:focus-visible {
+      background: var(--h, #f1f8f6);
+      color: var(--hc, var(--c, #143734));
+      outline: 0;
+    }
+  }
+
+  &__action-item-icon {
+    width: 18px;
+    height: 18px;
+    flex: 0 0 auto;
+  }
+
+  &__action-item--order,
+  &__action-item--edit {
+    --c: var(--cat-primary);
+    --h: rgba(31, 111, 104, 0.08);
+  }
+
+  &__action-item--status {
+    --c: #d97706;
+    --h: rgba(245, 158, 11, 0.1);
+  }
+
+  &__action-item--danger {
+    --c: var(--cat-danger);
+    --h: rgba(218, 8, 8, 0.08);
+    --hc: var(--cat-danger);
+  }
+
+  &__action-separator {
+    height: 1px;
+    margin: 6px 4px;
+    background: #e8efec;
+  }
+
   &__image-field {
     padding: 16px;
     display: grid;
@@ -326,5 +421,17 @@
     min-height: 180px;
     border-radius: 14px;
     background: linear-gradient(90deg, #eef2f1, #f8faf9, #eef2f1);
+  }
+
+  @media (max-width: 1180px) {
+    &__action-cell {
+      grid-column: 1 / -1;
+      justify-content: flex-start;
+    }
+
+    &__action-menu {
+      left: 0;
+      right: auto;
+    }
   }
 }

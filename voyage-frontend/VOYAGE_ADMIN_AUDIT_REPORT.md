@@ -1185,6 +1185,140 @@ Thoi gian cap nhat: 2026-06-08 09:12:04 +07:00
 - Frontend normalize URL linh hoat theo cac field: url, secureUrl, imageUrl, ileUrl, mediaUrl va cac alias trong data.
 - Media list duoc loc client-side theo media type anh; item khong co URL hop le se khong render trong grid.
 - Khong luu base64 va khong goi Cloudinary truc tiep tu frontend.
+## Cap Nhat: Gom Action Admin Categories Vao Menu Icon
 
+Thoi gian cap nhat: 2026-06-08 09:54:12 +07:00
 
+### File Da Sua
 
+- src/app/pages/admin/categories/categories.ts
+- src/app/pages/admin/categories/categories.html
+- src/app/pages/admin/categories/categories.scss
+- src/app/pages/admin/categories/categories-media.scss
+- VOYAGE_ADMIN_AUDIT_REPORT.md
+
+### Dau Viec Da Lam
+
+- Doc VOYAGE_ADMIN_AUDIT_REPORT.md, uu tien section moi nhat ve Admin Categories upload/chon anh Media.
+- Tham chieu UI action menu Admin Tours va anh nguoi dung gui: cot Hanh dong dung nut ba cham doc, menu trang bo goc, action co icon va mau theo ngu nghia.
+- Chi sua Admin Categories va audit admin; khong sua Admin Tours, Tour Form, Admin Destinations, Admin Media, AdminLayout hoac public pages.
+- Khong ghi thay doi vao VOYAGE_FRONTEND_AUDIT_REPORT.md.
+
+### Chuc Nang Da Sua
+
+- Gom cac action trong cot Hanh dong cua bang Admin Categories vao mot nut icon @tui.more-vertical.
+- Them dropdown action menu cho tung danh muc, pattern tu Admin Tours:
+  - Len
+  - Xuong
+  - Sua
+  - Bat/Tam an
+  - Xoa
+- Menu co icon cho tung action, separator giua nhom sap xep/sua, nhom trang thai va action xoa.
+- Nut Len/Xuong van an/hien theo vi tri dau/cuoi danh sach va van ton trong logic disable khi dang update thu tu.
+- Action Sua/Bat/Tam an/Xoa van goi lai handler hien co, khong doi API hoac payload.
+- Them state openedActionCategoryId, ctionMenuPlacement, close menu khi click outside va khi bam Escape.
+- Menu tu dong mo len tren neu gan day viewport de giam nguy co bi cat, tuong tu Admin Tours.
+- Cot Hanh dong duoc thu gon, khong con nhieu nut inline lam vo layout.
+- Style menu/action dua vao categories-media.scss de khong lam tang categories.scss vuot hard budget.
+
+### API Da Dung
+
+- Khong them API moi.
+- Van giu cac API hien co cua Admin Categories: create/update, status, image, delete va reorder/swap neu da co trong component hien tai.
+
+### Ket Qua Build/Test
+
+- npx ng build --configuration development: pass.
+- npm run build: pass.
+- git diff --check: pass, chi co warning line ending CRLF thong thuong.
+
+### Warning/Loi Con Lai
+
+- Production build con warning budget hien huu: initial bundle 859.40 kB vuot warning budget 500 kB.
+- Cac warning style hien huu van con: public-layout.scss, home-hero.scss, destinations.scss, categories.scss, tours.scss, tour-form.scss.
+- categories.scss warning mem 9.36 kB, duoi hard budget 10 kB va thap hon muc 9.48 kB da ghi trong audit truoc.
+- Chua test thu cong tren browser voi backend runtime trong buoc nay.
+
+### Ghi Chu Ky Thuat Va Rui Ro
+
+- Action menu chi thay doi UI/interaction, khong rewrite component va khong doi endpoint backend.
+- Click outside dang dung document mousedown va bo qua target trong .admin-categories__action-wrap.
+- Icon action dung Taiga icons cung pattern voi Admin Tours; neu icon arrow runtime khong ton tai trong bo icon, co the can doi sang icon co san khac nhung build khong bi anh huong.
+- Khi search/filter dang active, reorder van bi khoa theo logic truoc do de tranh sap xep tren danh sach rut gon gay nham lan.
+
+## Cap Nhat: Doi Bang Admin Categories Sang AG Grid
+
+Thoi gian cap nhat: 2026-06-08 10:26:16 +07:00
+
+### File Da Sua/Tao Moi
+
+- package.json
+- package-lock.json
+- src/app/core/models/category.model.ts
+- src/app/pages/admin/categories/categories.ts
+- src/app/pages/admin/categories/categories.html
+- src/app/pages/admin/categories/categories.scss
+- VOYAGE_ADMIN_AUDIT_REPORT.md
+
+### Package Da Them
+
+- ag-grid-angular@35.3.1
+- ag-grid-community@35.3.1
+
+### Dau Viec Da Lam
+
+- Doc VOYAGE_ADMIN_AUDIT_REPORT.md va VOYAGE_FRONTEND_AUDIT_REPORT.md, uu tien section admin moi nhat ve action menu Admin Categories.
+- Chi sua man Admin Categories, model category va package AG Grid can thiet.
+- Khong sua Admin Tours, Tour Form, Admin Destinations, Admin Media page, AdminLayout, public pages hoac backend API.
+- Khong ghi thay doi admin vao VOYAGE_FRONTEND_AUDIT_REPORT.md.
+
+### Chuc Nang Da Them/Sua
+
+- Doi danh sach Admin Categories tu table HTML custom sang AG Grid Angular Community.
+- Them rowData rieng cho grid tu filteredCategories de giu logic search/filter/count hien co.
+- Them cot Ngay tao hien thi dd/MM/yyyy HH:mm khi backend co du lieu, thieu hoac khong parse duoc thi hien '-'.
+- Sua cot Cap nhat de doc updatedAt va cac alias ngay cap nhat that; neu thieu, sai dinh dang hoac bang ngay tao thi hien '-'.
+- Khong con hien text tinh Dang cap nhat trong cot Cap nhat.
+- Cot Anh dung cell renderer thumbnail bo goc, co fallback anh khi load loi va khong tu xoa imageUrl.
+- Cot Ten danh muc hien ten va mo ta ngan voi ellipsis de khong vo layout.
+- Cot Slug hien chip nhe, khong de text dai pha layout.
+- Cot Trang thai hien badge Dang hien thi / Tam an theo theme teal/green/orange hien co.
+- Cot Thu tu hien displayOrder da normalize va sort mac dinh tang dan.
+- Cot Hanh dong trong AG Grid van gom vao nut ba cham, giu cac action Len, Xuong, Sua, Bat/Tam an va Xoa.
+- Reorder Len/Xuong van goi confirm UI hien co va swap 2 danh muc lien ke qua update category nhu truoc.
+- Khoa reorder khi search/filter active hoac khi AG Grid dang sort khac cot Thu tu tang dan de tranh sap xep nham tren danh sach dang render.
+- Loading va empty state chuyen sang AG Grid overlay.
+- Dung AG Grid Theming API themeQuartz thay vi import CSS lon de tranh vuot hard budget global/component stylesheet.
+- Don bot style table cu khong con dung de giam categories.scss tu muc 9.58 kB ve 8.92 kB.
+
+### API Da Dung
+
+- GET /api/admin/categories thong qua AdminCategoryApiService.getCategories() nhu cu.
+- POST /api/admin/categories thong qua AdminCategoryApiService.createCategory(payload) nhu cu.
+- PUT /api/admin/categories/{id} thong qua AdminCategoryApiService.updateCategory(id, payload) nhu cu.
+- PATCH /api/admin/categories/{id}/status thong qua AdminCategoryApiService.updateCategoryStatus(id, status) nhu cu.
+- DELETE /api/admin/categories/{id} thong qua AdminCategoryApiService.deleteCategory(id) nhu cu.
+- Reorder van dung AdminCategoryApiService.swapCategoryOrder(), hien tai la forkJoin goi updateCategory cho 2 danh muc lien ke; khong them endpoint backend moi.
+
+### Ket Qua Build/Test
+
+- npx ng build --configuration development: pass.
+- npm run build: pass.
+
+### Warning/Loi Con Lai
+
+- Production build con warning budget hien huu: initial bundle 859.40 kB vuot warning budget 500 kB.
+- Production build con warning style hien huu: public-layout.scss 9.99 kB, tours.scss 9.98 kB, tour-form.scss 9.90 kB, destinations.scss 9.88 kB, home-hero.scss 9.88 kB.
+- categories.scss van con warning mem 8.92 kB vuot warning budget 8 kB, nhung da giam so voi 9.36 kB/9.48 kB trong cac section audit truoc va duoi hard budget 10 kB nen build pass.
+- Lazy chunk categories tang len khoang 1.18 MB raw trong production do AG Grid Community duoc bundle vao route Admin Categories.
+- Chua test thu cong tren browser voi backend runtime trong buoc nay.
+
+### Ghi Chu Ky Thuat Va Rui Ro
+
+- Frontend phu thuoc backend tra createdAt/updatedAt hoac cac alias createdDate, createdOn, updatedDate, updatedOn, modifiedAt, lastModifiedAt; neu backend khong tra thi grid hien '-'.
+- updatedAt bang createdAt duoc coi la chua cap nhat sau tao va hien '-'.
+- Payload category khong doi; create/update van gui imageUrl va displayOrder nhu logic hien co, khong gui mediaId.
+- Khong them AG Grid Enterprise.
+- Khong import ag-grid.css vao global/component SCSS de tranh loi hard budget; grid dung themeQuartz tu AG Grid Theming API.
+- Vi action cell renderer la HTML dong cua AG Grid, component dung ViewEncapsulation.None voi prefix class admin-categories__ de style renderer hoat dong va giam nguy co anh huong man khac.
+- Neu can giam bundle route Admin Categories ve sau, co the thay AllCommunityModule bang cac module AG Grid Community cu the dang dung.

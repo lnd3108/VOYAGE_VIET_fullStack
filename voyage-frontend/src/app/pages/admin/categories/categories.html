@@ -252,81 +252,26 @@
     </div>
   </section>
 
-  <div class="admin-categories__reorder-note" *ngIf="reorderBlockedByFilter">
-    Tắt tìm kiếm và lọc trạng thái để sắp xếp thứ tự danh mục trên toàn bộ danh sách.
+  <div class="admin-categories__reorder-note" *ngIf="reorderBlockedByFilter || gridSortBlocksReorder">
+    Tắt tìm kiếm, lọc trạng thái và đưa bảng về thứ tự mặc định để sắp xếp thứ tự danh mục trên toàn bộ danh sách.
   </div>
 
-  <section class="admin-categories__table" *ngIf="loading">
-    <div class="admin-categories__row admin-categories__row--skeleton" *ngFor="let item of [1, 2, 3, 4, 5]"></div>
+  <section class="admin-categories__grid-card">
+    <ag-grid-angular
+      class="admin-categories__grid"
+      [theme]="gridTheme"
+      [loadThemeGoogleFonts]="false"
+      [rowData]="gridRows"
+      [columnDefs]="columnDefs"
+      [defaultColDef]="defaultColDef"
+      [rowHeight]="76"
+      [domLayout]="'autoHeight'"
+      [suppressCellFocus]="true"
+      [overlayLoadingTemplate]="gridLoadingOverlay"
+      [overlayNoRowsTemplate]="gridNoRowsOverlay"
+      (gridReady)="onGridReady($event)"
+      (sortChanged)="handleGridSortChanged()"
+      (cellClicked)="handleGridCellClick($event)"
+    ></ag-grid-angular>
   </section>
-
-  <section class="admin-categories__table" *ngIf="!loading && filteredCategories.length">
-    <div class="admin-categories__table-head">
-      <span>Ảnh</span>
-      <span>Tên danh mục</span>
-      <span>Slug</span>
-      <span>Trạng thái</span>
-      <span>Thứ tự</span>
-      <span>Cập nhật</span>
-      <span>Hành động</span>
-    </div>
-
-    <article class="admin-categories__row" *ngFor="let category of filteredCategories; let categoryIndex = index">
-      <div class="admin-categories__image" data-label="Ảnh">
-        <img [src]="getCategoryImage(category)" [alt]="category.name || 'Danh mục'" (error)="handleImageError($event)" />
-      </div>
-
-      <div data-label="Tên danh mục">
-        <strong>{{ category.name || 'Chưa đặt tên' }}</strong>
-        <small>{{ category.description || 'Chưa có mô tả' }}</small>
-      </div>
-
-      <div data-label="Slug">
-        <code>{{ category.slug || 'dang-cap-nhat' }}</code>
-      </div>
-
-      <div data-label="Trạng thái">
-        <span class="admin-categories__status" [ngClass]="statusClass(category.status)">
-          {{ statusLabel(category.status) }}
-        </span>
-      </div>
-
-      <div data-label="Thứ tự">{{ categoryOrder(category) }}</div>
-      <div data-label="Cập nhật">{{ formatDate(category.updatedAt || category.createdAt) }}</div>
-
-      <div class="admin-categories__row-actions" data-label="Hành động">
-        <button
-          type="button"
-          class="admin-categories__order-action"
-          *ngIf="canMoveCategoryUp(categoryIndex)"
-          [disabled]="reorderingCategoryIds.size > 0"
-          (click)="moveCategory(category, categoryIndex, 'up')"
-        >
-          Lên
-        </button>
-        <button
-          type="button"
-          class="admin-categories__order-action"
-          *ngIf="canMoveCategoryDown(categoryIndex)"
-          [disabled]="reorderingCategoryIds.size > 0"
-          (click)="moveCategory(category, categoryIndex, 'down')"
-        >
-          Xuống
-        </button>
-        <button type="button" (click)="openEditForm(category)">Sửa</button>
-        <button type="button" class="admin-categories__status-action" [disabled]="updatingStatusId === category.id" (click)="toggleStatus(category)">
-          {{ updatingStatusId === category.id ? 'Đang đổi...' : nextStatusLabel(category) }}
-        </button>
-        <button type="button" class="admin-categories__danger" [disabled]="deletingId === category.id" (click)="deleteCategory(category)">
-          {{ deletingId === category.id ? 'Đang xóa...' : 'Xóa' }}
-        </button>
-      </div>
-    </article>
-  </section>
-
-  <div class="admin-categories__empty" *ngIf="!loading && !filteredCategories.length && !errorMessage">
-    <strong>Chưa có danh mục nào</strong>
-    <p>Tạo danh mục đầu tiên hoặc thay đổi bộ lọc để xem kết quả khác.</p>
-    <button type="button" (click)="openCreateForm()">Thêm danh mục</button>
-  </div>
 </section>

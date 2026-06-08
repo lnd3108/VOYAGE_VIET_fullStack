@@ -1,9 +1,21 @@
-import { NgClass, NgFor, NgIf } from '@angular/common';
-import { Component, DestroyRef, ElementRef, HostListener, OnInit, ViewChild, inject } from '@angular/core';
+import { NgFor, NgIf } from '@angular/common';
+import { Component, DestroyRef, ElementRef, HostListener, OnInit, ViewChild, ViewEncapsulation, inject } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { TuiIcon } from '@taiga-ui/core';
+import { AgGridAngular } from 'ag-grid-angular';
+import {
+  AllCommunityModule,
+  CellClickedEvent,
+  ColDef,
+  GridApi,
+  GridReadyEvent,
+  ICellRendererParams,
+  ModuleRegistry,
+  Theme,
+  themeQuartz,
+} from 'ag-grid-community';
 import { take } from 'rxjs';
 
 import { AdminCategoryApiService } from '../../../core/api/admin-category-api.service';
@@ -19,6 +31,8 @@ import { PageResponse } from '../../../core/models/page-response.model';
 import { AdminUiFeedbackService } from '../../../core/services/admin-ui-feedback.service';
 
 type CategoryStatusFilter = 'ALL' | CategoryStatus;
+
+ModuleRegistry.registerModules([AllCommunityModule]);
 
 interface StatusFilterOption {
   label: string;
@@ -38,11 +52,29 @@ interface CategoryMediaCard {
   createdAt: string;
 }
 
+interface CategoryGridRow {
+  category: AdminCategory;
+  id?: number;
+  rowIndex: number;
+  imageUrl: string;
+  name: string;
+  description: string;
+  slug: string;
+  statusLabel: string;
+  statusClassName: string;
+  order: number;
+  createdDisplay: string;
+  createdTimestamp: number;
+  updatedDisplay: string;
+  updatedTimestamp: number;
+}
+
 @Component({
   selector: 'app-admin-categories',
-  imports: [NgClass, NgFor, NgIf, ReactiveFormsModule, RouterLink, TuiIcon],
+  imports: [AgGridAngular, NgFor, NgIf, ReactiveFormsModule, RouterLink, TuiIcon],
   templateUrl: './categories.html',
   styleUrls: ['./categories.scss', './categories-media.scss'],
+  encapsulation: ViewEncapsulation.None,
 })
 export class AdminCategories implements OnInit {
   @ViewChild('categoryUploadInput') private categoryUploadInput?: ElementRef<HTMLInputElement>;
@@ -62,6 +94,84 @@ export class AdminCategories implements OnInit {
     { label: 'Tất cả', value: 'all' },
   ];
   readonly mediaSkeletonCards = Array.from({ length: 6 });
+  readonly gridLoadingOverlay = '<span class="admin-categories__grid-overlay">Đang tải danh sách danh mục...</span>';
+  readonly gridNoRowsOverlay = '<span class="admin-categories__grid-overlay">Chưa có danh mục nào.</span>';
+  readonly gridTheme: Theme = themeQuartz;
+  readonly defaultColDef: ColDef<CategoryGridRow> = {
+    sortable: true,
+    resizable: true,
+    suppressMovable: true,
+  };
+  readonly columnDefs: ColDef<CategoryGridRow>[] = [
+    {
+      headerName: 'Ảnh',
+      field: 'imageUrl',
+      width: 92,
+      minWidth: 84,
+      sortable: false,
+      cellRenderer: (params: ICellRendererParams<CategoryGridRow, string>) => this.renderImageCell(params.data),
+    },
+    {
+      headerName: 'Tên danh mục',
+      field: 'name',
+      minWidth: 220,
+      flex: 1.35,
+      cellRenderer: (params: ICellRendererParams<CategoryGridRow, string>) => this.renderNameCell(params.data),
+    },
+    {
+      headerName: 'Slug',
+      field: 'slug',
+      minWidth: 150,
+      flex: 0.85,
+      cellRenderer: (params: ICellRendererParams<CategoryGridRow, string>) => {
+        const slug = this.escapeHtml(params.data?.slug || 'dang-cap-nhat');
+        return `<code class="admin-categories__grid-slug">${slug}</code>`;
+      },
+    },
+    {
+      headerName: 'Trạng thái',
+      field: 'statusLabel',
+      width: 142,
+      minWidth: 132,
+      cellRenderer: (params: ICellRendererParams<CategoryGridRow, string>) => this.renderStatusCell(params.data),
+    },
+    {
+      headerName: 'Thứ tự',
+      field: 'order',
+      width: 104,
+      minWidth: 92,
+      sort: 'asc',
+      comparator: (valueA, valueB) => Number(valueA || 0) - Number(valueB || 0),
+    },
+    {
+      headerName: 'Ngày tạo',
+      field: 'createdDisplay',
+      width: 152,
+      minWidth: 142,
+      comparator: (_valueA, _valueB, nodeA, nodeB) => {
+        return (nodeA.data?.createdTimestamp || 0) - (nodeB.data?.createdTimestamp || 0);
+      },
+    },
+    {
+      headerName: 'Cập nhật',
+      field: 'updatedDisplay',
+      width: 152,
+      minWidth: 142,
+      comparator: (_valueA, _valueB, nodeA, nodeB) => {
+        return (nodeA.data?.updatedTimestamp || 0) - (nodeB.data?.updatedTimestamp || 0);
+      },
+    },
+    {
+      headerName: 'Hành động',
+      colId: 'actions',
+      width: 106,
+      minWidth: 96,
+      sortable: false,
+      resizable: false,
+      pinned: 'right',
+      cellRenderer: (params: ICellRendererParams<CategoryGridRow>) => this.renderActionsCell(params.data),
+    },
+  ];
   readonly statusFilters: StatusFilterOption[] = [
     { label: 'Tất cả', value: 'ALL' },
     { label: 'Đang hiển thị', value: 'ACTIVE' },
@@ -77,12 +187,15 @@ export class AdminCategories implements OnInit {
   successMessage = '';
   categories: AdminCategory[] = [];
   filteredCategories: AdminCategory[] = [];
+  gridRows: CategoryGridRow[] = [];
   keyword = '';
   statusFilter: CategoryStatusFilter = 'ALL';
   selectedCategory: AdminCategory | null = null;
   isFormOpen = false;
   isEditMode = false;
   focusedSelect: 'status' | 'statusFilter' | null = null;
+  openedActionCategoryId: number | null = null;
+  actionMenuPlacement: 'bottom' | 'top' = 'bottom';
   selectedImageUrl = '';
   selectedUploadFileName = '';
   uploadingImage = false;
@@ -97,6 +210,8 @@ export class AdminCategories implements OnInit {
   mediaTotalPages = 0;
   reorderingCategoryIds = new Set<number>();
   reorderBlockedByFilter = false;
+  gridSortBlocksReorder = false;
+  private gridApi?: GridApi<CategoryGridRow>;
   private slugManuallyEdited = false;
 
   readonly form = this.formBuilder.nonNullable.group({
@@ -109,6 +224,58 @@ export class AdminCategories implements OnInit {
 
   ngOnInit(): void {
     this.loadCategories();
+  }
+
+  onGridReady(event: GridReadyEvent<CategoryGridRow>): void {
+    this.gridApi = event.api;
+    this.updateGridSortState();
+    this.updateGridOverlay();
+  }
+
+  handleGridSortChanged(): void {
+    this.updateGridSortState();
+    this.refreshGridActions();
+  }
+
+  handleGridCellClick(event: CellClickedEvent<CategoryGridRow>): void {
+    const target = event.event?.target as HTMLElement | null;
+    const actionElement = target?.closest<HTMLElement>('[data-category-action]');
+    const row = event.data;
+
+    if (!actionElement || !row) {
+      return;
+    }
+
+    event.event?.stopPropagation();
+    const action = actionElement.dataset['categoryAction'];
+
+    if (action === 'toggle') {
+      this.toggleActionMenuFromElement(row.category, actionElement);
+      return;
+    }
+
+    if (action === 'up' || action === 'down') {
+      this.closeActionMenu();
+      this.moveCategory(row.category, row.rowIndex, action);
+      return;
+    }
+
+    if (action === 'edit') {
+      this.closeActionMenu();
+      this.openEditForm(row.category);
+      return;
+    }
+
+    if (action === 'status') {
+      this.closeActionMenu();
+      this.toggleStatus(row.category);
+      return;
+    }
+
+    if (action === 'delete') {
+      this.closeActionMenu();
+      this.deleteCategory(row.category);
+    }
   }
 
   loadCategories(): void {
@@ -124,10 +291,12 @@ export class AdminCategories implements OnInit {
           this.categories = this.normalizeCategoryOrders(this.extractList(response));
           this.applyFilters();
           this.loading = false;
+          this.updateGridOverlay();
         },
         error: (error) => {
           this.errorMessage = this.errorText(error, 'Không thể tải danh sách danh mục. Vui lòng thử lại sau.');
           this.loading = false;
+          this.updateGridOverlay();
         },
       });
   }
@@ -241,6 +410,65 @@ export class AdminCategories implements OnInit {
     if (!target?.closest('.admin-categories__control-wrap--select')) {
       this.focusedSelect = null;
     }
+
+    if (!target?.closest('.admin-categories__action-wrap')) {
+      this.closeActionMenu();
+    }
+  }
+
+  @HostListener('document:keydown.escape')
+  closeOverlayMenusByEscape(): void {
+    this.focusedSelect = null;
+    this.closeActionMenu();
+  }
+
+  toggleActionMenu(category: AdminCategory, event?: Event): void {
+    event?.stopPropagation();
+    this.toggleActionMenuFromElement(category, event?.currentTarget as HTMLElement | null);
+  }
+
+  private toggleActionMenuFromElement(category: AdminCategory, trigger?: HTMLElement | null): void {
+
+    if (this.isActionMenuOpen(category)) {
+      this.closeActionMenu();
+      return;
+    }
+
+    this.focusedSelect = null;
+    this.actionMenuPlacement = this.shouldOpenActionMenuUp(trigger) ? 'top' : 'bottom';
+    this.openedActionCategoryId = category.id ?? null;
+    this.refreshGridActions();
+  }
+
+  closeActionMenu(): void {
+    const wasOpen = this.openedActionCategoryId !== null;
+    this.openedActionCategoryId = null;
+    this.actionMenuPlacement = 'bottom';
+
+    if (wasOpen) {
+      this.refreshGridActions();
+    }
+  }
+
+  onActionTriggerKeydown(category: AdminCategory, event: KeyboardEvent): void {
+    if (event.key === 'Enter' || event.key === ' ') {
+      event.preventDefault();
+      this.toggleActionMenu(category, event);
+      return;
+    }
+
+    if (event.key === 'Escape') {
+      event.preventDefault();
+      this.closeActionMenu();
+    }
+  }
+
+  isActionMenuOpen(category: AdminCategory): boolean {
+    return !!category.id && this.openedActionCategoryId === category.id;
+  }
+
+  isActionMenuTop(category: AdminCategory): boolean {
+    return this.isActionMenuOpen(category) && this.actionMenuPlacement === 'top';
   }
 
   submitForm(): void {
@@ -558,10 +786,12 @@ export class AdminCategories implements OnInit {
 
       return matchesKeyword && matchesStatus;
     }).sort((a, b) => this.sortCategory(a, b));
+    this.gridRows = this.buildGridRows(this.filteredCategories);
+    this.updateGridOverlay();
   }
 
   moveCategory(category: AdminCategory, currentIndex: number, direction: 'up' | 'down'): void {
-    if (this.reorderBlockedByFilter || this.reorderingCategoryIds.size > 0 || this.isCategoryReordering(category)) {
+    if (this.reorderBlockedByFilter || this.gridSortBlocksReorder || this.reorderingCategoryIds.size > 0 || this.isCategoryReordering(category)) {
       return;
     }
 
@@ -592,11 +822,11 @@ export class AdminCategories implements OnInit {
   }
 
   canMoveCategoryUp(index: number): boolean {
-    return !this.reorderBlockedByFilter && this.filteredCategories.length > 1 && index > 0;
+    return !this.reorderBlockedByFilter && !this.gridSortBlocksReorder && this.filteredCategories.length > 1 && index > 0;
   }
 
   canMoveCategoryDown(index: number): boolean {
-    return !this.reorderBlockedByFilter && this.filteredCategories.length > 1 && index < this.filteredCategories.length - 1;
+    return !this.reorderBlockedByFilter && !this.gridSortBlocksReorder && this.filteredCategories.length > 1 && index < this.filteredCategories.length - 1;
   }
 
   isCategoryReordering(category: AdminCategory): boolean {
@@ -628,17 +858,7 @@ export class AdminCategories implements OnInit {
   }
 
   formatDate(value?: string): string {
-    if (!value) {
-      return 'Đang cập nhật';
-    }
-
-    const date = new Date(value);
-
-    if (Number.isNaN(date.getTime())) {
-      return value;
-    }
-
-    return new Intl.DateTimeFormat('vi-VN').format(date);
+    return this.formatDateTime(this.parseDate(value));
   }
 
   handleImageError(event: Event): void {
@@ -649,6 +869,201 @@ export class AdminCategories implements OnInit {
     }
 
     image.src = this.fallbackImage;
+  }
+
+  private buildGridRows(categories: AdminCategory[]): CategoryGridRow[] {
+    return categories.map((category, index) => {
+      const createdDate = this.parseDate(this.getCreatedDateValue(category));
+      const updatedDate = this.parseDate(this.getUpdatedDateValue(category));
+      const updatedTimestamp = this.shouldShowUpdatedDate(createdDate, updatedDate) ? updatedDate?.getTime() || 0 : 0;
+
+      return {
+        category,
+        id: category.id,
+        rowIndex: index,
+        imageUrl: this.getCategoryImage(category),
+        name: category.name || 'Chưa đặt tên',
+        description: category.description || 'Chưa có mô tả',
+        slug: category.slug || 'dang-cap-nhat',
+        statusLabel: this.statusLabel(category.status),
+        statusClassName: this.statusClass(category.status),
+        order: this.categoryOrder(category),
+        createdDisplay: this.formatDateTime(createdDate),
+        createdTimestamp: createdDate?.getTime() || 0,
+        updatedDisplay: updatedTimestamp ? this.formatDateTime(updatedDate) : '-',
+        updatedTimestamp,
+      };
+    });
+  }
+
+  private renderImageCell(row?: CategoryGridRow): string {
+    if (!row) {
+      return '';
+    }
+
+    const src = this.escapeHtml(row.imageUrl);
+    const alt = this.escapeHtml(row.name);
+    const fallback = this.escapeHtml(this.fallbackImage);
+
+    return `<img class="admin-categories__grid-thumb" src="${src}" alt="${alt}" onerror="this.onerror=null;this.src='${fallback}'" />`;
+  }
+
+  private renderNameCell(row?: CategoryGridRow): string {
+    if (!row) {
+      return '';
+    }
+
+    return `
+      <div class="admin-categories__grid-name">
+        <strong>${this.escapeHtml(row.name)}</strong>
+        <small>${this.escapeHtml(row.description)}</small>
+      </div>
+    `;
+  }
+
+  private renderStatusCell(row?: CategoryGridRow): string {
+    if (!row) {
+      return '';
+    }
+
+    return `<span class="admin-categories__status ${this.escapeHtml(row.statusClassName)}">${this.escapeHtml(row.statusLabel)}</span>`;
+  }
+
+  private renderActionsCell(row?: CategoryGridRow): string {
+    if (!row) {
+      return '';
+    }
+
+    const category = row.category;
+    const isOpen = this.isActionMenuOpen(category);
+    const canMoveUp = this.canMoveCategoryUp(row.rowIndex);
+    const canMoveDown = this.canMoveCategoryDown(row.rowIndex);
+    const isBusy = this.isCategoryReordering(category) || this.reorderingCategoryIds.size > 0;
+    const statusBusy = this.updatingStatusId === category.id;
+    const deleteBusy = this.deletingId === category.id;
+    const menuPlacementClass = isOpen && this.actionMenuPlacement === 'top' ? ' admin-categories__action-menu--top' : '';
+    const disabledTrigger = category.id ? '' : ' disabled';
+    const menu = isOpen ? `
+      <div class="admin-categories__action-menu${menuPlacementClass}">
+        ${canMoveUp ? this.renderActionButton('up', 'admin-categories__action-item--order', '↑', 'Lên', isBusy) : ''}
+        ${canMoveDown ? this.renderActionButton('down', 'admin-categories__action-item--order', '↓', 'Xuống', isBusy) : ''}
+        ${canMoveUp || canMoveDown ? '<div class="admin-categories__action-separator" aria-hidden="true"></div>' : ''}
+        ${this.renderActionButton('edit', 'admin-categories__action-item--edit', '✎', 'Sửa')}
+        <div class="admin-categories__action-separator" aria-hidden="true"></div>
+        ${this.renderActionButton('status', 'admin-categories__action-item--status', this.nextStatusLabel(category) === 'Bật' ? '◉' : '◌', statusBusy ? 'Đang đổi...' : this.nextStatusLabel(category), statusBusy)}
+        <div class="admin-categories__action-separator" aria-hidden="true"></div>
+        ${this.renderActionButton('delete', 'admin-categories__action-item--danger', '×', deleteBusy ? 'Đang xóa...' : 'Xóa', deleteBusy)}
+      </div>
+    ` : '';
+
+    return `
+      <div class="admin-categories__action-cell">
+        <div class="admin-categories__action-wrap">
+          <button
+            type="button"
+            class="admin-categories__action-trigger"
+            aria-label="Mở menu thao tác danh mục"
+            aria-expanded="${isOpen}"
+            data-category-action="toggle"
+            ${disabledTrigger}
+          >
+            ⋮
+          </button>
+          ${menu}
+        </div>
+      </div>
+    `;
+  }
+
+  private renderActionButton(action: string, className: string, icon: string, label: string, disabled = false): string {
+    return `
+      <button
+        type="button"
+        class="admin-categories__action-item ${className}"
+        data-category-action="${this.escapeHtml(action)}"
+        ${disabled ? 'disabled' : ''}
+      >
+        <span class="admin-categories__action-item-icon" aria-hidden="true">${this.escapeHtml(icon)}</span>
+        <span>${this.escapeHtml(label)}</span>
+      </button>
+    `;
+  }
+
+  private refreshGridActions(): void {
+    this.gridApi?.refreshCells({ columns: ['actions'], force: true });
+  }
+
+  private updateGridOverlay(): void {
+    if (!this.gridApi) {
+      return;
+    }
+
+    if (this.loading) {
+      this.gridApi.showLoadingOverlay();
+      return;
+    }
+
+    if (!this.gridRows.length) {
+      this.gridApi.showNoRowsOverlay();
+      return;
+    }
+
+    this.gridApi.hideOverlay();
+  }
+
+  private updateGridSortState(): void {
+    const sortedColumns = this.gridApi?.getColumnState().filter((column) => column.sort) || [];
+
+    this.gridSortBlocksReorder = sortedColumns.length > 0
+      && !(sortedColumns.length === 1 && sortedColumns[0].colId === 'order' && sortedColumns[0].sort === 'asc');
+  }
+
+  private getCreatedDateValue(category: AdminCategory): string | undefined {
+    return category.createdAt || category.createdDate || category.createdOn;
+  }
+
+  private getUpdatedDateValue(category: AdminCategory): string | undefined {
+    return category.updatedAt
+      || category.updatedDate
+      || category.updatedOn
+      || category.modifiedAt
+      || category.lastModifiedAt;
+  }
+
+  private parseDate(value?: string): Date | null {
+    if (!value) {
+      return null;
+    }
+
+    const date = new Date(value);
+    return Number.isNaN(date.getTime()) ? null : date;
+  }
+
+  private shouldShowUpdatedDate(createdDate: Date | null, updatedDate: Date | null): boolean {
+    if (!updatedDate) {
+      return false;
+    }
+
+    return !createdDate || createdDate.getTime() !== updatedDate.getTime();
+  }
+
+  private formatDateTime(date: Date | null): string {
+    if (!date) {
+      return '-';
+    }
+
+    const part = (value: number) => `${value}`.padStart(2, '0');
+
+    return `${part(date.getDate())}/${part(date.getMonth() + 1)}/${date.getFullYear()} ${part(date.getHours())}:${part(date.getMinutes())}`;
+  }
+
+  private escapeHtml(value: string): string {
+    return value
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#039;');
   }
 
   private uploadImageFile(file: File, input: HTMLInputElement): void {
@@ -710,6 +1125,18 @@ export class AdminCategories implements OnInit {
     if (this.categoryUploadInput) {
       this.categoryUploadInput.nativeElement.value = '';
     }
+  }
+
+  private shouldOpenActionMenuUp(trigger?: HTMLElement | null): boolean {
+    if (!trigger || typeof window === 'undefined') {
+      return false;
+    }
+
+    const rect = trigger.getBoundingClientRect();
+    const spaceBelow = window.innerHeight - rect.bottom;
+    const estimatedMenuHeight = 220;
+
+    return spaceBelow < estimatedMenuHeight && rect.top > estimatedMenuHeight;
   }
 
   private swapCategoryOrder(category: AdminCategory, targetCategory: AdminCategory): void {
