@@ -1,85 +1,99 @@
-# VOYAGE_ADMIN_AUDIT_REPORT.md — Bản rút gọn cuối cùng
+# VOYAGE_ADMIN_AUDIT_REPORT.md — Bản rút gọn sau tinh chỉnh
 
-Thời gian tổng hợp: 2026-06-06 23:59:00 +07:00
+Thời gian cập nhật: 2026-06-08
 
 ## Mục tiêu dọn file
 
-File audit cũ có quá nhiều section cập nhật nhỏ, lặp lại nhiều lần do quá trình sửa UI từng bước. Bản này chỉ giữ lại các chức năng chính đã hoàn thiện đến trạng thái cuối cùng, loại bỏ các log trung gian như: thử sai chevron, đổi màu nhiều lần, fix lặt vặt lặp lại, các prompt/section không còn phản ánh trạng thái cuối.
+File audit này đã được viết lại theo hướng rút gọn, chỉ giữ các chức năng chính đã hoàn thiện đến trạng thái cuối cùng.
+
+Đã loại bỏ các section trung gian/lặp lại như: chỉnh màu nhiều lần, thử sai chevron, fix UI nhỏ, build lỗi tạm thời đã xử lý, các prompt không còn phản ánh trạng thái cuối.
+
+## Nguyên tắc ghi nhận
+
+- Chỉ ghi thay đổi liên quan admin frontend vào `VOYAGE_ADMIN_AUDIT_REPORT.md`.
+- Không ghi thay đổi admin vào `VOYAGE_FRONTEND_AUDIT_REPORT.md`.
+- Chỉ ghi các chức năng đã làm được hoặc thay đổi có ý nghĩa cuối cùng.
+- Không ghi quá chi tiết các chỉnh sửa UI nhỏ không ảnh hưởng nghiệp vụ.
+- Ưu tiên mô tả trạng thái cuối cùng của từng module.
+
+---
 
 ## Phạm vi đã hoàn thiện
 
 - Admin Layout
-- Admin Media
+- Admin UI Feedback bằng Taiga UI
+- Admin Media / Cloudinary
 - Admin Categories
 - Admin Destinations
 - Admin Tours List
+- Admin Tour Preview Panel
 - Admin Tour Create/Edit Form
 - Admin Tour Gallery
 - Admin Tour Itinerary
 - Admin Tour Schedules
-- Admin UI Feedback bằng Taiga UI
 - E2E Admin Tour với backend thật
-
-Không ghi thay đổi admin vào `VOYAGE_FRONTEND_AUDIT_REPORT.md`.
 
 ---
 
-## 1. Admin Layout
+# 1. Admin Layout
 
-### File chính
+## File chính
 
 - `src/app/layouts/admin-layout/admin-layout.html`
 - `src/app/layouts/admin-layout/admin-layout.scss`
 - `src/app/layouts/admin-layout/admin-layout.ts`
 
-### Chức năng đã hoàn thiện
+## Chức năng đã hoàn thiện
 
-- Sidebar admin đứng yên khi content scroll.
+- Sidebar admin cố định khi nội dung bên phải scroll.
 - Content admin scroll độc lập.
 - Topbar admin sticky trong vùng content.
-- Scrollbar admin được làm gọn, màu nhẹ theo theme teal/green.
-- Layout desktop ổn định, mobile/tablet quay về layout column để tránh vỡ UI.
+- Layout desktop ổn định.
+- Mobile/tablet chuyển về layout column để tránh vỡ UI.
+- Scrollbar admin được làm gọn theo theme teal/green.
 - Không dùng màu xanh cũ `#004FA8`.
 
-### Ghi chú
+## Ghi chú kỹ thuật
 
-- Topbar sticky phụ thuộc vào việc `.admin-layout__content` là scroll container.
-- Nếu sau này đổi cấu trúc shell admin thì cần kiểm tra lại sticky behavior.
+- Topbar sticky phụ thuộc vào `.admin-layout__content` là scroll container.
+- Nếu thay đổi cấu trúc shell admin cần kiểm tra lại sticky behavior.
 
 ---
 
-## 2. Admin UI Feedback
+# 2. Admin UI Feedback
 
-### File chính
+## File chính
 
 - `src/app/core/services/admin-ui-feedback.service.ts`
 - `src/app/core/services/admin-confirm-dialog.component.ts`
-- Các màn admin: Media, Categories, Destinations, Tours, Tour Gallery, Tour Itinerary, Tour Schedules
+- Các màn admin đang dùng confirm/notification chung.
 
-### Chức năng đã hoàn thiện
+## Chức năng đã hoàn thiện
 
-- Thay native `window.confirm` / `window.alert` bằng Taiga UI dialog và notification.
-- Dùng service chung cho admin:
+- Thay `window.confirm` và `window.alert` bằng Taiga UI dialog/notification.
+- Dùng service chung cho admin feedback:
   - success
   - error
   - warning
   - info
-  - confirm danger/warning/info
-- Dialog xác nhận dùng theme admin teal/green.
+  - confirm danger
+  - confirm warning
+  - confirm info
+- Dialog xác nhận đồng bộ theme teal/green.
 - Danger action dùng màu đỏ.
-- Có chống spam notification trùng trong thời gian ngắn.
-- Các thao tác xóa/ẩn/hủy/cancel trong admin đều chuyển sang confirm UI thay vì alert browser.
+- Có cơ chế hạn chế spam notification trùng lặp.
+- Các thao tác xóa, ẩn, hủy, đổi trạng thái trong admin dùng confirm UI thay vì alert browser.
 
-### Ghi chú
+## Ghi chú kỹ thuật
 
 - `AdminUiFeedbackService.confirm*()` trả về `Observable<boolean>`.
 - Các component dùng `take(1)` để tránh subscription treo.
 
 ---
 
-## 3. Admin Media / Cloudinary
+# 3. Admin Media / Cloudinary
 
-### File chính
+## File chính
 
 - `src/app/pages/admin/media/media.ts`
 - `src/app/pages/admin/media/media.html`
@@ -87,25 +101,25 @@ Không ghi thay đổi admin vào `VOYAGE_FRONTEND_AUDIT_REPORT.md`.
 - `src/app/core/api/admin-media-api.service.ts`
 - `src/app/core/models/media.model.ts`
 
-### API đã nối
+## API đã nối
 
 - `GET /api/admin/media`
 - `POST /api/admin/media/upload`
 - `DELETE /api/admin/media/{id}`
 
-### Chức năng đã hoàn thiện
+## Chức năng đã hoàn thiện
 
 - Upload ảnh qua backend lên Cloudinary.
 - Không gọi Cloudinary trực tiếp từ frontend.
-- Không lưu base64.
+- Không lưu ảnh base64.
 - Validate file ảnh:
   - PNG
   - JPG/JPEG
   - WEBP
   - tối đa 5MB
 - Preview ảnh trước khi upload.
-- Danh sách media dạng grid responsive.
-- Lọc theo module:
+- Hiển thị danh sách media dạng grid responsive.
+- Lọc media theo module:
   - Tất cả
   - Tours
   - Categories
@@ -124,7 +138,7 @@ Không ghi thay đổi admin vào `VOYAGE_FRONTEND_AUDIT_REPORT.md`.
 - Copy URL Cloudinary.
 - Mở ảnh ở tab mới.
 - Xóa media bằng confirm Taiga UI.
-- Helper URL hỗ trợ nhiều alias response:
+- Normalize URL linh hoạt theo nhiều alias response:
   - `url`
   - `imageUrl`
   - `secureUrl`
@@ -133,24 +147,33 @@ Không ghi thay đổi admin vào `VOYAGE_FRONTEND_AUDIT_REPORT.md`.
   - `data.url`
   - `data.secureUrl`
 
-### Ghi chú
+## Ghi chú kỹ thuật/rủi ro
 
-- Media manager là nguồn upload/URL chung cho Category, Destination, Tour thumbnail, Tour gallery.
-- Nếu xóa media đang được dùng ở entity khác, URL đã dán có thể bị lỗi ảnh.
+- Media manager là nguồn ảnh chung cho Category, Destination, Tour thumbnail và Tour gallery.
+- Nếu xóa media đang được entity khác dùng, URL đã gắn ở entity đó có thể bị lỗi ảnh.
 
 ---
 
-## 4. Admin Categories
+# 4. Admin Categories
 
-### File chính
+## File chính
 
 - `src/app/pages/admin/categories/categories.ts`
 - `src/app/pages/admin/categories/categories.html`
 - `src/app/pages/admin/categories/categories.scss`
+- `src/app/pages/admin/categories/categories-media.scss`
+- `src/app/pages/admin/categories/category-action-cell-renderer.component.ts`
 - `src/app/core/api/admin-category-api.service.ts`
 - `src/app/core/models/category.model.ts`
+- `package.json`
+- `package-lock.json`
 
-### API đã nối
+## Package đã thêm
+
+- `ag-grid-angular@35.3.1`
+- `ag-grid-community@35.3.1`
+
+## API đã nối
 
 - `GET /api/admin/categories`
 - `POST /api/admin/categories`
@@ -158,35 +181,61 @@ Không ghi thay đổi admin vào `VOYAGE_FRONTEND_AUDIT_REPORT.md`.
 - `PATCH /api/admin/categories/{id}/status`
 - `PATCH /api/admin/categories/{id}/image`
 - `DELETE /api/admin/categories/{id}`
+- `GET /api/admin/media`
+- `POST /api/admin/media/upload`
 
-### Chức năng đã hoàn thiện
+## Chức năng đã hoàn thiện
 
 - CRUD danh mục.
 - Search/filter theo tên, slug, trạng thái.
 - Auto-generate slug từ tên danh mục.
-- Cho sửa slug thủ công.
+- Cho phép sửa slug thủ công.
 - Gắn ảnh danh mục bằng URL Cloudinary.
-- Có preview ảnh và fallback `/hero/bg-home.png`.
-- Có nút mở Admin Media để upload/copy URL.
-- Toggle trạng thái ACTIVE/INACTIVE.
-- Xóa category bằng Taiga confirm.
-- UI table desktop và card responsive mobile.
-- Đã sửa encoding tiếng Việt có dấu.
-- Select trạng thái có chevron đồng bộ với UI admin.
-- Button hành động theo style nhẹ:
-  - Sửa: outline
-  - Ẩn/hiện: warning nhẹ
-  - Xóa: danger nhẹ
+- Upload ảnh trực tiếp trong form danh mục qua Admin Media.
+- Cho phép chọn ảnh đã có từ Media ngay trong form danh mục.
+- Sau khi upload hoặc chọn ảnh, frontend tự set `imageUrl` vào form và cập nhật preview.
+- Giữ `imageUrl` là dữ liệu gửi backend, không gửi `mediaId` và không gửi file trong payload category.
+- Giữ endpoint cập nhật riêng ảnh danh mục trong edit mode.
+- Preview ảnh danh mục có fallback `/hero/bg-home.png`.
+- Chuyển danh sách Admin Categories từ bảng HTML custom sang AG Grid Angular Community.
+- Giữ logic tìm kiếm, lọc trạng thái và đếm số lượng danh mục sau khi chuyển sang AG Grid.
+- Thêm cột `Ngày tạo`, hiển thị `dd/MM/yyyy HH:mm` nếu backend trả dữ liệu.
+- Sửa cột `Cập nhật` để hiển thị ngày giờ cập nhật thật.
+- Nếu chưa có cập nhật, dữ liệu cập nhật không hợp lệ hoặc `updatedAt` trùng `createdAt`, cột `Cập nhật` hiển thị `-`.
+- Bỏ cột nhập/sửa trực tiếp thứ tự trong bảng.
+- Cột `Thứ tự` hiển thị `displayOrder` đã chuẩn hóa và sort mặc định tăng dần.
+- Cột `Ảnh` hiển thị thumbnail danh mục, có fallback khi ảnh lỗi.
+- Cột `Tên danh mục`, `Slug`, `Trạng thái` được render trong AG Grid theo dữ liệu thật.
+- Cột `Hành động` dùng nút ba chấm thay vì nhiều nút inline.
+- Tạo `CategoryActionCellRendererComponent` để render action menu bằng Angular component trong AG Grid.
+- Action menu dùng `tui-icon` của Taiga UI cho các thao tác:
+  - Chuyển lên
+  - Chuyển xuống
+  - Sửa
+  - Bật/Tạm ẩn
+  - Xóa
+- Sửa cảnh báo `CategoryActionCellRendererComponent is never used in a component template` bằng cách không đưa cell renderer vào `imports` của `AdminCategories`; component chỉ được AG Grid gọi qua `cellRenderer`.
+- Chức năng chuyển lên/chuyển xuống vẫn swap thứ tự giữa hai danh mục liền kề qua API update hiện có.
+- Khóa reorder khi đang search, đang lọc trạng thái hoặc khi AG Grid đang sort không đúng thứ tự mặc định.
+- Loading và empty state chuyển sang overlay của AG Grid.
+- Không thêm AG Grid Enterprise.
+- Không đổi backend API.
+- Không đổi payload category.
 
-### Ghi chú
+## Ghi chú kỹ thuật/rủi ro
 
-- Nếu category đang được tour sử dụng, backend có thể chặn xóa và UI hiển thị message backend.
+- Frontend phụ thuộc backend trả `createdAt`, `updatedAt` hoặc các alias tương đương để hiển thị ngày tạo/ngày cập nhật.
+- Nếu backend không trả ngày tạo/ngày cập nhật thì AG Grid hiển thị `-`.
+- Action cell renderer là Angular component riêng, không dùng HTML string để nhúng `<tui-icon>` vì AG Grid render string sẽ không được Angular compile.
+- Nếu icon Taiga UI như `@tui.trash-2`, `@tui.arrow-up`, `@tui.arrow-down` không có trong bộ icon runtime, cần đổi sang icon đang có trong project.
+- Reorder vẫn dùng logic swap/update hiện có, chưa thêm endpoint reorder riêng ở backend.
+- Route Admin Categories tăng dung lượng lazy chunk do thêm AG Grid Community.
 
 ---
 
-## 5. Admin Destinations
+# 5. Admin Destinations
 
-### File chính
+## File chính
 
 - `src/app/pages/admin/destinations/destinations.ts`
 - `src/app/pages/admin/destinations/destinations.html`
@@ -199,7 +248,7 @@ Không ghi thay đổi admin vào `VOYAGE_FRONTEND_AUDIT_REPORT.md`.
 - `src/app/pages/admin/shared/admin-image-upload/admin-image-upload.html`
 - `src/app/pages/admin/shared/admin-image-upload/admin-image-upload.scss`
 
-### API đã nối
+## API đã nối
 
 - `GET /api/admin/destinations`
 - `POST /api/admin/destinations`
@@ -211,23 +260,20 @@ Không ghi thay đổi admin vào `VOYAGE_FRONTEND_AUDIT_REPORT.md`.
 - `GET https://restcountries.com/v3.1/all?fields=name,flags,population,cca2,translations`
 - `POST https://countriesnow.space/api/v0.1/countries/cities`
 
-### Chức năng đã hoàn thiện
+## Chức năng đã hoàn thiện
 
 - CRUD điểm đến.
 - Search/filter theo tên, slug, quốc gia, khu vực, trạng thái.
-- Form điểm đến chia 2 luồng rõ ràng:
+- Form điểm đến chia 2 luồng:
   - Trong nước
   - Quốc tế
-- Toggle `Loại điểm đến` hiển thị rõ active/inactive.
 - Luồng Trong nước:
   - Chọn miền: Miền Bắc, Miền Trung, Miền Nam.
   - Chọn tỉnh/thành từ API proxy backend.
-  - Khi chọn tỉnh/thành, tự set:
-    - tên điểm đến
-    - quốc gia = Việt Nam
-    - slug
+  - Khi chọn tỉnh/thành, tự set tên điểm đến, quốc gia Việt Nam và slug.
 - Luồng Quốc tế:
-  - Chọn quốc gia, hiển thị tên tiếng Việt nếu REST Countries có dữ liệu.
+  - Chọn quốc gia.
+  - Hiển thị tên tiếng Việt nếu REST Countries có dữ liệu.
   - Chọn hoặc nhập thành phố.
   - CountriesNow dùng tên tiếng Anh của quốc gia để giảm lỗi API.
   - Nếu API city lỗi/rỗng, cho nhập tay.
@@ -241,41 +287,29 @@ Không ghi thay đổi admin vào `VOYAGE_FRONTEND_AUDIT_REPORT.md`.
   - `latitude`
   - `longitude`
   - `status`
-- `subRegion`, `cityName`, keyword search chỉ dùng trong frontend, không gửi backend.
+- `subRegion`, `cityName`, keyword search chỉ dùng frontend, không gửi backend.
 - Upload ảnh trực tiếp trong form bằng component `AdminImageUpload`.
-- Upload ảnh vẫn đi qua `AdminMediaApiService.uploadMedia(file, 'destinations')`.
+- Upload ảnh đi qua `AdminMediaApiService.uploadMedia(file, 'destinations')`.
 - Không gọi Cloudinary trực tiếp.
 - Không dùng base64.
 - Việt hóa tọa độ:
   - Latitude -> Vĩ độ
   - Longitude -> Kinh độ
 - Input tọa độ dùng `text + inputmode decimal` để bỏ spinner native.
-- Label bắt buộc có dấu `*` màu đỏ.
+- Label bắt buộc có dấu `*`.
 - Message lỗi/help/warning đồng bộ dưới field.
-- Tỉnh/Thành, Quốc gia, Thành phố dùng autocomplete native-like:
-  - nền trắng
-  - option một dòng
-  - text căn trái
-  - hover/active xanh nhạt
-  - không teal block/card
-- Miền và Trạng thái trong form dùng native select thật để ổn định.
-- Toolbar filter Destination có chevron đồng bộ.
-- Button hành động của row đồng bộ với Categories:
-  - Sửa: outline
-  - Tạm ẩn/Bật: warning nhẹ
-  - Xóa: danger nhẹ
+- Điểm đến là nguồn dữ liệu chính cho Tour Form.
 
-### Ghi chú
+## Ghi chú kỹ thuật/rủi ro
 
-- Nếu điểm đến domestic cũ như `Hạ Long` không map được province API, form giữ nguyên `name/slug` backend thay vì ép map sai.
+- Nếu điểm đến domestic cũ như `Hạ Long` không map được province API, form giữ nguyên dữ liệu backend thay vì ép map sai.
 - REST Countries/CountriesNow là API ngoài; nếu lỗi runtime, UI có fallback/input tay.
-- Điểm đến là nguồn dữ liệu chính cho Tour Form. Tour Form không còn tự gọi API tỉnh/thành.
 
 ---
 
-## 6. Admin Tours List
+# 6. Admin Tours List
 
-### File chính
+## File chính
 
 - `src/app/pages/admin/tours/tours.ts`
 - `src/app/pages/admin/tours/tours.html`
@@ -283,7 +317,7 @@ Không ghi thay đổi admin vào `VOYAGE_FRONTEND_AUDIT_REPORT.md`.
 - `src/app/core/api/admin-tour-api.service.ts`
 - `src/app/core/models/admin-tour.model.ts`
 
-### API đã nối
+## API đã nối
 
 - `GET /api/admin/tours`
 - `GET /api/admin/tours/{id}`
@@ -295,7 +329,7 @@ Không ghi thay đổi admin vào `VOYAGE_FRONTEND_AUDIT_REPORT.md`.
 - `GET /api/admin/tours/{id}/publish-checklist`
 - `POST /api/admin/tours/{id}/publish`
 
-### Chức năng đã hoàn thiện
+## Chức năng đã hoàn thiện
 
 - Danh sách tour thật thay placeholder.
 - KPI:
@@ -310,17 +344,8 @@ Không ghi thay đổi admin vào `VOYAGE_FRONTEND_AUDIT_REPORT.md`.
   - danh mục
   - điểm đến
   - sắp xếp
-- Filter toolbar cuối cùng dùng custom dropdown thật, không phụ thuộc native select.
-- Dropdown filter có:
-  - nền trắng
-  - border #DDE7E4
-  - radius 12px
-  - SVG chevron
-  - xoay 180 độ khi mở
-  - option một dòng
-  - hover/active xanh nhạt
-  - click outside/Escape để đóng
-- Table gọn:
+- Filter toolbar dùng custom dropdown.
+- Table hiển thị các cột chính:
   - Tour
   - Giá
   - Thời lượng
@@ -329,12 +354,12 @@ Không ghi thay đổi admin vào `VOYAGE_FRONTEND_AUDIT_REPORT.md`.
   - Trạng thái
   - Cập nhật
   - Hành động
-- Cột Hành động dùng menu icon `⋮`.
-- Dropdown action màu trắng, action theo status:
+- Cột Hành động dùng menu icon ba chấm.
+- Action theo status:
   - Nháp -> Xuất bản
   - Đã xuất bản -> Tạm ẩn
   - Tạm ẩn/Hết chỗ -> Kích hoạt lại/Mở bán lại
-  - Xóa luôn danger
+  - Xóa là danger action
 - Action hỗ trợ:
   - Xem trước
   - Chỉnh sửa
@@ -343,30 +368,98 @@ Không ghi thay đổi admin vào `VOYAGE_FRONTEND_AUDIT_REPORT.md`.
   - Publish/checklist
   - Đổi trạng thái
   - Xóa
-- Publish checklist hiển thị warning/card nếu thiếu dữ liệu.
+- Publish checklist hiển thị cảnh báo nếu thiếu dữ liệu.
 - Xóa tour bằng Taiga confirm.
 - Update thumbnail bằng URL Cloudinary.
-- Format tiền `vi-VN`.
-- Format ngày `vi-VN`.
-- Responsive table/card cho tablet/mobile.
+- Format tiền theo `vi-VN`.
+- Format ngày theo `vi-VN`.
+- Responsive cho tablet/mobile.
 
-### Ghi chú
+## Ghi chú kỹ thuật/rủi ro
 
 - `Nhân bản` hiện chưa nối API thật.
-- Dropdown action cần test thêm row cuối nếu nằm sát viewport để tránh bị cắt.
+- Dropdown action cần test thêm với row cuối khi nằm sát viewport.
 
 ---
 
-## 7. Admin Tour Create/Edit Form
+# 7. Admin Tour Preview Panel
 
-### File chính
+## File chính
+
+- `src/app/shared/components/tour-preview-panel/tour-preview-panel.component.ts`
+- `src/app/shared/components/tour-preview-panel/tour-preview-panel.component.html`
+- `src/app/shared/components/tour-preview-panel/tour-preview-panel.component.scss`
+- `src/app/pages/admin/tours/tours.ts`
+- `src/app/pages/admin/tours/tours.html`
+- `src/app/pages/admin/tours/tours.scss`
+- `src/app/core/models/admin-tour.model.ts`
+
+## API đã dùng
+
+- `GET /api/admin/tours/{id}`
+
+## Chức năng đã hoàn thiện
+
+- Tạo slide-over preview tour bên phải khi bấm `Xem trước` trong menu hành động.
+- Có overlay/backdrop toàn trang.
+- Click overlay, bấm nút đóng hoặc ESC để đóng panel.
+- Khóa body scroll khi panel mở và khôi phục khi đóng.
+- Panel gọi API chi tiết tour khi có `tourId`.
+- Có loading skeleton khi tải dữ liệu.
+- Có error state và nút thử lại khi không tải được dữ liệu.
+- Truyền tour row fallback từ bảng vào preview panel.
+- Panel hiển thị dữ liệu fallback ngay khi mở, sau đó merge thêm dữ liệu detail API.
+- Merge detail với fallback theo nguyên tắc detail có giá trị mới ghi đè, detail rỗng không xóa dữ liệu fallback.
+- Normalize response detail linh hoạt với object trực tiếp, `data`, `result`, `content` và wrapper lồng nhau.
+- Map nhiều alias field cho:
+  - tên tour
+  - ảnh
+  - giá
+  - thời lượng
+  - số chỗ
+  - điểm đến
+  - trạng thái
+  - lịch khởi hành
+  - gallery
+  - lịch trình
+- Khi detail API lỗi nhưng có fallback row, panel vẫn hiển thị dữ liệu cơ bản.
+- Việt hóa toàn bộ text hiển thị trong preview panel.
+- Hiển thị:
+  - ảnh chính
+  - giá
+  - thời lượng
+  - số chỗ
+  - điểm đến
+  - mô tả
+  - thống kê nhanh
+  - lịch khởi hành
+  - lịch trình
+- Mô tả có xem thêm/thu gọn khi dài.
+- Footer sticky có action:
+  - Chỉnh sửa
+  - Xuất bản cho tour nháp
+  - Tạm ẩn cho tour đã xuất bản
+- Component chỉ emit action, logic xử lý publish/suspend vẫn nằm ở Admin Tours.
+
+## Ghi chú kỹ thuật/rủi ro
+
+- Không dùng Angular CDK Overlay.
+- Không thêm thư viện mới cho preview panel.
+- Cần kiểm tra response thật của `GET /api/admin/tours/{id}` để thống nhất DTO lâu dài và giảm alias mapping.
+
+---
+
+# 8. Admin Tour Create/Edit Form
+
+## File chính
 
 - `src/app/pages/admin/tours/tour-form/tour-form.ts`
 - `src/app/pages/admin/tours/tour-form/tour-form.html`
 - `src/app/pages/admin/tours/tour-form/tour-form.scss`
+- `src/app/pages/admin/tours/tour-form/tour-form-media.scss`
 - `src/app/app.routes.ts`
 
-### API đã nối
+## API đã nối
 
 - `GET /api/admin/categories`
 - `GET /api/admin/destinations`
@@ -376,14 +469,14 @@ Không ghi thay đổi admin vào `VOYAGE_FRONTEND_AUDIT_REPORT.md`.
 - `GET /api/admin/media`
 - `POST /api/admin/media/upload`
 
-### Chức năng đã hoàn thiện
+## Chức năng đã hoàn thiện
 
 - Route:
   - `/admin/tours/new`
   - `/admin/tours/:id/edit`
 - Lazy load form để tránh tăng initial bundle.
-- Reactive Forms.
 - Create mode và edit mode dùng chung component.
+- Reactive Forms.
 - Validate:
   - title required/min length
   - slug required
@@ -400,7 +493,7 @@ Không ghi thay đổi admin vào `VOYAGE_FRONTEND_AUDIT_REPORT.md`.
 - Auto-generate slug từ title.
 - Category lấy từ Admin Categories.
 - Destination lấy từ Admin Destinations.
-- Điểm khởi hành chỉ dùng 3 option chuẩn:
+- Điểm khởi hành dùng 3 option chuẩn:
   - Hà Nội
   - Đà Nẵng
   - TP. Hồ Chí Minh
@@ -415,20 +508,22 @@ Không ghi thay đổi admin vào `VOYAGE_FRONTEND_AUDIT_REPORT.md`.
   - Nhập URL thủ công
 - Autosave draft cho create mode.
 - Có banner khôi phục bản nháp.
-- Validation message nằm trong slot cố định, không làm lệch grid.
 - Preview card bên phải hiển thị ảnh, title, mô tả, category/destination, điểm khởi hành, giá, duration, status.
-- Việt hóa label/message/placeholder.
+- Dropdown Danh mục, Điểm đến, Điểm khởi hành và Trạng thái đã chuyển về custom dropdown thống nhất với form.
+- Number input đã bỏ spinner native nhưng vẫn giữ `type="number"` và validate hiện có.
+- Việt hóa label, placeholder và message.
 
-### Ghi chú
+## Ghi chú kỹ thuật/rủi ro
 
 - Backend tour hiện chỉ lưu một `destinationId` chính.
 - Nếu cần lưu nhiều điểm đến thật cần backend thêm `destinationIds` hoặc bảng `TOUR_DESTINATIONS`.
+- Custom dropdown hiện đóng khi chọn option hoặc mở dropdown khác; click-outside riêng có thể bổ sung sau nếu cần.
 
 ---
 
-## 8. Admin Tour Gallery
+# 9. Admin Tour Gallery
 
-### File chính
+## File chính
 
 - `src/app/pages/admin/tours/tour-gallery/tour-gallery.ts`
 - `src/app/pages/admin/tours/tour-gallery/tour-gallery.html`
@@ -436,7 +531,7 @@ Không ghi thay đổi admin vào `VOYAGE_FRONTEND_AUDIT_REPORT.md`.
 - `src/app/core/api/admin-tour-api.service.ts`
 - `src/app/core/models/admin-tour.model.ts`
 
-### API đã nối
+## API đã nối
 
 - `GET /api/admin/tours/{id}/images`
 - `POST /api/admin/tours/{id}/images/from-media`
@@ -445,12 +540,12 @@ Không ghi thay đổi admin vào `VOYAGE_FRONTEND_AUDIT_REPORT.md`.
 - `PATCH /api/admin/tours/{id}/images/reorder`
 - `DELETE /api/admin/tours/{tourId}/images/{imageId}`
 
-### Chức năng đã hoàn thiện
+## Chức năng đã hoàn thiện
 
 - Gallery tách thành component riêng.
 - Create mode yêu cầu lưu tour trước.
 - Edit mode load gallery theo tour id.
-- Chọn ảnh từ Admin Media và attach bằng `mediaId`.
+- Chọn ảnh từ Admin Media và attach vào tour bằng `mediaId`.
 - Upload ảnh mới trong gallery đi qua Admin Media trước, sau đó attach vào tour gallery.
 - Không gửi JSON URL vào endpoint multipart cũ.
 - Không gọi Cloudinary trực tiếp từ frontend.
@@ -472,7 +567,7 @@ Không ghi thay đổi admin vào `VOYAGE_FRONTEND_AUDIT_REPORT.md`.
 - Xóa ảnh bằng Taiga confirm.
 - Fallback ảnh lỗi `/hero/bg-home.png`.
 
-### Backend contract đã fix
+## Backend contract đã fix
 
 - Thêm endpoint backend: `POST /api/admin/tours/{id}/images/from-media`.
 - Payload dùng:
@@ -480,17 +575,17 @@ Không ghi thay đổi admin vào `VOYAGE_FRONTEND_AUDIT_REPORT.md`.
   - `altText`
   - `sortOrder`
   - `thumbnail`
-- Endpoint multipart cũ vẫn giữ cho upload file trực tiếp nếu cần.
+- Endpoint multipart cũ vẫn giữ nếu cần upload file trực tiếp.
 
-### Ghi chú
+## Ghi chú kỹ thuật/rủi ro
 
 - Nếu upload media response không có `id/mediaId`, gallery không attach được ảnh.
 
 ---
 
-## 9. Admin Tour Itinerary
+# 10. Admin Tour Itinerary
 
-### File chính
+## File chính
 
 - `src/app/pages/admin/tours/tour-itinerary/tour-itinerary.ts`
 - `src/app/pages/admin/tours/tour-itinerary/tour-itinerary.html`
@@ -498,13 +593,13 @@ Không ghi thay đổi admin vào `VOYAGE_FRONTEND_AUDIT_REPORT.md`.
 - `src/app/core/api/admin-tour-api.service.ts`
 - `src/app/core/models/admin-tour.model.ts`
 
-### API đã nối
+## API đã nối
 
 - `GET /api/admin/tours/{id}/itineraries`
 - `PUT /api/admin/tours/{id}/itineraries`
 - `POST /api/admin/tours/{id}/itineraries/reorder`
 
-### Chức năng đã hoàn thiện
+## Chức năng đã hoàn thiện
 
 - Itinerary tách thành component riêng.
 - Create mode yêu cầu lưu tour trước.
@@ -525,17 +620,16 @@ Không ghi thay đổi admin vào `VOYAGE_FRONTEND_AUDIT_REPORT.md`.
 - Thêm/sửa/xóa bằng bulk save đúng endpoint backend.
 - Hiển thị timeline/card theo ngày.
 - Reorder lên/xuống.
-- UI header/empty state đã polish gọn, nhẹ, không dùng button teal nặng.
 
-### Ghi chú
+## Ghi chú kỹ thuật/rủi ro
 
-- Backend không có endpoint create/update/delete từng itinerary item nên frontend dùng bulk replace-all.
+- Backend chưa có endpoint create/update/delete từng itinerary item nên frontend đang dùng bulk replace-all.
 
 ---
 
-## 10. Admin Tour Schedules
+# 11. Admin Tour Schedules
 
-### File chính
+## File chính
 
 - `src/app/pages/admin/tours/tour-schedules/tour-schedules.ts`
 - `src/app/pages/admin/tours/tour-schedules/tour-schedules.html`
@@ -543,7 +637,7 @@ Không ghi thay đổi admin vào `VOYAGE_FRONTEND_AUDIT_REPORT.md`.
 - `src/app/core/api/admin-tour-api.service.ts`
 - `src/app/core/models/admin-tour.model.ts`
 
-### API đã nối
+## API đã nối
 
 - `GET /api/admin/tours/{id}/schedules`
 - `POST /api/admin/tours/{id}/schedules`
@@ -551,7 +645,7 @@ Không ghi thay đổi admin vào `VOYAGE_FRONTEND_AUDIT_REPORT.md`.
 - `PATCH /api/admin/tours/{tourId}/schedules/{id}/status`
 - `DELETE /api/admin/tours/{tourId}/schedules/{id}`
 
-### Chức năng đã hoàn thiện
+## Chức năng đã hoàn thiện
 
 - Schedules tách thành component riêng.
 - Create mode yêu cầu lưu tour trước.
@@ -578,38 +672,24 @@ Không ghi thay đổi admin vào `VOYAGE_FRONTEND_AUDIT_REPORT.md`.
 - Đổi trạng thái CLOSED/CANCELLED có confirm.
 - Xóa lịch có confirm, cảnh báo mạnh nếu đã có booking.
 - Format tiền và ngày theo `vi-VN`.
-- UI header/empty state đã polish gọn, nhẹ.
 
-### Ghi chú
+## Ghi chú kỹ thuật/rủi ro
 
 - Schedule là nguồn chính cho giá/số chỗ khi booking.
 - Backend vẫn là lớp bảo vệ cuối cho oversell/optimistic lock.
 
 ---
 
-## 11. Polish UI Admin Chung
+# 12. E2E Admin Tour Với Backend Thật
 
-### Chức năng đã hoàn thiện
-
-- Giảm dùng teal đặc quá nhiều.
-- Button chính dùng primary solid gọn.
-- Button phụ dùng outline/neutral.
-- Button danger dùng đỏ nhẹ.
-- Badge/status tách màu theo trạng thái.
-- Card/table/form/filter/action đồng bộ theme teal/green.
-- Header Admin Destinations đồng bộ Categories/Tours.
-- Header buttons không bị stretch cao.
-- Dropdown/autocomplete Admin Destinations về nền trắng, option phẳng, không card teal.
-- Dropdown filter Admin Tours chuyển sang custom dropdown thật để kiểm soát chevron/menu.
-
----
-
-## 12. E2E Admin Tour Với Backend Thật
-
-### Đã test bằng API thật
+## Đã test bằng API thật
 
 - Login ADMIN thành công với `admin@voyageviet.local`.
-- Gọi Admin Media lấy được media có `id`, `secureUrl`, `publicId`, `mediaType=IMAGE`.
+- Gọi Admin Media lấy được media có:
+  - `id`
+  - `secureUrl`
+  - `publicId`
+  - `mediaType=IMAGE`
 - Tạo tour draft test thành công.
 - Publish checklist khi thiếu gallery/itinerary/schedule trả `canPublish=false`.
 - Attach ảnh từ Media vào gallery bằng `/images/from-media` thành công.
@@ -624,701 +704,151 @@ Không ghi thay đổi admin vào `VOYAGE_FRONTEND_AUDIT_REPORT.md`.
   - đổi lại OPEN hiển thị lại
 - Attach ảnh lần 2 rồi xóa tour image, Media gốc vẫn còn, không bị xóa nhầm asset dùng chung.
 
-### Kết quả build
+---
+
+# 13. Kết Quả Build/Test Ghi Nhận
+
+## Build đã pass trong các lần cập nhật
 
 - `npx ng build --configuration development`: pass.
 - `npm run build`: pass.
 
----
+## Ghi chú
 
-## Warning còn lại
-
-Các warning này là warning budget hiện hữu, không phải lỗi compile:
-
-- Initial bundle vượt 500 kB.
-- `src/app/layouts/public-layout/public-layout.scss` vượt warning budget.
-- `src/app/pages/public/home/components/home-hero/home-hero.scss` vượt warning budget.
-- `src/app/pages/admin/destinations/destinations.scss` có lúc vượt warning mềm nhưng dưới hard budget.
-- `src/app/pages/admin/tours/tour-form/tour-form.scss` ở sát/vượt warning 8 kB nhưng build pass.
+- Sau các tinh chỉnh nhỏ cuối cùng ở Admin Categories, nên chạy lại build nếu chưa chạy sau khi áp dụng code thực tế.
+- Các warning budget còn lại là warning hiện hữu, không phải lỗi compile.
 
 ---
 
-## TODO còn lại
+# 14. Warning Còn Lại
+
+Các warning này là warning budget hiện hữu của dự án:
+
+- Initial bundle vượt warning budget 500 kB.
+- Một số file SCSS vượt warning budget mềm 8 kB nhưng vẫn dưới hard budget 10 kB.
+- Các file thường xuất hiện warning:
+  - `src/app/layouts/public-layout/public-layout.scss`
+  - `src/app/pages/public/home/components/home-hero/home-hero.scss`
+  - `src/app/pages/admin/destinations/destinations.scss`
+  - `src/app/pages/admin/tours/tour-form/tour-form.scss`
+  - `src/app/pages/admin/tours/tours.scss`
+  - `src/app/pages/admin/categories/categories.scss`
+- Lazy chunk Admin Categories tăng do thêm AG Grid Community.
+
+---
+
+# 15. TODO Còn Lại
 
 - Admin Booking Detail frontend chưa làm.
 - WebSocket JWT handshake chưa làm.
 - STAFF permission / feature permission chi tiết chưa làm.
 - API duplicate tour chưa có, action `Nhân bản` vẫn là TODO.
 - Backend chưa hỗ trợ lưu nhiều destination thật cho tour; UI hiện chỉ lưu `destinationId` chính.
-- Cần test thủ công browser đầy đủ sau khi restart frontend/backend nếu process dev cũ không phản hồi ổn định.
+- Backend chưa có endpoint reorder riêng cho Categories; frontend đang swap/update hai danh mục liền kề.
+- Cần test thủ công đầy đủ trên browser sau khi restart frontend/backend nếu dev process cũ không phản hồi ổn định.
 
 ---
 
-## Các nhóm update đã loại bỏ khỏi audit rút gọn
+# 16. Các Nhóm Update Đã Loại Bỏ Khỏi Audit Rút Gọn
 
 - Các section thử sai chevron nhiều lần.
-- Các section đổi màu toggle/button lặp lại.
+- Các section đổi màu/tinh chỉnh button lặp lại.
 - Các section fix encoding nhỏ lặp lại.
 - Các section native select rồi đổi custom rồi quay lại native.
-- Các section chỉ sửa vài pixel/spacing nhỏ nhưng không còn phản ánh trạng thái cuối.
-- Các build log trung gian bị lỗi do budget rồi đã fix lại sau đó.
-
-## Cap Nhat: Slide-over Xem Truoc Tour Admin Tours
-
-Thoi gian cap nhat: 2026-06-06 23:49:04 +07:00
-
-### File Tao Moi
-
-- src/app/shared/components/tour-preview-panel/tour-preview-panel.component.ts
-- src/app/shared/components/tour-preview-panel/tour-preview-panel.component.html
-- src/app/shared/components/tour-preview-panel/tour-preview-panel.component.scss
-
-### File Da Sua
-
-- src/app/pages/admin/tours/tours.ts
-- src/app/pages/admin/tours/tours.html
-- src/app/pages/admin/tours/tours.scss
-- src/app/core/models/admin-tour.model.ts
-- VOYAGE_ADMIN_AUDIT_REPORT.md
-
-### Dau Viec Da Lam
-
-- Doc VOYAGE_ADMIN_AUDIT_REPORT.md va VOYAGE_FRONTEND_AUDIT_REPORT.md, uu tien section moi nhat ve custom dropdown Admin Tours.
-- Kiem tra AdminTourApiService va xac nhan da co getTour(id) goi GET /api/admin/tours/{id}, khong can them API method moi.
-- Chi sua man Admin Tours va model lien quan preview data; khong sua Admin Destinations, Categories, Media, TourForm, public pages, AdminLayout, API backend hoac payload backend.
-- Khong ghi vao VOYAGE_FRONTEND_AUDIT_REPORT.md.
-
-### Chuc Nang Da Them
-
-- Tao TourPreviewPanelComponent standalone.
-- Them slide-over preview truot tu ben phai khi click action Xem truoc trong menu hanh dong tour.
-- Them overlay/backdrop mo phu toan trang, click overlay dong panel.
-- Panel tu goi API chi tiet tour khi tourId khac null.
-- Them loading skeleton khi dang tai API.
-- Them error state voi nut Thu lai khi khong tai duoc thong tin tour.
-- Hien thi anh chinh voi fallback Chua co anh.
-- Hien thi gia, thoi luong, so cho, diem den, mo ta, thong ke nhanh, lich khoi hanh va lich trinh.
-- Mo ta co Xem them / Thu gon khi noi dung dai.
-- Lich khoi hanh hien thi toi da 3 item mac dinh, co mo rong danh sach trong panel.
-- Lich trinh hien thi dang accordion, mac dinh toi da 3 ngay dau va co nut xem them.
-- Footer sticky co action Chinh sua, Xuat ban cho tour DRAFT va Tam an cho tour PUBLISHED.
-- Component chi emit editTour, publishTour, suspendTour; logic publish/suspend van do AdminTours xu ly.
-- Them body scroll lock khi panel mo va khoi phuc khi dong hoac component page destroy.
-- ESC dong panel; click nut X dong panel.
-
-### API Da Dung
-
-- GET /api/admin/tours/{id} thong qua AdminTourApiService.getTour(id).
-
-### Ket Qua Build/Test
-
-- npx ng build --configuration development: pass.
-- npm run build: pass.
-
-### Warning/Loi Con Lai
-
-- Production build con warning budget hien huu: initial bundle, public-layout.scss, home-hero.scss, destinations.scss, categories.scss, tour-form.scss.
-- tours.scss van co warning budget mem 8 kB va dang duoi hard budget 10 kB.
-- Khong co loi compile.
-
-### Ghi Chu Ky Thuat Va Rui Ro
-
-- Khong dung Angular CDK Overlay va khong them thu vien moi.
-- Slide-over dung CSS transform animation khoang 280ms.
-- Overlay va panel dung fixed positioning, khong day layout bang tour.
-- Body scroll duoc khoa/mo lai trong AdminTours, co cleanup trong ngOnDestroy.
-- Detail response duoc parse linh hoat voi data wrapper hoac object truc tiep; schedules/images/itinerary la optional de tranh crash template khi backend thieu field.
-- Chua test thu cong tren browser that voi API runtime; can kiem tra lai UI truot, overlay, scroll body va data detail thuc te tai /admin/tours.
+- Các section chỉ sửa vài pixel/spacing nhỏ.
+- Các build log trung gian bị lỗi tạm thời nhưng đã fix.
+- Các prompt/ghi chú không còn phản ánh trạng thái cuối.
 
 
+## Cập Nhật: Tối Ưu Code Admin Categories Sau Khi Dùng AG Grid
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-## Cap Nhat: Fix Mapping Du Lieu Tour Preview Panel
-
-Thoi gian cap nhat: 2026-06-07 00:01:46 +07:00
-
-### File Da Sua
-
-- src/app/shared/components/tour-preview-panel/tour-preview-panel.component.ts
-- src/app/shared/components/tour-preview-panel/tour-preview-panel.component.html
-- src/app/shared/components/tour-preview-panel/tour-preview-panel.component.scss
-- src/app/pages/admin/tours/tours.ts
-- src/app/pages/admin/tours/tours.html
-- src/app/core/models/admin-tour.model.ts
-- VOYAGE_ADMIN_AUDIT_REPORT.md
-
-### Dau Viec Da Lam
-
-- Doc VOYAGE_ADMIN_AUDIT_REPORT.md va VOYAGE_FRONTEND_AUDIT_REPORT.md, uu tien section moi nhat ve slide-over preview Admin Tours.
-- Kiem tra AdminTourApiService.getTour(id) va xac nhan van dung GET /api/admin/tours/{id}.
-- Kiem tra TourPreviewPanelComponent hien tai dang chi render sau API detail, nen neu detail thieu field thi mat du lieu row da co tren bang.
-- Chi sua Admin Tours preview panel va model lien quan; khong sua Admin Destinations, TourForm, public pages, AdminLayout, API backend hoac logic CRUD.
-- Khong ghi vao VOYAGE_FRONTEND_AUDIT_REPORT.md.
-
-### Chuc Nang Da Sua
-
-- Truyen tour row fallback tu bang Admin Tours vao TourPreviewPanelComponent qua input tourFallback.
-- Luu selectedPreviewTour trong AdminTours khi click Xem truoc.
-- Panel render du lieu fallback ngay khi mo, dong thoi van goi API detail de bo sung du lieu day du.
-- Merge detail API voi fallback theo nguyen tac detail co gia tri moi ghi de, detail rong/null/undefined/array rong khong xoa du lieu fallback.
-- Normalize/unwrap response detail linh hoat hon voi object truc tiep, data, result, content va wrapper long nhau toi 3 lop.
-- Map nhieu alias field cho title/name/tourName, imageUrl/thumbnailUrl/coverImageUrl/thumbnail/images, price/salePrice/currentPrice/originalPrice/adultPrice, duration/durationText/durationDays/durationNights, maxParticipants/maxPeople/totalSeats/availableSeats/seats, destination/destinationName/destinations/selectedDestinationNames, status/tourStatus.
-- Ho tro schedules/tourSchedules/departures, images/gallery/tourImages/galleryImages, itinerary/itineraries/tourItinerary/tourItineraries.
-- Khi detail API loi nhung co fallback row, panel van hien thi du lieu co ban va chi hien warning nho.
-- Khong de panel quay ve Tour chua dat ten/Chua co gia/Chua cap nhat neu bang tour da co du lieu.
-
-### API Da Dung
-
-- GET /api/admin/tours/{id} thong qua AdminTourApiService.getTour(id).
-
-### Ket Qua Build/Test
-
-- npx ng build --configuration development: pass.
-- npm run build: pass.
-
-### Warning/Loi Con Lai
-
-- Production build con warning budget hien huu: initial bundle, public-layout.scss, home-hero.scss, destinations.scss, categories.scss, tour-form.scss.
-- tours.scss van co warning budget mem 8 kB va dang duoi hard budget 10 kB.
-- Khong co loi compile.
-
-### Ghi Chu Ky Thuat Va Rui Ro
-
-- Neu backend detail thieu du lieu, panel dung du lieu row lam fallback cho thong tin co ban.
-- schedules/images/itinerary chi hien thi day du khi API detail tra dung field tuong ung.
-- Can kiem tra Network response thuc te tai GET /api/admin/tours/{id} de thong nhat DTO lau dai va giam alias mapping ve sau.
-- Khong de lai console.log debug.
-## Cập Nhật: Việt Hóa Text Tour Preview Panel
-
-Thời gian cập nhật: 2026-06-07 00:06:43 +07:00
+Thời gian cập nhật: 2026-06-08
 
 ### File Đã Sửa
 
-- src/app/shared/components/tour-preview-panel/tour-preview-panel.component.ts
-- src/app/shared/components/tour-preview-panel/tour-preview-panel.component.html
-- src/app/pages/admin/tours/tours.ts
-- VOYAGE_ADMIN_AUDIT_REPORT.md
+- `src/app/pages/admin/categories/categories.ts`
+- `src/app/pages/admin/categories/categories.html`
+- `src/app/pages/admin/categories/categories.scss`
+- `src/app/pages/admin/categories/categories-media.scss`
+- `src/app/pages/admin/categories/category-action-cell-renderer.component.ts`
+- `src/app/pages/admin/categories/categories.spec.ts`
+- `VOYAGE_ADMIN_AUDIT_REPORT.md`
 
 ### Đầu Việc Đã Làm
 
-- Việt hóa các text hiển thị trong slide-over Xem trước tour sang tiếng Việt có dấu.
-- Giữ nguyên logic fallback row, merge detail API, overlay, animation, body scroll lock và các emit action edit/publish/suspend.
-- Không sửa Admin Destinations, TourForm, public pages, AdminLayout, API backend hoặc payload backend.
-- Không ghi thay đổi admin vào VOYAGE_FRONTEND_AUDIT_REPORT.md.
+- Kiểm tra lại toàn bộ code Admin Categories sau khi chuyển sang AG Grid.
+- Tối ưu code theo hướng giữ nguyên logic, API và render UI hiện tại.
+- Không refactor lớn để tránh ảnh hưởng nghiệp vụ đang chạy.
+- Không ghi thay đổi admin vào `VOYAGE_FRONTEND_AUDIT_REPORT.md`.
 
-### Chức Năng Đã Sửa
+### Chức Năng Đã Giữ Nguyên
 
-- Đổi các fallback/error/loading text như Không thể tải thông tin tour, Chưa có giá, Chưa cập nhật, Chưa có điểm đến, Tour chưa có mô tả.
-- Đổi các label UI như Giá, Thời lượng, Số chỗ, Điểm đến, Mô tả, Lịch khởi hành, Lịch trình.
-- Đổi badge/status/schedule text như Nháp, Đã xuất bản, Tạm ẩn, Hết chỗ, Còn chỗ, Gần hết, Đã hủy.
-- Đổi action/footer text như Chỉnh sửa, Xuất bản, Tạm ẩn.
-- Đổi format duration/seats/itinerary title sang có dấu: ngày, đêm, chỗ, Ngày N.
-- Đổi thông báo lỗi mở preview trong Admin Tours sang tiếng Việt có dấu.
+- CRUD danh mục.
+- Search/filter danh mục.
+- Upload ảnh danh mục qua Admin Media.
+- Chọn ảnh từ Media trong form danh mục.
+- Hiển thị danh sách bằng AG Grid.
+- Cột ngày tạo/ngày cập nhật.
+- Cột hành động bằng menu ba chấm.
+- Action chuyển lên/chuyển xuống/sửa/bật/tạm ẩn/xóa.
+- Confirm Taiga UI cho các thao tác quan trọng.
+- Reorder vẫn bị khóa khi đang search/filter hoặc sort sai thứ tự mặc định.
+
+### Phần Đã Tối Ưu
+
+- Xóa import không dùng.
+- Xóa state khai báo trùng.
+- Xóa các hàm cũ không còn được template hoặc AG Grid sử dụng.
+- Giữ `CategoryActionCellRendererComponent` chỉ được AG Grid gọi qua `cellRenderer`, không đưa vào `imports` của `AdminCategories`.
+- Gom xử lý click action trong cell renderer để giảm lặp code.
+- Gộp và dọn CSS action menu trong `categories-media.scss`.
+- Bỏ các class SCSS action cũ không còn dùng.
+- Giữ fix overflow/z-index để action menu trong AG Grid không bị cắt.
+- Sửa spec import đúng component `AdminCategories`.
+
+### API Đã Dùng
+
+- Không thêm API mới.
+- Giữ nguyên các API hiện có của Admin Categories và Admin Media.
 
 ### Kết Quả Build/Test
 
-- npx ng build --configuration development: pass.
-- npm run build: pass.
+- Cần chạy lại:
+  - `npx ng build --configuration development`
+  - `npm run build`
 
 ### Warning/Lỗi Còn Lại
 
-- Production build còn warning budget hiện hữu: initial bundle, destinations.scss, public-layout.scss, tours.scss, categories.scss, tour-form.scss, home-hero.scss.
-- Không có lỗi compile.
+- Chưa test thủ công trên browser sau khi thay file tối ưu.
+- Các warning budget SCSS/initial bundle nếu còn là warning hiện hữu của dự án.
+- Nếu icon Taiga UI nào không có trong runtime, cần đổi sang icon đang được project hỗ trợ.
 
-### Ghi Chú Kỹ Thuật Và Rủi Ro
+### Ghi Chú Kỹ Thuật/Rủi Ro
 
-- Thay đổi chỉ nằm ở text hiển thị; không đổi mapping data, API call hoặc filter/action logic.
-- Cần kiểm tra nhanh trên browser để xác nhận font render tiếng Việt đúng theo môi trường runtime.
+- Tối ưu chỉ dọn code lặp và code dư, không đổi payload/backend contract.
+- Không thay đổi cách AG Grid nhận `rowData`, `columnDefs` và `context`.
+- Không đổi logic reorder hiện có; frontend vẫn swap/update hai danh mục liền kề.
 
 
+## Cập Nhật: Tối Ưu Render Form Và Danh Sách Admin Categories
 
+Thời gian cập nhật: 2026-06-08
 
+### File Đã Sửa
 
+- `src/app/pages/admin/categories/categories.html`
+- `VOYAGE_ADMIN_AUDIT_REPORT.md`
 
+### Chức Năng Đã Sửa
 
-## Cap Nhat: UI Dropdown Va Thu Vien Anh Tour Form
+- Khi mở form thêm mới/chỉnh sửa danh mục, chỉ render form thao tác hiện tại.
+- Khi đang ở form, không render toolbar tìm kiếm/lọc, reorder note và AG Grid danh sách.
+- Khi đóng form, toolbar và bảng danh mục render lại bình thường.
+- Ẩn cụm action header `Mở Media` và `Thêm danh mục` khi đang ở form.
+- Không thay đổi TypeScript, API hoặc payload backend.
 
-Thoi gian cap nhat: 2026-06-07 16:38:44 +07:00
+### Kết Quả Build/Test
 
-### File Da Sua/Tao Moi
-
-- src/app/pages/admin/tours/tour-form/tour-form.ts
-- src/app/pages/admin/tours/tour-form/tour-form.html
-- src/app/pages/admin/tours/tour-form/tour-form.scss
-- src/app/pages/admin/tours/tour-form/tour-form-media.scss
-- src/app/pages/admin/tours/tour-gallery/tour-gallery.html
-- src/app/pages/admin/tours/tour-gallery/tour-gallery.scss
-- VOYAGE_ADMIN_AUDIT_REPORT.md
-
-### Dau Viec Da Lam
-
-- Doc VOYAGE_ADMIN_AUDIT_REPORT.md va VOYAGE_FRONTEND_AUDIT_REPORT.md, uu tien section admin moi nhat ve Tour Preview Panel va ghi nhan cac warning budget hien huu.
-- Chi sua UI Tour Form va Tour Gallery lien quan dropdown/chevron, file picker, gallery card; khong sua Admin Tours list, Tour Preview Panel, Admin Destinations, Categories, Media page, AdminLayout, public pages hoac backend API.
-- Khong ghi thay doi vao VOYAGE_FRONTEND_AUDIT_REPORT.md.
-
-### Chuc Nang Da Sua
-
-- Dong bo dropdown/chevron trong Tour Form cho Danh muc, Diem den, Diem khoi hanh va Trang thai.
-- Native select duoc boc bang select wrapper, an native arrow bang CSS appearance va dung chevron custom bang CSS border, khong con ky tu v tho hoac arrow chong nhau.
-- Custom multi-select Diem den bo inline style, them panel nen trang, option mot dong, hover nen nhe, text can trai va chevron xoay khi dropdown mo.
-- Chinh hover/focus dropdown sang theme teal #1F6F68 voi border/shadow nhe; khong dung mau xanh cu #004FA8.
-- Thay input file native trong khu upload anh dai dien bang UI chon file custom hien text Chon anh tu may va ten file/Chua chon anh.
-- Chinh style phan Thu vien anh tour trong Tour Gallery: form mo ta anh + thu tu can hang, file picker custom, nut Tai anh moi/ Them anh da chon dong bo theme, disabled ro rang.
-- Chinh card anh gallery gon hon: preview cao co dinh, border #DDE7E4, radius 14px, shadow nhe, badge Dang chon/Anh dai dien, action button nho gon.
-- URL anh dai duoc dat trong box code co ellipsis/title de khong pha layout card.
-- Empty state doi text thanh Chua co anh trong thu vien tour va goi y Tai anh moi hoac chon anh tu Media de them vao tour.
-- Tach style media/upload cua Tour Form sang tour-form-media.scss de giu tour-form.scss duoi hard budget 10 kB.
-
-### API Da Noi
-
-- Khong noi API moi.
-- Van giu flow hien co: AdminMediaApiService.uploadMedia(file, 'tours'), AdminTourApiService.attachTourImageFromMedia, getTourImages, update/delete/reorder/set thumbnail.
-
-### Ket Qua Build/Test
-
-- npx ng build --configuration development: pass.
-- npm run build: pass.
-
-### Warning/Loi Con Lai
-
-- Production build con warning budget hien huu: initial bundle 859.40 kB vuot budget 500 kB.
-- Cac warning style hien huu van con: public-layout.scss, home-hero.scss, destinations.scss, categories.scss, tours.scss.
-- tour-form.scss con warning mem 8.86 kB, nhung duoi hard budget 10 kB nen production build pass.
-- Khong co loi compile.
-
-### Ghi Chu Ky Thuat Va Rui Ro
-
-- Khong doi payload backend, khong doi formControlName va khong doi mapping category/destination/departure/status.
-- Khong patch form trong getter, khong goi function tao list truc tiep trong template va khong them state co nguy co NG0103 infinite change detection.
-- Flow upload/chon anh/add gallery hien co duoc giu nguyen; thay doi chi nam o markup/style UI.
-- Neu backend gallery thieu URL hoac metadata, UI fallback an toan bang text Chua co URL/fallback image va khong lam vo card.
-- Chua test thu cong tren browser that voi API runtime; can kiem tra click dropdown, upload file, attach media, set thumbnail va save tour tren moi truong dang chay backend.
-
-## Cap Nhat: Fix Cuoi Dropdown Chevron Va Gallery Tour Form
-
-Thoi gian cap nhat: 2026-06-07 16:50:22 +07:00
-
-### File Da Sua
-
-- src/app/pages/admin/tours/tour-form/tour-form.scss
-- src/app/pages/admin/tours/tour-form/tour-form-media.scss
-- src/app/pages/admin/tours/tour-gallery/tour-gallery.scss
-- VOYAGE_ADMIN_AUDIT_REPORT.md
-
-### Dau Viec Da Lam
-
-- Doc VOYAGE_ADMIN_AUDIT_REPORT.md va VOYAGE_FRONTEND_AUDIT_REPORT.md, uu tien section admin moi nhat ve UI Dropdown Va Thu Vien Anh Tour Form.
-- Kiem tra truc tiep template va SCSS dang duoc Tour Form/Tour Gallery su dung de tim conflict CSS.
-- Xac dinh nguyen nhan o Diem den bi nen teal dac: rule global trong Tour Form `button { background: var(--p); color: #fff; }` dang tac dong vao custom trigger `admin-tour-form__ms-trigger`.
-- Chi sua cac class dang duoc template dung; khong sua Admin Tours list, Tour Preview Panel, Admin Destinations, Categories, Media page, AdminLayout, public pages hoac backend API.
-- Khong ghi thay doi vao VOYAGE_FRONTEND_AUDIT_REPORT.md.
-
-### Chuc Nang Da Sua
-
-- Fix dropdown/chevron trong Tour Form lan cuoi cho Danh muc, Diem den, Diem khoi hanh va Trang thai.
-- Sua o Diem den khong con nen teal dac: `admin-tour-form__ms-trigger` duoc override nen trang, text #0F172A, hover nen trang/xanh rat nhe.
-- Dong bo style dropdown/select: height 44px, border #DDE7E4, radius 12px, focus border #1F6F68 va shadow nhe.
-- Chinh chevron CSS border can giua doc, mau mac dinh #64748B, hover/focus/open doi sang #1F6F68, custom dropdown xoay khi mo.
-- Chinh menu Diem den nen trang, option can trai, padding gon, selected dung nen mint nhe, khong dung text trang hoac block teal lon.
-- Chinh file picker trong Thu vien anh tour va khu upload anh dai dien: input file native van bi an, button Chon anh tu may dung nen mint sang de doc hon, hover/focus ro hon.
-- Chinh style button upload/add image trong Tour Gallery: `Tai anh moi` la primary teal ro, `Them anh da chon` la secondary sang nhung du tuong phan, disabled state co nen/ch? nhat ro rang.
-- Chinh card anh gallery gon hon: giam chieu cao preview, grid card khong keo rong qua muc khi it anh, hover shadow nhe, title va URL ellipsis khong lam card cao bat thuong.
-- Xu ly URL anh dai bang box code ellipsis/title, khong de Cloudinary URL pha layout.
-- Toi uu `tour-gallery.scss` sau build de khong tao warning budget moi tu file nay.
-
-### API Da Noi
-
-- Khong noi API moi.
-- Van giu nguyen cac API/flow hien co: upload media, attach media vao gallery, load gallery, delete image, set thumbnail va reorder image.
-
-### Ket Qua Build/Test
-
-- npx ng build --configuration development: pass.
-- npm run build: pass.
-
-### Warning/Loi Con Lai
-
-- Production build con warning budget hien huu: initial bundle 859.40 kB vuot budget 500 kB.
-- Cac warning style hien huu van con: categories.scss, destinations.scss, tours.scss, home-hero.scss, public-layout.scss.
-- tour-form.scss con warning mem 9.30 kB, duoi hard budget 10 kB nen production build pass.
-- Khong con warning budget moi tu tour-gallery.scss sau khi toi uu.
-- Khong co loi compile.
-
-### Ghi Chu Ky Thuat Va Rui Ro
-
-- Khong doi payload backend, khong doi formControlName va khong doi mapping category/destination/departure/status.
-- Khong doi endpoint, khong rewrite flow upload/chon anh/add gallery/set thumbnail.
-- Khong patch form trong getter, khong goi function tao list truc tiep trong template va khong them logic co nguy co NG0103 infinite change detection.
-- CSS conflict cu da duoc sua truc tiep tren class dang dung trong template, dac biet `admin-tour-form__ms-trigger`, `admin-tour-gallery__file-button`, `admin-tour-gallery__primary`, `admin-tour-gallery__secondary`.
-- Chua test thu cong tren browser that voi API runtime; can kiem tra click dropdown, upload file, attach media, set thumbnail va luu/cap nhat tour tren moi truong backend dang chay.
-
-## Cap Nhat: Ke Thua Chevron Admin Tours Filter Va An Spinner Number Tour Form
-
-Thoi gian cap nhat: 2026-06-07 16:59:49 +07:00
-
-### File Da Sua/Tao Moi
-
-- src/app/pages/admin/tours/tour-form/tour-form.ts
-- src/app/pages/admin/tours/tour-form/tour-form.html
-- src/app/pages/admin/tours/tour-form/tour-form.scss
-- src/app/pages/admin/tours/tour-form/tour-form-controls.scss
-- VOYAGE_ADMIN_AUDIT_REPORT.md
-
-### Dau Viec Da Lam
-
-- Doc VOYAGE_ADMIN_AUDIT_REPORT.md va VOYAGE_FRONTEND_AUDIT_REPORT.md, uu tien section admin moi nhat ve fix dropdown/gallery Tour Form.
-- Tham khao pattern chevron dang hoat dong o Admin Tours filter trong tours.html, tours.scss va tours.ts.
-- Xac nhan Admin Tours filter dung custom dropdown state `openedFilter`, SVG icon path `M5.5 7.5L10 12l4.5-4.5`, hover/open doi mau va open rotate 180 do.
-- Chi sua Tour Form; khong sua logic Admin Tours list, Tour Preview Panel, Admin Destinations, Categories, Admin Media page, AdminLayout, public pages, backend API hoac payload backend.
-- Khong ghi thay doi admin vao VOYAGE_FRONTEND_AUDIT_REPORT.md.
-
-### Chuc Nang Da Sua
-
-- Ke thua pattern chevron tu filter ngoai Admin Tours bang SVG chevron cung viewBox/path thay cho chevron CSS border.
-- Fix chevron cho Danh muc, Diem den, Diem khoi hanh va Trang thai trong Tour Form.
-- Native select van giu logic select/formControlName hien co, duoc boc wrapper va an native arrow bang `appearance: none`/`-webkit-appearance: none`.
-- Custom dropdown Diem den giu logic multi-select hien co, trigger nen trang, text #0F172A, SVG chevron xoay 180 do khi mo.
-- Hover/focus/open state dong bo: border #1F6F68, shadow nhe va chevron doi mau #1F6F68.
-- Bo native arrow bi chong voi custom chevron; khong dung ky tu `v`, `?`, `?` lam chevron.
-- Bo spinner native trong cac input number cua Tour Form bang CSS cho Chrome/Edge/Safari va Firefox.
-- Cac input so van giu `type="number"`, min, validation va parse number hien co, nen khong anh huong payload backend.
-- Tach style control/dropdown/number sang `tour-form-controls.scss` va dang ky trong `styleUrls` de tranh warning budget moi tren `tour-form.scss`.
-
-### API Da Noi
-
-- Khong noi API moi.
-- Khong doi endpoint hoac payload backend.
-
-### Ket Qua Build/Test
-
-- npx ng build --configuration development: pass.
-- npm run build: pass.
-
-### Warning/Loi Con Lai
-
-- Production build con warning budget hien huu: initial bundle 859.40 kB vuot budget 500 kB.
-- Cac warning style hien huu van con: public-layout.scss, categories.scss, destinations.scss, tours.scss, home-hero.scss.
-- Khong con warning budget tu tour-form.scss sau khi tach `tour-form-controls.scss`.
-- Khong co loi compile.
-
-### Ghi Chu Ky Thuat Va Rui Ro
-
-- Da sua truc tiep class dang duoc template dung: `admin-tour-form__select-wrap`, `admin-tour-form__select`, `admin-tour-form__chevron`, `admin-tour-form__ms-trigger`, `admin-tour-form__ms-panel`, `admin-tour-form__control[type='number']`.
-- Khong doi formControlName, enum value, endpoint, payload hoac flow Tour Form.
-- Khong rewrite form, khong patch form trong getter, khong goi function tao list truc tiep trong template va khong them logic co nguy co NG0103.
-- Chua test thu cong tren browser/API runtime; can kiem tra dropdown native/custom, number input khong con spinner, edit mode patch data va submit tour tren moi truong backend dang chay.
-
-## Cap Nhat: Fix NG2008 Tour Form Controls Stylesheet
-
-Thoi gian cap nhat: 2026-06-07 17:03:30 +07:00
-
-### File Da Sua
-
-- src/app/pages/admin/tours/tour-form/tour-form.ts
-- src/app/pages/admin/tours/tour-form/tour-form.scss
-- VOYAGE_ADMIN_AUDIT_REPORT.md
-
-### Dau Viec Da Lam
-
-- Xu ly loi build NG2008: Angular compiler khong tim thay `./tour-form-controls.scss` trong `styleUrls` cua TourForm.
-- Bo dependency vao stylesheet moi de tranh loi file moi/untracked/khong duoc moi truong build nhan ra.
-- Gop lai style control/dropdown/number vao `tour-form.scss` la file san co va dang duoc Angular resolve on dinh.
-- Xoa file `tour-form-controls.scss` khong con duoc su dung de tranh nham lan.
-- Khong ghi thay doi vao VOYAGE_FRONTEND_AUDIT_REPORT.md.
-
-### Chuc Nang Da Giu Nguyen
-
-- SVG chevron ke thua pattern filter Admin Tours van giu cho Danh muc, Diem den, Diem khoi hanh va Trang thai.
-- Native select van an native arrow va dung custom SVG chevron.
-- Custom dropdown Diem den van xoay chevron khi mo.
-- Number input van an spinner native tren Chrome/Edge/Safari/Firefox.
-- Khong doi formControlName, endpoint, payload hoac flow Tour Form.
-
-### Ket Qua Build/Test
-
-- npx ng build --configuration development: pass.
-- npm run build: pass.
-
-### Warning/Loi Con Lai
-
-- Khong con loi NG2008.
-- Production build con warning budget hien huu: initial bundle, categories.scss, tours.scss, home-hero.scss, public-layout.scss, destinations.scss.
-- tour-form.scss con warning mem 9.44 kB, duoi hard budget 10 kB nen production build pass.
-- Khong co loi compile.
-
-### Ghi Chu Ky Thuat Va Rui Ro
-
-- Uu tien build on dinh hon viec tach stylesheet moi.
-- `tour-form.scss` tiep tuc chua style control/dropdown/number de Angular compiler khong phu thuoc file controls moi.
-
-## Cap Nhat: Dong Bo Custom Dropdown Tour Form Va Fix Chevron Cuoi
-
-Thoi gian cap nhat: 2026-06-07 21:49:00 +07:00
-
-### File Da Sua
-
-- src/app/pages/admin/tours/tour-form/tour-form.ts
-- src/app/pages/admin/tours/tour-form/tour-form.html
-- src/app/pages/admin/tours/tour-form/tour-form.scss
-- VOYAGE_ADMIN_AUDIT_REPORT.md
-
-### Dau Viec Da Lam
-
-- Doi cac native select trong Tour Form gom Danh muc, Diem khoi hanh va Trang thai sang custom dropdown cung pattern voi dropdown Diem den.
-- Giu nguyen form control hien co va chi set value vao `categoryId`, `departureLocation`, `status` bang handler UI.
-- Loai bo chevron dang ky tu/button tho o Diem den, thay bang SVG chevron cung pattern Admin Tours filter.
-- Chinh trigger dropdown thanh dang input/select nen trang, can trai, khong con nhin nhu button teal.
-- Dam bao dropdown dang mo co chevron xoay va dong dropdown khac khi mo mot dropdown moi.
-- Tiep tuc giu CSS an native spinner cho input number da sua truoc do.
-- Khong ghi thay doi admin vao VOYAGE_FRONTEND_AUDIT_REPORT.md.
-
-### Chuc Nang Da Sua
-
-- Danh muc: custom dropdown nen trang, chevron SVG ro, selected state nen mint nhe, set dung `categoryId`.
-- Diem den: giu flow multi-select hien co, trigger khong con class/button style cu, chevron SVG xoay khi mo.
-- Diem khoi hanh: custom dropdown chon duoc cac option hien co, set dung `departureLocation`.
-- Trang thai: custom dropdown chon dung enum `DRAFT`, `PUBLISHED`, `INACTIVE`, `SOLD_OUT`.
-- Hover/focus/open state dong bo border teal va shadow nhe.
-- Khong con native select arrow chong custom chevron o cac field tren.
-
-### API Da Noi
-
-- Khong noi API moi.
-- Khong doi endpoint hoac payload backend.
-
-### Ket Qua Build/Test
-
-- npx ng build --configuration development: pass.
-- npm run build: pass.
-
-### Warning/Loi Con Lai
-
-- Production build con warning budget hien huu: initial bundle 859.40 kB vuot budget 500 kB.
-- Cac warning style hien huu van con: public-layout.scss, categories.scss, destinations.scss, tours.scss, home-hero.scss.
-- tour-form.scss warning mem: 9.77 kB vuot warning budget 8.00 kB nhung van duoi hard budget 10 kB nen build pass.
-- Khong con loi NG2008 lien quan `tour-form-controls.scss`.
-
-### Ghi Chu Ky Thuat Va Rui Ro
-
-- Da sua truc tiep class dang render trong template: `admin-tour-form__select-wrap`, `admin-tour-form__select-trigger`, `admin-tour-form__ms-trigger`, `admin-tour-form__ms-panel`, `admin-tour-form__chevron`.
-- Khong doi formControlName, enum value, endpoint, payload hoac flow submit Tour Form.
-- Khong rewrite flow upload/chon anh/gallery.
-- Custom dropdown hien chua co click-outside close rieng; dropdown se dong khi chon option hoac mo dropdown khac.
-
-## Cap Nhat: Upload Va Chon Anh Media Cho Admin Categories
-
-Thoi gian cap nhat: 2026-06-08 09:12:04 +07:00
-
-### File Da Sua/Tao Moi
-
-- src/app/pages/admin/categories/categories.ts
-- src/app/pages/admin/categories/categories.html
-- src/app/pages/admin/categories/categories.scss
-- src/app/pages/admin/categories/categories-media.scss
-- VOYAGE_ADMIN_AUDIT_REPORT.md
-
-### Dau Viec Da Lam
-
-- Doc VOYAGE_ADMIN_AUDIT_REPORT.md va VOYAGE_FRONTEND_AUDIT_REPORT.md, uu tien section admin moi nhat ve Tour Form dropdown/chevron.
-- Chi sua Admin Categories va audit admin; khong sua Admin Tours, Tour Form, Admin Destinations, Admin Media page, AdminLayout, public pages hoac backend API.
-- Thay luong URL anh Cloudinary thu cong trong form danh muc bang khu quan ly anh truc tiep.
-- Khong ghi thay doi admin vao VOYAGE_FRONTEND_AUDIT_REPORT.md.
-
-### Chuc Nang Da Them/Sua
-
-- Them khu vuc Anh danh muc trong form tao/sua danh muc voi mo ta Tai anh moi hoac chon anh da co tu Media.
-- Them nut Tai anh tu may dung file input an, khong lo input native Choose File / No file chosen.
-- Validate upload frontend: PNG, JPG, JPEG, WEBP va toi da 5MB.
-- Upload anh truc tiep qua AdminMediaApiService.uploadMedia(file, 'categories').
-- Sau upload thanh cong, frontend tu lay URL anh va set vao form field imageUrl.
-- Them nut Chon tu Media mo panel chon anh ngay trong form danh muc.
-- Panel Media co filter module Categories, General va Tat ca; co loading, empty, error va nut Thu lai.
-- Grid Media hien thumbnail, ten file, module va ngay tao neu co.
-- Click anh trong Media se set imageUrl, cap nhat preview va dong panel.
-- Preview anh danh muc cap nhat ngay sau upload/chon anh.
-- Khi chua co anh, hien empty preview voi icon anh va text Chua co anh danh muc.
-- Khi da co anh, hien Da chon anh hoac ten file, URL rut gon va nut Bo chon anh.
-- Giu URL trong phan Tuy chon nang cao: URL anh dang readonly de khong con la luong chinh.
-- URL dai duoc hien bang code box ellipsis/title, khong pha layout.
-- Tach style anh/Media sang categories-media.scss de tranh vuot hard budget component stylesheet.
-- Button phu trong form doi sang theme teal/mint, khong dung mau xanh cu.
-
-### API Da Dung
-
-- POST /api/admin/media/upload thong qua AdminMediaApiService.uploadMedia(file, 'categories').
-- GET /api/admin/media thong qua AdminMediaApiService.getMedia({ module, page, size, sortBy, sortDir }).
-- POST /api/admin/categories thong qua AdminCategoryApiService.createCategory(payload) nhu cu.
-- PUT /api/admin/categories/{id} thong qua AdminCategoryApiService.updateCategory(id, payload) nhu cu.
-- PATCH /api/admin/categories/{id}/image van duoc giu cho nut cap nhat rieng anh trong edit mode.
-
-### Ket Qua Build/Test
-
-- npx ng build --configuration development: pass.
-- npm run build: pass.
-
-### Warning/Loi Con Lai
-
-- Production build con warning budget hien huu: initial bundle 859.40 kB vuot warning budget 500 kB.
-- Cac warning style hien huu van con: home-hero.scss, public-layout.scss, destinations.scss, tour-form.scss, categories.scss, tours.scss.
-- categories.scss warning mem 9.48 kB, duoi hard budget 10 kB nen production build pass.
-- Khong co loi compile.
-- Chua test thu cong tren browser voi backend runtime trong buoc nay.
-
-### Ghi Chu Ky Thuat Va Rui Ro
-
-- Payload category van giu imageUrl; khong gui mediaId va khong gui file trong payload category.
-- Module upload dang dung categories vi Media manager/audit hien co da co filter Categories; neu backend moi truong nao chua ho tro module nay thi can fallback backend hoac doi frontend sang general.
-- Frontend normalize URL linh hoat theo cac field: url, secureUrl, imageUrl, ileUrl, mediaUrl va cac alias trong data.
-- Media list duoc loc client-side theo media type anh; item khong co URL hop le se khong render trong grid.
-- Khong luu base64 va khong goi Cloudinary truc tiep tu frontend.
-## Cap Nhat: Gom Action Admin Categories Vao Menu Icon
-
-Thoi gian cap nhat: 2026-06-08 09:54:12 +07:00
-
-### File Da Sua
-
-- src/app/pages/admin/categories/categories.ts
-- src/app/pages/admin/categories/categories.html
-- src/app/pages/admin/categories/categories.scss
-- src/app/pages/admin/categories/categories-media.scss
-- VOYAGE_ADMIN_AUDIT_REPORT.md
-
-### Dau Viec Da Lam
-
-- Doc VOYAGE_ADMIN_AUDIT_REPORT.md, uu tien section moi nhat ve Admin Categories upload/chon anh Media.
-- Tham chieu UI action menu Admin Tours va anh nguoi dung gui: cot Hanh dong dung nut ba cham doc, menu trang bo goc, action co icon va mau theo ngu nghia.
-- Chi sua Admin Categories va audit admin; khong sua Admin Tours, Tour Form, Admin Destinations, Admin Media, AdminLayout hoac public pages.
-- Khong ghi thay doi vao VOYAGE_FRONTEND_AUDIT_REPORT.md.
-
-### Chuc Nang Da Sua
-
-- Gom cac action trong cot Hanh dong cua bang Admin Categories vao mot nut icon @tui.more-vertical.
-- Them dropdown action menu cho tung danh muc, pattern tu Admin Tours:
-  - Len
-  - Xuong
-  - Sua
-  - Bat/Tam an
-  - Xoa
-- Menu co icon cho tung action, separator giua nhom sap xep/sua, nhom trang thai va action xoa.
-- Nut Len/Xuong van an/hien theo vi tri dau/cuoi danh sach va van ton trong logic disable khi dang update thu tu.
-- Action Sua/Bat/Tam an/Xoa van goi lai handler hien co, khong doi API hoac payload.
-- Them state openedActionCategoryId, ctionMenuPlacement, close menu khi click outside va khi bam Escape.
-- Menu tu dong mo len tren neu gan day viewport de giam nguy co bi cat, tuong tu Admin Tours.
-- Cot Hanh dong duoc thu gon, khong con nhieu nut inline lam vo layout.
-- Style menu/action dua vao categories-media.scss de khong lam tang categories.scss vuot hard budget.
-
-### API Da Dung
-
-- Khong them API moi.
-- Van giu cac API hien co cua Admin Categories: create/update, status, image, delete va reorder/swap neu da co trong component hien tai.
-
-### Ket Qua Build/Test
-
-- npx ng build --configuration development: pass.
-- npm run build: pass.
-- git diff --check: pass, chi co warning line ending CRLF thong thuong.
-
-### Warning/Loi Con Lai
-
-- Production build con warning budget hien huu: initial bundle 859.40 kB vuot warning budget 500 kB.
-- Cac warning style hien huu van con: public-layout.scss, home-hero.scss, destinations.scss, categories.scss, tours.scss, tour-form.scss.
-- categories.scss warning mem 9.36 kB, duoi hard budget 10 kB va thap hon muc 9.48 kB da ghi trong audit truoc.
-- Chua test thu cong tren browser voi backend runtime trong buoc nay.
-
-### Ghi Chu Ky Thuat Va Rui Ro
-
-- Action menu chi thay doi UI/interaction, khong rewrite component va khong doi endpoint backend.
-- Click outside dang dung document mousedown va bo qua target trong .admin-categories__action-wrap.
-- Icon action dung Taiga icons cung pattern voi Admin Tours; neu icon arrow runtime khong ton tai trong bo icon, co the can doi sang icon co san khac nhung build khong bi anh huong.
-- Khi search/filter dang active, reorder van bi khoa theo logic truoc do de tranh sap xep tren danh sach rut gon gay nham lan.
-
-## Cap Nhat: Doi Bang Admin Categories Sang AG Grid
-
-Thoi gian cap nhat: 2026-06-08 10:26:16 +07:00
-
-### File Da Sua/Tao Moi
-
-- package.json
-- package-lock.json
-- src/app/core/models/category.model.ts
-- src/app/pages/admin/categories/categories.ts
-- src/app/pages/admin/categories/categories.html
-- src/app/pages/admin/categories/categories.scss
-- VOYAGE_ADMIN_AUDIT_REPORT.md
-
-### Package Da Them
-
-- ag-grid-angular@35.3.1
-- ag-grid-community@35.3.1
-
-### Dau Viec Da Lam
-
-- Doc VOYAGE_ADMIN_AUDIT_REPORT.md va VOYAGE_FRONTEND_AUDIT_REPORT.md, uu tien section admin moi nhat ve action menu Admin Categories.
-- Chi sua man Admin Categories, model category va package AG Grid can thiet.
-- Khong sua Admin Tours, Tour Form, Admin Destinations, Admin Media page, AdminLayout, public pages hoac backend API.
-- Khong ghi thay doi admin vao VOYAGE_FRONTEND_AUDIT_REPORT.md.
-
-### Chuc Nang Da Them/Sua
-
-- Doi danh sach Admin Categories tu table HTML custom sang AG Grid Angular Community.
-- Them rowData rieng cho grid tu filteredCategories de giu logic search/filter/count hien co.
-- Them cot Ngay tao hien thi dd/MM/yyyy HH:mm khi backend co du lieu, thieu hoac khong parse duoc thi hien '-'.
-- Sua cot Cap nhat de doc updatedAt va cac alias ngay cap nhat that; neu thieu, sai dinh dang hoac bang ngay tao thi hien '-'.
-- Khong con hien text tinh Dang cap nhat trong cot Cap nhat.
-- Cot Anh dung cell renderer thumbnail bo goc, co fallback anh khi load loi va khong tu xoa imageUrl.
-- Cot Ten danh muc hien ten va mo ta ngan voi ellipsis de khong vo layout.
-- Cot Slug hien chip nhe, khong de text dai pha layout.
-- Cot Trang thai hien badge Dang hien thi / Tam an theo theme teal/green/orange hien co.
-- Cot Thu tu hien displayOrder da normalize va sort mac dinh tang dan.
-- Cot Hanh dong trong AG Grid van gom vao nut ba cham, giu cac action Len, Xuong, Sua, Bat/Tam an va Xoa.
-- Reorder Len/Xuong van goi confirm UI hien co va swap 2 danh muc lien ke qua update category nhu truoc.
-- Khoa reorder khi search/filter active hoac khi AG Grid dang sort khac cot Thu tu tang dan de tranh sap xep nham tren danh sach dang render.
-- Loading va empty state chuyen sang AG Grid overlay.
-- Dung AG Grid Theming API themeQuartz thay vi import CSS lon de tranh vuot hard budget global/component stylesheet.
-- Don bot style table cu khong con dung de giam categories.scss tu muc 9.58 kB ve 8.92 kB.
-
-### API Da Dung
-
-- GET /api/admin/categories thong qua AdminCategoryApiService.getCategories() nhu cu.
-- POST /api/admin/categories thong qua AdminCategoryApiService.createCategory(payload) nhu cu.
-- PUT /api/admin/categories/{id} thong qua AdminCategoryApiService.updateCategory(id, payload) nhu cu.
-- PATCH /api/admin/categories/{id}/status thong qua AdminCategoryApiService.updateCategoryStatus(id, status) nhu cu.
-- DELETE /api/admin/categories/{id} thong qua AdminCategoryApiService.deleteCategory(id) nhu cu.
-- Reorder van dung AdminCategoryApiService.swapCategoryOrder(), hien tai la forkJoin goi updateCategory cho 2 danh muc lien ke; khong them endpoint backend moi.
-
-### Ket Qua Build/Test
-
-- npx ng build --configuration development: pass.
-- npm run build: pass.
-
-### Warning/Loi Con Lai
-
-- Production build con warning budget hien huu: initial bundle 859.40 kB vuot warning budget 500 kB.
-- Production build con warning style hien huu: public-layout.scss 9.99 kB, tours.scss 9.98 kB, tour-form.scss 9.90 kB, destinations.scss 9.88 kB, home-hero.scss 9.88 kB.
-- categories.scss van con warning mem 8.92 kB vuot warning budget 8 kB, nhung da giam so voi 9.36 kB/9.48 kB trong cac section audit truoc va duoi hard budget 10 kB nen build pass.
-- Lazy chunk categories tang len khoang 1.18 MB raw trong production do AG Grid Community duoc bundle vao route Admin Categories.
-- Chua test thu cong tren browser voi backend runtime trong buoc nay.
-
-### Ghi Chu Ky Thuat Va Rui Ro
-
-- Frontend phu thuoc backend tra createdAt/updatedAt hoac cac alias createdDate, createdOn, updatedDate, updatedOn, modifiedAt, lastModifiedAt; neu backend khong tra thi grid hien '-'.
-- updatedAt bang createdAt duoc coi la chua cap nhat sau tao va hien '-'.
-- Payload category khong doi; create/update van gui imageUrl va displayOrder nhu logic hien co, khong gui mediaId.
-- Khong them AG Grid Enterprise.
-- Khong import ag-grid.css vao global/component SCSS de tranh loi hard budget; grid dung themeQuartz tu AG Grid Theming API.
-- Vi action cell renderer la HTML dong cua AG Grid, component dung ViewEncapsulation.None voi prefix class admin-categories__ de style renderer hoat dong va giam nguy co anh huong man khac.
-- Neu can giam bundle route Admin Categories ve sau, co the thay AllCommunityModule bang cac module AG Grid Community cu the dang dung.
+- Cần chạy lại:
+  - `npx ng build --configuration development`
+  - `npm run build`
