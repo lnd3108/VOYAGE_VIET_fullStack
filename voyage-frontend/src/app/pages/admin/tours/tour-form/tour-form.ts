@@ -42,12 +42,13 @@ interface DestinationSelectOption {
 }
 
 type MediaTab = 'library' | 'upload' | 'manual';
+type TourFormDropdown = 'category' | 'departure' | 'status';
 
 @Component({
   selector: 'app-admin-tour-form',
   imports: [NgClass, NgFor, NgIf, ReactiveFormsModule, RouterLink, TourGallery, TourItinerary, TourSchedules],
   templateUrl: './tour-form.html',
-  styleUrl: './tour-form.scss',
+  styleUrls: ['./tour-form.scss', './tour-form-media.scss'],
 })
 export class TourForm implements OnInit, OnDestroy {
   @ViewChild('tourUploadInput') private tourUploadInput?: ElementRef<HTMLInputElement>;
@@ -105,6 +106,7 @@ export class TourForm implements OnInit, OnDestroy {
   selectedDestinationIds: number[] = [];
   selectedDestinationLabel = 'Chọn điểm đến';
   isDestinationDropdownOpen = false;
+  openDropdown: TourFormDropdown | null = null;
   selectedThumbnailUrl = '';
   showDraftBanner = false;
   draftRestored = false;
@@ -478,6 +480,48 @@ export class TourForm implements OnInit, OnDestroy {
 
   toggleDestinationDropdown(): void {
     this.isDestinationDropdownOpen = !this.isDestinationDropdownOpen;
+    if (this.isDestinationDropdownOpen) {
+      this.openDropdown = null;
+    }
+  }
+
+  toggleDropdown(dropdown: TourFormDropdown): void {
+    this.openDropdown = this.openDropdown === dropdown ? null : dropdown;
+    if (this.openDropdown) {
+      this.isDestinationDropdownOpen = false;
+    }
+  }
+
+  closeDropdown(): void {
+    this.openDropdown = null;
+  }
+
+  selectCategory(categoryId: number | undefined): void {
+    if (categoryId === undefined) {
+      return;
+    }
+
+    const control = this.form.controls.categoryId;
+    control.setValue(categoryId);
+    control.markAsDirty();
+    control.markAsTouched();
+    this.closeDropdown();
+  }
+
+  selectDepartureLocation(value: string): void {
+    const control = this.form.controls.departureLocation;
+    control.setValue(value);
+    control.markAsDirty();
+    control.markAsTouched();
+    this.closeDropdown();
+  }
+
+  selectStatus(value: TourStatus): void {
+    const control = this.form.controls.status;
+    control.setValue(value);
+    control.markAsDirty();
+    control.markAsTouched();
+    this.closeDropdown();
   }
 
   toggleDestinationOption(option: DestinationSelectOption): void {
@@ -565,6 +609,22 @@ export class TourForm implements OnInit, OnDestroy {
     const categoryId = this.form.controls.categoryId.value;
     const category = this.categories.find((item) => item.id === categoryId);
     return category ? this.categoryLabel(category, false) : 'Chưa chọn danh mục';
+  }
+
+  selectedCategoryLabel(): string {
+    const categoryId = this.form.controls.categoryId.value;
+    const category = this.categories.find((item) => item.id === categoryId);
+    return category ? this.categoryLabel(category) : 'Chọn danh mục';
+  }
+
+  selectedDepartureLabel(): string {
+    const value = this.form.controls.departureLocation.value;
+    const option = this.departureSelectOptions.find((item) => item.value === value);
+    return option?.label || value || 'Chọn điểm khởi hành';
+  }
+
+  selectedStatusLabel(): string {
+    return this.statusLabel(this.form.controls.status.value);
   }
 
   previewDestinationName(): string {

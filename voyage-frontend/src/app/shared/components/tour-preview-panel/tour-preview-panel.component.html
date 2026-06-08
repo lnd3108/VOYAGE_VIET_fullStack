@@ -1,0 +1,115 @@
+<aside class="tour-preview-panel" role="dialog" aria-modal="true" aria-label="Xem trước tour">
+  <header class="tour-preview-panel__header">
+    <button type="button" class="tour-preview-panel__close" aria-label="Đóng xem trước" (click)="close()">X</button>
+    <h2>{{ title }}</h2>
+    <span class="tour-preview-panel__status" [ngClass]="statusClass">{{ statusLabel }}</span>
+  </header>
+
+  <div class="tour-preview-panel__body">
+    <ng-container *ngIf="loading">
+      <div class="tour-preview-panel__skeleton tour-preview-panel__skeleton--hero"></div>
+      <div class="tour-preview-panel__skeleton-grid">
+        <span class="tour-preview-panel__skeleton" *ngFor="let item of [1, 2, 3, 4]"></span>
+      </div>
+      <span class="tour-preview-panel__skeleton tour-preview-panel__skeleton--line"></span>
+      <span class="tour-preview-panel__skeleton tour-preview-panel__skeleton--line"></span>
+      <span class="tour-preview-panel__skeleton tour-preview-panel__skeleton--short"></span>
+    </ng-container>
+
+    <section class="tour-preview-panel__error" *ngIf="!loading && error">
+      <strong>!</strong>
+      <h3>Không thể tải thông tin tour</h3>
+      <p>Vui lòng thử lại sau ít phút.</p>
+      <button type="button" (click)="retry()">Thử lại</button>
+    </section>
+
+    <ng-container *ngIf="!loading && !error && tour">
+      <div class="tour-preview-panel__notice" *ngIf="detailLoading">Đang tải chi tiết đầy đủ...</div>
+      <div class="tour-preview-panel__notice tour-preview-panel__notice--warning" *ngIf="detailWarning">{{ detailWarning }}</div>
+
+      <section class="tour-preview-panel__hero">
+        <img *ngIf="mainImageUrl; else noImage" [src]="mainImageUrl" [alt]="title" (error)="handleImageError()" />
+        <ng-template #noImage>
+          <div class="tour-preview-panel__placeholder">
+            <span aria-hidden="true">▧</span>
+            <strong>Chưa có ảnh</strong>
+          </div>
+        </ng-template>
+      </section>
+
+      <section class="tour-preview-panel__summary">
+        <article>
+          <span aria-hidden="true">₫</span>
+          <small>Giá</small>
+          <strong>{{ priceText }}</strong>
+          <del *ngIf="originalPriceText">{{ originalPriceText }}</del>
+        </article>
+        <article>
+          <span aria-hidden="true">⏱</span>
+          <small>Thời lượng</small>
+          <strong>{{ durationText }}</strong>
+        </article>
+        <article>
+          <span aria-hidden="true">◎</span>
+          <small>Số chỗ</small>
+          <strong>{{ seatsText }}</strong>
+        </article>
+        <article>
+          <span aria-hidden="true">⌖</span>
+          <small>Điểm đến</small>
+          <strong>{{ destinationText }}</strong>
+        </article>
+      </section>
+
+      <section class="tour-preview-panel__section">
+        <h3>Mô tả</h3>
+        <p class="tour-preview-panel__description" [class.tour-preview-panel__description--expanded]="descriptionExpanded">{{ descriptionText }}</p>
+        <button type="button" class="tour-preview-panel__link" *ngIf="descriptionLong" (click)="toggleDescription()">
+          {{ descriptionExpanded ? 'Thu gọn' : 'Xem thêm' }}
+        </button>
+      </section>
+
+      <section class="tour-preview-panel__pills" aria-label="Thống kê nhanh">
+        <span>Lịch khởi hành: {{ scheduleCount }}</span>
+        <span>Ảnh gallery: {{ imageCount }}</span>
+        <span>Lịch trình: {{ itineraryCount }}</span>
+      </section>
+
+      <section class="tour-preview-panel__section">
+        <h3>Lịch khởi hành</h3>
+        <div class="tour-preview-panel__empty" *ngIf="!scheduleItems.length">Chưa có lịch khởi hành</div>
+        <div class="tour-preview-panel__schedule" *ngFor="let schedule of visibleScheduleItems">
+          <div>
+            <strong>{{ schedule.date }}</strong>
+            <small>{{ schedule.seats }}</small>
+          </div>
+          <span class="tour-preview-panel__schedule-status" [ngClass]="schedule.statusClass">{{ schedule.status }}</span>
+        </div>
+        <button type="button" class="tour-preview-panel__link" *ngIf="scheduleItems.length > 3" (click)="toggleSchedules()">
+          {{ showAllSchedules ? 'Thu gọn lịch' : 'Xem tất cả lịch' }}
+        </button>
+      </section>
+
+      <section class="tour-preview-panel__section">
+        <h3>Lịch trình</h3>
+        <div class="tour-preview-panel__empty" *ngIf="!itineraryItems.length">Chưa có lịch trình</div>
+        <article class="tour-preview-panel__itinerary" *ngFor="let item of visibleItineraryItems">
+          <button type="button" (click)="toggleItinerary(item.id)">
+            <span>{{ item.title }}</span>
+            <span aria-hidden="true">{{ isItineraryOpen(item.id) ? '-' : '+' }}</span>
+          </button>
+          <p *ngIf="isItineraryOpen(item.id)">{{ item.body }}</p>
+        </article>
+        <button type="button" class="tour-preview-panel__link" *ngIf="itineraryItems.length > 3" (click)="toggleItineraryList()">
+          {{ showAllItinerary ? 'Thu gọn lịch trình' : 'Xem thêm lịch trình' }}
+        </button>
+      </section>
+    </ng-container>
+  </div>
+
+  <footer class="tour-preview-panel__footer" *ngIf="!loading && !error && tour">
+    <button type="button" class="tour-preview-panel__button tour-preview-panel__button--secondary" (click)="requestEdit()">Chỉnh sửa</button>
+    <button type="button" class="tour-preview-panel__button tour-preview-panel__button--primary" *ngIf="canPublish()" (click)="requestPublish()">Xuất bản</button>
+    <button type="button" class="tour-preview-panel__button tour-preview-panel__button--danger" *ngIf="canSuspend()" (click)="requestSuspend()">Tạm ẩn</button>
+  </footer>
+</aside>

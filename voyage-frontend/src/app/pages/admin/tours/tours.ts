@@ -1,13 +1,14 @@
 import { NgClass, NgFor, NgIf } from '@angular/common';
-import { Component, DestroyRef, HostListener, OnInit, inject } from '@angular/core';
+import { Component, DestroyRef, HostListener, OnDestroy, OnInit, inject } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { RouterLink } from '@angular/router';
+import { Router, RouterLink } from '@angular/router';
 import { TuiIcon } from '@taiga-ui/core';
 import { take } from 'rxjs';
 
 import { AdminTourApiService } from '../../../core/api/admin-tour-api.service';
 import { AdminTour, TourPublishChecklist, TourStatus } from '../../../core/models/admin-tour.model';
 import { AdminUiFeedbackService } from '../../../core/services/admin-ui-feedback.service';
+import { TourPreviewPanelComponent } from '../../../shared/components/tour-preview-panel/tour-preview-panel.component';
 
 type TourStatusFilter = 'ALL' | TourStatus;
 type FeaturedFilter = 'ALL' | 'FEATURED' | 'NORMAL';
@@ -33,14 +34,16 @@ interface TourStats {
 
 @Component({
   selector: 'app-admin-tours',
-  imports: [NgClass, NgFor, NgIf, RouterLink, TuiIcon],
+  imports: [NgClass, NgFor, NgIf, RouterLink, TuiIcon, TourPreviewPanelComponent],
   templateUrl: './tours.html',
   styleUrl: './tours.scss',
 })
-export class AdminTours implements OnInit {
+export class AdminTours implements OnInit, OnDestroy {
   private readonly adminTourApiService = inject(AdminTourApiService);
   private readonly destroyRef = inject(DestroyRef);
   private readonly feedback = inject(AdminUiFeedbackService);
+  private readonly router = inject(Router);
+  private previousBodyOverflow = '';
 
   readonly fallbackImage = '/hero/bg-home.png';
   readonly statusOptions: FilterOption<TourStatus>[] = [
@@ -93,9 +96,15 @@ export class AdminTours implements OnInit {
   openedActionTourId: number | null = null;
   actionMenuPlacement: 'bottom' | 'top' = 'bottom';
   openedFilter: TourFilterDropdown | null = null;
+  previewTourId: number | null = null;
+  selectedPreviewTour: AdminTour | null = null;
 
   ngOnInit(): void {
     this.loadTours();
+  }
+
+  ngOnDestroy(): void {
+    this.unlockBodyScroll();
   }
 
   @HostListener('document:click')
@@ -111,6 +120,11 @@ export class AdminTours implements OnInit {
 
   @HostListener('document:keydown.escape')
   closeOverlayMenusByEscape(): void {
+    if (this.previewTourId) {
+      this.closeTourPreview();
+      return;
+    }
+
     this.closeOverlayMenus();
   }
 
@@ -260,6 +274,43 @@ export class AdminTours implements OnInit {
 
   openTourSummary(tour: AdminTour): void {
     this.selectedTour = this.selectedTour?.id === tour.id ? null : tour;
+  }
+
+  openTourPreview(tour: AdminTour): void {
+    if (!tour.id) {
+      this.errorMessage = 'Không xác định được tour cần xem trước.';
+      return;
+    }
+
+    this.closeOverlayMenus();
+    this.selectedPreviewTour = tour;
+    this.previewTourId = tour.id;
+    this.lockBodyScroll();
+  }
+
+  closeTourPreview(): void {
+    this.previewTourId = null;
+    this.selectedPreviewTour = null;
+    this.unlockBodyScroll();
+  }
+
+  editPreviewTour(tour: AdminTour): void {
+    if (!tour.id) {
+      return;
+    }
+
+    this.closeTourPreview();
+    void this.router.navigate(['/admin/tours', tour.id, 'edit']);
+  }
+
+  publishPreviewTour(tour: AdminTour): void {
+    this.closeTourPreview();
+    this.publishTour(tour);
+  }
+
+  suspendPreviewTour(tour: AdminTour): void {
+    this.closeTourPreview();
+    this.changeStatusFromMenu(tour, 'INACTIVE');
   }
 
   toggleActionMenu(tour: AdminTour, event?: Event): void {
@@ -653,6 +704,23 @@ export class AdminTours implements OnInit {
     }
 
     image.src = this.fallbackImage;
+  }
+
+  private lockBodyScroll(): void {
+    if (typeof document === 'undefined') {
+      return;
+    }
+
+    this.previousBodyOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+  }
+
+  private unlockBodyScroll(): void {
+    if (typeof document === 'undefined') {
+      return;
+    }
+
+    document.body.style.overflow = this.previousBodyOverflow;
   }
 
   private shouldOpenActionMenuUp(event?: Event): boolean {

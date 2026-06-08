@@ -61,12 +61,38 @@
 
         <div class="admin-destinations__field" *ngIf="isDomesticForm()">
           <label class="admin-destinations__label admin-destinations__label--required">Mi&#7873;n</label>
-          <select class="admin-destinations__select" formControlName="subRegion">
-            <option value="">Ch&#7885;n mi&#7873;n</option>
-            <option value="NORTH">Mi&#7873;n B&#7855;c</option>
-            <option value="CENTRAL">Mi&#7873;n Trung</option>
-            <option value="SOUTH">Mi&#7873;n Nam</option>
-          </select>
+          <div
+            class="admin-destinations__control-wrap admin-destinations__control-wrap--select"
+            [class.admin-destinations__control-wrap--open]="focusedSelect === 'subRegion'"
+          >
+            <button
+              type="button"
+              class="admin-destinations__select-trigger"
+              (click)="toggleSelect('subRegion')"
+            >
+              {{ subRegionLabel(form.controls.subRegion.value) }}
+            </button>
+            <tui-icon class="admin-destinations__chevron-icon admin-destinations__chevron-icon--select" icon="@tui.chevron-down" />
+            <div class="admin-destinations__select-menu" *ngIf="focusedSelect === 'subRegion'">
+              <button
+                type="button"
+                class="admin-destinations__select-option"
+                [class.admin-destinations__select-option--selected]="!form.controls.subRegion.value"
+                (click)="selectSubRegion('')"
+              >
+                Ch&#7885;n mi&#7873;n
+              </button>
+              <button
+                type="button"
+                class="admin-destinations__select-option"
+                [class.admin-destinations__select-option--selected]="form.controls.subRegion.value === option.value"
+                *ngFor="let option of subRegionOptions"
+                (click)="selectSubRegion(option.value)"
+              >
+                {{ option.label }}
+              </button>
+            </div>
+          </div>
           <div class="admin-destinations__message-slot"></div>
         </div>
 
@@ -264,10 +290,37 @@
 
         <div class="admin-destinations__field" *ngIf="isEditMode">
           <label class="admin-destinations__label">Tr&#7841;ng th&#225;i</label>
-          <select class="admin-destinations__select" formControlName="status">
-            <option value="ACTIVE">&#272;ang hi&#7875;n th&#7883;</option>
-            <option value="INACTIVE">T&#7841;m &#7849;n</option>
-          </select>
+          <div
+            class="admin-destinations__control-wrap admin-destinations__control-wrap--select"
+            [class.admin-destinations__control-wrap--open]="focusedSelect === 'formStatus'"
+          >
+            <button
+              type="button"
+              class="admin-destinations__select-trigger"
+              (click)="toggleSelect('formStatus')"
+            >
+              {{ statusLabel(form.controls.status.value) }}
+            </button>
+            <tui-icon class="admin-destinations__chevron-icon admin-destinations__chevron-icon--select" icon="@tui.chevron-down" />
+            <div class="admin-destinations__select-menu" *ngIf="focusedSelect === 'formStatus'">
+              <button
+                type="button"
+                class="admin-destinations__select-option"
+                [class.admin-destinations__select-option--selected]="form.controls.status.value === 'ACTIVE'"
+                (click)="selectFormStatus('ACTIVE')"
+              >
+                &#272;ang hi&#7875;n th&#7883;
+              </button>
+              <button
+                type="button"
+                class="admin-destinations__select-option"
+                [class.admin-destinations__select-option--selected]="form.controls.status.value === 'INACTIVE'"
+                (click)="selectFormStatus('INACTIVE')"
+              >
+                T&#7841;m &#7849;n
+              </button>
+            </div>
+          </div>
           <div class="admin-destinations__message-slot"></div>
         </div>
 

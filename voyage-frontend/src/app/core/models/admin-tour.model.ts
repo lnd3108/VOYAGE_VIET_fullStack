@@ -4,19 +4,33 @@ export type TourScheduleStatus = 'OPEN' | 'CLOSED' | 'FULL' | 'CANCELLED';
 export interface AdminTour {
   id?: number;
   title?: string;
+  name?: string;
+  tourName?: string;
   slug?: string;
   shortDescription?: string;
   description?: string;
+  imageUrl?: string;
+  coverImageUrl?: string;
+  thumbnail?: string;
   thumbnailUrl?: string;
+  price?: number;
+  currentPrice?: number;
+  adultPrice?: number;
   originalPrice?: number;
   salePrice?: number;
+  duration?: string | number;
+  durationText?: string;
   durationDays?: number;
   durationNights?: number;
   departureLocation?: string;
   maxParticipants?: number;
+  maxPeople?: number;
+  totalSeats?: number;
+  seats?: number;
   availableSeats?: number;
   featured?: boolean;
   status?: TourStatus | string;
+  tourStatus?: TourStatus | string;
   categoryId?: number;
   categoryName?: string;
   categorySlug?: string;
@@ -24,13 +38,35 @@ export interface AdminTour {
   destinationIds?: number[];
   destinationName?: string;
   destinationDisplayName?: string;
+  destination?: {
+    name?: string;
+    title?: string;
+    displayName?: string;
+  };
+  destinations?: Array<{
+    name?: string;
+    title?: string;
+    displayName?: string;
+  }>;
   selectedDestinationNames?: string[];
   destinationSlug?: string;
   scheduleCount?: number;
   imageCount?: number;
   itineraryCount?: number;
+  images?: AdminTourImage[];
+  tourImages?: AdminTourImage[];
+  gallery?: AdminTourImage[];
+  galleryImages?: AdminTourImage[];
+  schedules?: AdminTourSchedule[];
+  tourSchedules?: AdminTourSchedule[];
+  departures?: AdminTourSchedule[];
+  itineraries?: AdminTourItinerary[];
+  itinerary?: AdminTourItinerary[];
+  tourItinerary?: AdminTourItinerary[];
+  tourItineraries?: AdminTourItinerary[];
   createdAt?: string;
   updatedAt?: string;
+  [key: string]: unknown;
 }
 
 export interface AdminTourCreateRequest {

@@ -93,10 +93,31 @@
         <div class="admin-tour-form__grid">
           <div class="admin-tour-form__field">
             <label class="admin-tour-form__label">Danh mục</label>
-            <select class="admin-tour-form__control" formControlName="categoryId">
-              <option [ngValue]="0">Chọn danh mục</option>
-              <option *ngFor="let category of categories" [ngValue]="category.id">{{ categoryLabel(category) }}</option>
-            </select>
+            <div class="admin-tour-form__select-wrap">
+              <button
+                type="button"
+                class="admin-tour-form__control admin-tour-form__select-trigger"
+                [class.admin-tour-form__select-trigger--placeholder]="!form.controls.categoryId.value"
+                [class.admin-tour-form__select-trigger--open]="openDropdown === 'category'"
+                (click)="toggleDropdown('category')"
+              >
+                <span>{{ selectedCategoryLabel() }}</span>
+                <svg class="admin-tour-form__chevron" viewBox="0 0 20 20" aria-hidden="true" focusable="false">
+                  <path d="M5.5 7.5L10 12l4.5-4.5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+                </svg>
+              </button>
+              <div class="admin-tour-form__ms-panel admin-tour-form__ms-panel--single" *ngIf="openDropdown === 'category'">
+                <button
+                  type="button"
+                  class="admin-tour-form__soft-button admin-tour-form__ms-option"
+                  *ngFor="let category of categories"
+                  [class.admin-tour-form__soft-button--active]="form.controls.categoryId.value === category.id"
+                  (click)="selectCategory(category.id)"
+                >
+                  <span>{{ categoryLabel(category) }}</span>
+                </button>
+              </div>
+            </div>
             <div class="admin-tour-form__message-slot">
               <p class="admin-tour-form__field-error" *ngIf="hasFieldError('categoryId')">Vui lòng chọn danh mục.</p>
             </div>
@@ -104,23 +125,24 @@
 
           <div class="admin-tour-form__field">
             <label class="admin-tour-form__label">Điểm đến</label>
-            <div class="admin-tour-form__multi-select" style="position: relative;">
+            <div class="admin-tour-form__multi-select">
               <button
                 type="button"
-                class="admin-tour-form__control admin-tour-form__soft-button admin-tour-form__ms-trigger"
-                style="width: 100%; justify-content: space-between;"
+                class="admin-tour-form__control admin-tour-form__ms-trigger"
                 [class.admin-tour-form__ms-trigger--placeholder]="!selectedDestinationOptions.length"
+                [class.admin-tour-form__ms-trigger--open]="isDestinationDropdownOpen"
                 (click)="toggleDestinationDropdown()"
               >
                 <span>{{ selectedDestinationLabel }}</span>
-                <b aria-hidden="true">⌄</b>
+                <svg class="admin-tour-form__chevron" viewBox="0 0 20 20" aria-hidden="true" focusable="false">
+                  <path d="M5.5 7.5L10 12l4.5-4.5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+                </svg>
               </button>
 
-              <div class="admin-tour-form__ms-panel" style="position: absolute; z-index: 30; inset: 100% 0 auto; max-height: 280px; overflow: auto; background: #fff;" *ngIf="isDestinationDropdownOpen">
+              <div class="admin-tour-form__ms-panel" *ngIf="isDestinationDropdownOpen">
                 <button
                   type="button"
                   class="admin-tour-form__soft-button admin-tour-form__ms-clear"
-                  style="width: 100%; justify-content: flex-start;"
                   [disabled]="!selectedDestinationOptions.length"
                   (click)="clearDestinationSelection()"
                 >
@@ -130,12 +152,11 @@
                 <button
                   type="button"
                   class="admin-tour-form__soft-button admin-tour-form__ms-option"
-                  style="width: 100%; justify-content: flex-start; gap: 8px;"
                   *ngFor="let destination of destinationSelectOptions"
                   [class.admin-tour-form__soft-button--active]="isDestinationOptionSelected(destination)"
                   (click)="toggleDestinationOption(destination)"
                 >
-                  <span class="admin-tour-form__ms-check" style="width: 18px; flex: 0 0 auto;">{{ isDestinationOptionSelected(destination) ? '✓' : '' }}</span>
+                  <span class="admin-tour-form__ms-check">{{ isDestinationOptionSelected(destination) ? '✓' : '' }}</span>
                   <span>{{ destination.label }}</span>
                 </button>
               </div>
@@ -222,10 +243,31 @@
         <div class="admin-tour-form__grid">
           <div class="admin-tour-form__field">
             <label class="admin-tour-form__label">Điểm khởi hành</label>
-            <select class="admin-tour-form__control" formControlName="departureLocation">
-              <option value="">Chọn điểm khởi hành</option>
-              <option *ngFor="let option of departureSelectOptions" [ngValue]="option.value">{{ option.label }}</option>
-            </select>
+            <div class="admin-tour-form__select-wrap">
+              <button
+                type="button"
+                class="admin-tour-form__control admin-tour-form__select-trigger"
+                [class.admin-tour-form__select-trigger--placeholder]="!form.controls.departureLocation.value"
+                [class.admin-tour-form__select-trigger--open]="openDropdown === 'departure'"
+                (click)="toggleDropdown('departure')"
+              >
+                <span>{{ selectedDepartureLabel() }}</span>
+                <svg class="admin-tour-form__chevron" viewBox="0 0 20 20" aria-hidden="true" focusable="false">
+                  <path d="M5.5 7.5L10 12l4.5-4.5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+                </svg>
+              </button>
+              <div class="admin-tour-form__ms-panel admin-tour-form__ms-panel--single" *ngIf="openDropdown === 'departure'">
+                <button
+                  type="button"
+                  class="admin-tour-form__soft-button admin-tour-form__ms-option"
+                  *ngFor="let option of departureSelectOptions"
+                  [class.admin-tour-form__soft-button--active]="form.controls.departureLocation.value === option.value"
+                  (click)="selectDepartureLocation(option.value)"
+                >
+                  <span>{{ option.label }}</span>
+                </button>
+              </div>
+            </div>
             <div class="admin-tour-form__message-slot">
               <p class="admin-tour-form__field-error" *ngIf="hasFieldError('departureLocation')">Vui lòng chọn điểm khởi hành.</p>
             </div>
@@ -233,9 +275,30 @@
 
           <div class="admin-tour-form__field">
             <label class="admin-tour-form__label">Trạng thái</label>
-            <select class="admin-tour-form__control" formControlName="status">
-              <option *ngFor="let option of statusOptions" [ngValue]="option.value">{{ option.label }}</option>
-            </select>
+            <div class="admin-tour-form__select-wrap">
+              <button
+                type="button"
+                class="admin-tour-form__control admin-tour-form__select-trigger"
+                [class.admin-tour-form__select-trigger--open]="openDropdown === 'status'"
+                (click)="toggleDropdown('status')"
+              >
+                <span>{{ selectedStatusLabel() }}</span>
+                <svg class="admin-tour-form__chevron" viewBox="0 0 20 20" aria-hidden="true" focusable="false">
+                  <path d="M5.5 7.5L10 12l4.5-4.5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+                </svg>
+              </button>
+              <div class="admin-tour-form__ms-panel admin-tour-form__ms-panel--single" *ngIf="openDropdown === 'status'">
+                <button
+                  type="button"
+                  class="admin-tour-form__soft-button admin-tour-form__ms-option"
+                  *ngFor="let option of statusOptions"
+                  [class.admin-tour-form__soft-button--active]="form.controls.status.value === option.value"
+                  (click)="selectStatus(option.value)"
+                >
+                  <span>{{ option.label }}</span>
+                </button>
+              </div>
+            </div>
             <div class="admin-tour-form__message-slot" aria-hidden="true"></div>
           </div>
 

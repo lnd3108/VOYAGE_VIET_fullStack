@@ -5,7 +5,7 @@
       <h2>Thư viện ảnh tour</h2>
       <span>Chọn ảnh từ Media hoặc tải ảnh mới để thêm vào thư viện tour.</span>
     </div>
-    <button type="button" (click)="loadMedia()">Tải lại Media</button>
+    <button type="button" class="admin-tour-gallery__reload" (click)="loadMedia()">Tải lại Media</button>
   </header>
 
   <div class="admin-tour-gallery__empty" *ngIf="!isEditMode || !tourId">
@@ -23,12 +23,12 @@
 
     <section class="admin-tour-gallery__form">
       <div class="admin-tour-gallery__form-grid">
-        <label>
-          Mô tả ảnh
+        <label class="admin-tour-gallery__field admin-tour-gallery__field--alt">
+          <span>Mô tả ảnh</span>
           <input type="text" [(ngModel)]="altTextInput" placeholder="Mô tả ngắn cho ảnh" />
         </label>
-        <label>
-          Thứ tự
+        <label class="admin-tour-gallery__field admin-tour-gallery__field--order">
+          <span>Thứ tự</span>
           <input type="number" [(ngModel)]="sortOrderInput" min="0" />
         </label>
       </div>
@@ -41,15 +41,19 @@
       <div class="admin-tour-gallery__actions">
         <input
           #galleryUploadInput
+          class="admin-tour-gallery__file-input"
+          id="tour-gallery-upload"
           type="file"
           accept="image/png,image/jpeg,image/jpg,image/webp"
           (change)="onUploadFileSelected($event)"
         />
-        <button type="button" [disabled]="uploading || !selectedUploadFile" (click)="uploadAndAttachImage()">
+        <label class="admin-tour-gallery__file-button" for="tour-gallery-upload">Chọn ảnh từ máy</label>
+        <span class="admin-tour-gallery__file-name">{{ selectedUploadFile?.name || 'Chưa chọn ảnh' }}</span>
+        <button type="button" class="admin-tour-gallery__primary" [disabled]="uploading || !selectedUploadFile" (click)="uploadAndAttachImage()">
           {{ uploading ? 'Đang tải...' : 'Tải ảnh mới' }}
         </button>
-        <button type="button" *ngIf="selectedUploadFile" [disabled]="uploading" (click)="clearSelectedUploadFile()">Xóa file</button>
-        <button type="button" [disabled]="gallerySaving || !selectedMediaId" (click)="attachSelectedMedia()">
+        <button type="button" class="admin-tour-gallery__secondary" *ngIf="selectedUploadFile" [disabled]="uploading" (click)="clearSelectedUploadFile()">Xóa file</button>
+        <button type="button" class="admin-tour-gallery__secondary" [disabled]="gallerySaving || !selectedMediaId" (click)="attachSelectedMedia()">
           {{ gallerySaving ? 'Đang thêm...' : 'Thêm ảnh đã chọn' }}
         </button>
       </div>
@@ -61,8 +65,8 @@
       </section>
 
       <div class="admin-tour-gallery__empty" *ngIf="!mediaLoading && !mediaItems.length && !mediaErrorMessage">
-        <strong>Chưa có ảnh trong Media</strong>
-        <p>Tải ảnh mới để backend upload lên Cloudinary và tự gắn vào gallery tour.</p>
+        <strong>Chưa có ảnh trong thư viện tour</strong>
+        <p>Tải ảnh mới hoặc chọn ảnh từ Media để thêm vào tour.</p>
       </div>
 
       <section class="admin-tour-gallery__grid" *ngIf="!mediaLoading && mediaItems.length">
@@ -80,7 +84,7 @@
           </div>
           <div class="admin-tour-gallery__meta">
             <strong>{{ mediaTitle(item) }}</strong>
-            <code>{{ getMediaUrl(item) || 'Chưa có URL' }}</code>
+            <code [title]="getMediaUrl(item) || 'Chưa có URL'">{{ getMediaUrl(item) || 'Chưa có URL' }}</code>
           </div>
           <div class="admin-tour-gallery__actions">
             <button type="button" [disabled]="!item.id || !getMediaUrl(item)" (click)="selectMedia(item)">Chọn ảnh</button>
@@ -103,7 +107,7 @@
         <div class="admin-tour-gallery__meta">
           <strong>{{ image.altText || 'Chưa có mô tả ảnh' }}</strong>
           <span>Thứ tự: {{ image.sortOrder ?? 0 }}</span>
-          <code>{{ shortUrl(image) }}</code>
+          <code [title]="getImageUrl(image)">{{ shortUrl(image) }}</code>
         </div>
 
         <div class="admin-tour-gallery__edit" *ngIf="editingImageId === image.id">
@@ -138,8 +142,8 @@
     </section>
 
     <div class="admin-tour-gallery__empty" *ngIf="!galleryLoading && !tourImages.length && !galleryErrorMessage">
-      <strong>Tour chưa có ảnh thư viện</strong>
-      <p>Chọn ảnh từ Media hoặc tải ảnh mới để thêm ảnh đầu tiên.</p>
+      <strong>Chưa có ảnh trong thư viện tour</strong>
+      <p>Tải ảnh mới hoặc chọn ảnh từ Media để thêm vào tour.</p>
     </div>
   </ng-container>
 </section>

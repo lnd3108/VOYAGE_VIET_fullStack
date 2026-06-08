@@ -140,7 +140,7 @@ export class AdminDestinations implements OnInit {
   selectedDestination: AdminDestination | null = null;
   isFormOpen = false;
   isEditMode = false;
-  focusedSelect: 'statusFilter' | 'regionFilter' | null = null;
+  focusedSelect: 'statusFilter' | 'regionFilter' | 'subRegion' | 'formStatus' | null = null;
   private slugManuallyEdited = false;
 
   readonly form = this.formBuilder.nonNullable.group({
@@ -365,8 +365,18 @@ export class AdminDestinations implements OnInit {
     (event?.target as HTMLSelectElement | null)?.blur();
   }
 
-  toggleSelect(selectName: 'statusFilter' | 'regionFilter'): void {
+  toggleSelect(selectName: 'statusFilter' | 'regionFilter' | 'subRegion' | 'formStatus'): void {
     this.focusedSelect = this.focusedSelect === selectName ? null : selectName;
+  }
+
+  selectSubRegion(subRegion: DestinationSubRegion | ''): void {
+    this.form.controls.subRegion.setValue(subRegion);
+    this.focusedSelect = null;
+  }
+
+  selectFormStatus(status: DestinationStatus): void {
+    this.form.controls.status.setValue(status);
+    this.focusedSelect = null;
   }
 
   selectStatusFilter(status: DestinationStatusFilter): void {
@@ -387,6 +397,10 @@ export class AdminDestinations implements OnInit {
 
   regionFilterLabel(region: DestinationRegionFilter): string {
     return this.regionFilters.find((option) => option.value === region)?.label || 'Tất cả khu vực';
+  }
+
+  subRegionLabel(subRegion?: string): string {
+    return this.subRegionOptions.find((option) => option.value === subRegion)?.label || 'Chọn miền';
   }
 
   onProvinceInput(value: string): void {

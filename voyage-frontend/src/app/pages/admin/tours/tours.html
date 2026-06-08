@@ -217,7 +217,7 @@
             [ngClass]="{ 'admin-tours__action-menu--top': isActionMenuTop(tour) }"
             *ngIf="isActionMenuOpen(tour)"
           >
-            <button type="button" class="admin-tours__action-item admin-tours__action-item--preview" (click)="closeActionMenu(); openTourSummary(tour)">
+            <button type="button" class="admin-tours__action-item admin-tours__action-item--preview" (click)="closeActionMenu(); openTourPreview(tour)">
               <tui-icon class="admin-tours__action-item-icon" icon="@tui.eye" />
               <span class="admin-tours__action-item-label">Xem trước</span>
             </button>
@@ -311,4 +311,15 @@
     <p>Tạo tour mới ở bước wizard tiếp theo hoặc thay đổi bộ lọc để xem kết quả khác.</p>
     <button type="button" routerLink="/admin/tours/new">Thêm tour</button>
   </div>
+
+  <div class="admin-tours__preview-backdrop" *ngIf="previewTourId" (click)="closeTourPreview()"></div>
+  <app-tour-preview-panel
+    *ngIf="previewTourId"
+    [tourFallback]="selectedPreviewTour"
+    [tourId]="previewTourId"
+    (closed)="closeTourPreview()"
+    (editTour)="editPreviewTour($event)"
+    (publishTour)="publishPreviewTour($event)"
+    (suspendTour)="suspendPreviewTour($event)"
+  />
 </section>
