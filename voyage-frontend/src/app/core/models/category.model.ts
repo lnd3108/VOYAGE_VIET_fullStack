@@ -20,6 +20,10 @@ export interface AdminCategory {
   imageUrl?: string;
   status?: CategoryStatus | string;
   displayOrder?: number;
+  sortOrder?: number;
+  orderIndex?: number;
+  order?: number;
+  position?: number;
   createdAt?: string;
   updatedAt?: string;
 }
@@ -34,4 +38,9 @@ export interface AdminCategoryCreateRequest {
 
 export interface AdminCategoryUpdateRequest extends AdminCategoryCreateRequest {
   status?: CategoryStatus;
+}
+
+export interface AdminCategoryOrderSwapItem {
+  id: number;
+  payload: AdminCategoryUpdateRequest;
 }

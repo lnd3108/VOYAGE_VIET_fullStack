@@ -1118,3 +1118,73 @@ Thoi gian cap nhat: 2026-06-07 21:49:00 +07:00
 - Khong doi formControlName, enum value, endpoint, payload hoac flow submit Tour Form.
 - Khong rewrite flow upload/chon anh/gallery.
 - Custom dropdown hien chua co click-outside close rieng; dropdown se dong khi chon option hoac mo dropdown khac.
+
+## Cap Nhat: Upload Va Chon Anh Media Cho Admin Categories
+
+Thoi gian cap nhat: 2026-06-08 09:12:04 +07:00
+
+### File Da Sua/Tao Moi
+
+- src/app/pages/admin/categories/categories.ts
+- src/app/pages/admin/categories/categories.html
+- src/app/pages/admin/categories/categories.scss
+- src/app/pages/admin/categories/categories-media.scss
+- VOYAGE_ADMIN_AUDIT_REPORT.md
+
+### Dau Viec Da Lam
+
+- Doc VOYAGE_ADMIN_AUDIT_REPORT.md va VOYAGE_FRONTEND_AUDIT_REPORT.md, uu tien section admin moi nhat ve Tour Form dropdown/chevron.
+- Chi sua Admin Categories va audit admin; khong sua Admin Tours, Tour Form, Admin Destinations, Admin Media page, AdminLayout, public pages hoac backend API.
+- Thay luong URL anh Cloudinary thu cong trong form danh muc bang khu quan ly anh truc tiep.
+- Khong ghi thay doi admin vao VOYAGE_FRONTEND_AUDIT_REPORT.md.
+
+### Chuc Nang Da Them/Sua
+
+- Them khu vuc Anh danh muc trong form tao/sua danh muc voi mo ta Tai anh moi hoac chon anh da co tu Media.
+- Them nut Tai anh tu may dung file input an, khong lo input native Choose File / No file chosen.
+- Validate upload frontend: PNG, JPG, JPEG, WEBP va toi da 5MB.
+- Upload anh truc tiep qua AdminMediaApiService.uploadMedia(file, 'categories').
+- Sau upload thanh cong, frontend tu lay URL anh va set vao form field imageUrl.
+- Them nut Chon tu Media mo panel chon anh ngay trong form danh muc.
+- Panel Media co filter module Categories, General va Tat ca; co loading, empty, error va nut Thu lai.
+- Grid Media hien thumbnail, ten file, module va ngay tao neu co.
+- Click anh trong Media se set imageUrl, cap nhat preview va dong panel.
+- Preview anh danh muc cap nhat ngay sau upload/chon anh.
+- Khi chua co anh, hien empty preview voi icon anh va text Chua co anh danh muc.
+- Khi da co anh, hien Da chon anh hoac ten file, URL rut gon va nut Bo chon anh.
+- Giu URL trong phan Tuy chon nang cao: URL anh dang readonly de khong con la luong chinh.
+- URL dai duoc hien bang code box ellipsis/title, khong pha layout.
+- Tach style anh/Media sang categories-media.scss de tranh vuot hard budget component stylesheet.
+- Button phu trong form doi sang theme teal/mint, khong dung mau xanh cu.
+
+### API Da Dung
+
+- POST /api/admin/media/upload thong qua AdminMediaApiService.uploadMedia(file, 'categories').
+- GET /api/admin/media thong qua AdminMediaApiService.getMedia({ module, page, size, sortBy, sortDir }).
+- POST /api/admin/categories thong qua AdminCategoryApiService.createCategory(payload) nhu cu.
+- PUT /api/admin/categories/{id} thong qua AdminCategoryApiService.updateCategory(id, payload) nhu cu.
+- PATCH /api/admin/categories/{id}/image van duoc giu cho nut cap nhat rieng anh trong edit mode.
+
+### Ket Qua Build/Test
+
+- npx ng build --configuration development: pass.
+- npm run build: pass.
+
+### Warning/Loi Con Lai
+
+- Production build con warning budget hien huu: initial bundle 859.40 kB vuot warning budget 500 kB.
+- Cac warning style hien huu van con: home-hero.scss, public-layout.scss, destinations.scss, tour-form.scss, categories.scss, tours.scss.
+- categories.scss warning mem 9.48 kB, duoi hard budget 10 kB nen production build pass.
+- Khong co loi compile.
+- Chua test thu cong tren browser voi backend runtime trong buoc nay.
+
+### Ghi Chu Ky Thuat Va Rui Ro
+
+- Payload category van giu imageUrl; khong gui mediaId va khong gui file trong payload category.
+- Module upload dang dung categories vi Media manager/audit hien co da co filter Categories; neu backend moi truong nao chua ho tro module nay thi can fallback backend hoac doi frontend sang general.
+- Frontend normalize URL linh hoat theo cac field: url, secureUrl, imageUrl, ileUrl, mediaUrl va cac alias trong data.
+- Media list duoc loc client-side theo media type anh; item khong co URL hop le se khong render trong grid.
+- Khong luu base64 va khong goi Cloudinary truc tiep tu frontend.
+
+
+

@@ -60,7 +60,7 @@
         </div>
 
         <div class="admin-destinations__field" *ngIf="isDomesticForm()">
-          <label class="admin-destinations__label admin-destinations__label--required">Mi&#7873;n</label>
+          <label class="admin-destinations__label admin-destinations__label--required">Miền</label>
           <div
             class="admin-destinations__control-wrap admin-destinations__control-wrap--select"
             [class.admin-destinations__control-wrap--open]="focusedSelect === 'subRegion'"
@@ -80,7 +80,7 @@
                 [class.admin-destinations__select-option--selected]="!form.controls.subRegion.value"
                 (click)="selectSubRegion('')"
               >
-                Ch&#7885;n mi&#7873;n
+                Chọn miền
               </button>
               <button
                 type="button"
@@ -289,7 +289,7 @@
         </div>
 
         <div class="admin-destinations__field" *ngIf="isEditMode">
-          <label class="admin-destinations__label">Tr&#7841;ng th&#225;i</label>
+          <label class="admin-destinations__label">Trạng thái</label>
           <div
             class="admin-destinations__control-wrap admin-destinations__control-wrap--select"
             [class.admin-destinations__control-wrap--open]="focusedSelect === 'formStatus'"
@@ -309,7 +309,7 @@
                 [class.admin-destinations__select-option--selected]="form.controls.status.value === 'ACTIVE'"
                 (click)="selectFormStatus('ACTIVE')"
               >
-                &#272;ang hi&#7875;n th&#7883;
+                Đang hiển thị
               </button>
               <button
                 type="button"
@@ -317,7 +317,7 @@
                 [class.admin-destinations__select-option--selected]="form.controls.status.value === 'INACTIVE'"
                 (click)="selectFormStatus('INACTIVE')"
               >
-                T&#7841;m &#7849;n
+                Tạm ẩn
               </button>
             </div>
           </div>

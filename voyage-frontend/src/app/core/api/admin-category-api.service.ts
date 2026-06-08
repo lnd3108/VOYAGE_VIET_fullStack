@@ -1,11 +1,13 @@
 import { HttpClient } from '@angular/common/http';
 import { inject, Injectable } from '@angular/core';
+import { forkJoin } from 'rxjs';
 
 import { environment } from '../../../environments/environment';
 import { ApiResponse } from '../models/api-response.model';
 import {
   AdminCategory,
   AdminCategoryCreateRequest,
+  AdminCategoryOrderSwapItem,
   AdminCategoryUpdateRequest,
   CategoryStatus,
 } from '../models/category.model';
@@ -33,6 +35,13 @@ export class AdminCategoryApiService {
 
   updateCategory(id: number, payload: AdminCategoryUpdateRequest) {
     return this.http.put<ApiResponse<AdminCategory> | AdminCategory>(`${this.apiUrl}/admin/categories/${id}`, payload);
+  }
+
+  swapCategoryOrder(first: AdminCategoryOrderSwapItem, second: AdminCategoryOrderSwapItem) {
+    return forkJoin([
+      this.updateCategory(first.id, first.payload),
+      this.updateCategory(second.id, second.payload),
+    ]);
   }
 
   updateCategoryStatus(id: number, status: CategoryStatus) {

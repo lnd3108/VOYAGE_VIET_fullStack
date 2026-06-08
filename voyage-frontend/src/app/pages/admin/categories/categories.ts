@@ -1,5 +1,5 @@
 import { NgClass, NgFor, NgIf } from '@angular/common';
-import { Component, DestroyRef, HostListener, OnInit, inject } from '@angular/core';
+import { Component, DestroyRef, ElementRef, HostListener, OnInit, ViewChild, inject } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { RouterLink } from '@angular/router';
@@ -7,12 +7,14 @@ import { TuiIcon } from '@taiga-ui/core';
 import { take } from 'rxjs';
 
 import { AdminCategoryApiService } from '../../../core/api/admin-category-api.service';
+import { AdminMediaApiService } from '../../../core/api/admin-media-api.service';
 import {
   AdminCategory,
   AdminCategoryCreateRequest,
   AdminCategoryUpdateRequest,
   CategoryStatus,
 } from '../../../core/models/category.model';
+import { AdminMediaItem } from '../../../core/models/media.model';
 import { PageResponse } from '../../../core/models/page-response.model';
 import { AdminUiFeedbackService } from '../../../core/services/admin-ui-feedback.service';
 
@@ -23,19 +25,43 @@ interface StatusFilterOption {
   value: CategoryStatusFilter;
 }
 
+interface CategoryMediaModuleOption {
+  label: string;
+  value: string;
+}
+
+interface CategoryMediaCard {
+  item: AdminMediaItem;
+  url: string;
+  title: string;
+  moduleLabel: string;
+  createdAt: string;
+}
+
 @Component({
   selector: 'app-admin-categories',
   imports: [NgClass, NgFor, NgIf, ReactiveFormsModule, RouterLink, TuiIcon],
   templateUrl: './categories.html',
-  styleUrl: './categories.scss',
+  styleUrls: ['./categories.scss', './categories-media.scss'],
 })
 export class AdminCategories implements OnInit {
+  @ViewChild('categoryUploadInput') private categoryUploadInput?: ElementRef<HTMLInputElement>;
+
   private readonly adminCategoryApiService = inject(AdminCategoryApiService);
+  private readonly adminMediaApiService = inject(AdminMediaApiService);
   private readonly formBuilder = inject(FormBuilder);
   private readonly destroyRef = inject(DestroyRef);
   private readonly feedback = inject(AdminUiFeedbackService);
 
   readonly fallbackImage = '/hero/bg-home.png';
+  readonly maxUploadSize = 5 * 1024 * 1024;
+  readonly allowedImageTypes = ['image/png', 'image/jpeg', 'image/jpg', 'image/webp'];
+  readonly mediaModuleOptions: CategoryMediaModuleOption[] = [
+    { label: 'Categories', value: 'categories' },
+    { label: 'General', value: 'general' },
+    { label: 'Tất cả', value: 'all' },
+  ];
+  readonly mediaSkeletonCards = Array.from({ length: 6 });
   readonly statusFilters: StatusFilterOption[] = [
     { label: 'Tất cả', value: 'ALL' },
     { label: 'Đang hiển thị', value: 'ACTIVE' },
@@ -57,6 +83,20 @@ export class AdminCategories implements OnInit {
   isFormOpen = false;
   isEditMode = false;
   focusedSelect: 'status' | 'statusFilter' | null = null;
+  selectedImageUrl = '';
+  selectedUploadFileName = '';
+  uploadingImage = false;
+  imageErrorMessage = '';
+  isMediaPickerOpen = false;
+  mediaLoading = false;
+  mediaErrorMessage = '';
+  mediaCards: CategoryMediaCard[] = [];
+  selectedMediaModule = 'categories';
+  mediaPage = 0;
+  mediaSize = 18;
+  mediaTotalPages = 0;
+  reorderingCategoryIds = new Set<number>();
+  reorderBlockedByFilter = false;
   private slugManuallyEdited = false;
 
   readonly form = this.formBuilder.nonNullable.group({
@@ -64,7 +104,6 @@ export class AdminCategories implements OnInit {
     slug: ['', [Validators.required]],
     description: [''],
     imageUrl: [''],
-    displayOrder: [0],
     status: ['ACTIVE' as CategoryStatus],
   });
 
@@ -82,7 +121,7 @@ export class AdminCategories implements OnInit {
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
         next: (response) => {
-          this.categories = this.extractList(response).sort((a, b) => this.sortCategory(a, b));
+          this.categories = this.normalizeCategoryOrders(this.extractList(response));
           this.applyFilters();
           this.loading = false;
         },
@@ -105,9 +144,9 @@ export class AdminCategories implements OnInit {
       slug: '',
       description: '',
       imageUrl: '',
-      displayOrder: 0,
       status: 'ACTIVE',
     });
+    this.resetImageState();
   }
 
   openEditForm(category: AdminCategory): void {
@@ -122,9 +161,12 @@ export class AdminCategories implements OnInit {
       slug: category.slug || '',
       description: category.description || '',
       imageUrl: category.imageUrl || '',
-      displayOrder: category.displayOrder ?? 0,
       status: this.parseStatus(category.status) || 'ACTIVE',
     });
+    this.selectedImageUrl = category.imageUrl || '';
+    this.selectedUploadFileName = '';
+    this.imageErrorMessage = '';
+    this.closeMediaPicker();
   }
 
   closeForm(): void {
@@ -139,9 +181,9 @@ export class AdminCategories implements OnInit {
       slug: '',
       description: '',
       imageUrl: '',
-      displayOrder: 0,
       status: 'ACTIVE',
     });
+    this.resetImageState();
   }
 
   handleNameInput(): void {
@@ -280,6 +322,135 @@ export class AdminCategories implements OnInit {
       });
   }
 
+  openUploadPicker(): void {
+    if (!this.uploadingImage) {
+      this.categoryUploadInput?.nativeElement.click();
+    }
+  }
+
+  onCategoryUploadSelected(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    const file = input.files?.[0] || null;
+
+    this.imageErrorMessage = '';
+    this.errorMessage = '';
+
+    if (!file) {
+      return;
+    }
+
+    if (!this.allowedImageTypes.includes(file.type)) {
+      this.imageErrorMessage = 'Chỉ hỗ trợ ảnh PNG, JPG, JPEG hoặc WEBP.';
+      this.feedback.warning(this.imageErrorMessage);
+      input.value = '';
+      return;
+    }
+
+    if (file.size > this.maxUploadSize) {
+      this.imageErrorMessage = 'Ảnh tải lên tối đa 5MB.';
+      this.feedback.warning(this.imageErrorMessage);
+      input.value = '';
+      return;
+    }
+
+    this.selectedUploadFileName = file.name;
+    this.uploadImageFile(file, input);
+  }
+
+  openMediaPicker(): void {
+    this.isMediaPickerOpen = true;
+
+    if (!this.mediaCards.length && !this.mediaLoading) {
+      this.loadMedia(0);
+    }
+  }
+
+  closeMediaPicker(): void {
+    this.isMediaPickerOpen = false;
+    this.mediaErrorMessage = '';
+  }
+
+  loadMedia(page: number = 0): void {
+    this.mediaLoading = true;
+    this.mediaErrorMessage = '';
+
+    this.adminMediaApiService
+      .getMedia({
+        module: this.selectedMediaModule === 'all' ? undefined : this.selectedMediaModule,
+        page,
+        size: this.mediaSize,
+        sortBy: 'createdAt',
+        sortDir: 'desc',
+      })
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: (response) => {
+          const pageResponse = this.extractMediaPage(response);
+          this.mediaCards = pageResponse.content
+            .map((item) => this.normalizeMediaCard(item))
+            .filter((item): item is CategoryMediaCard => !!item);
+          this.mediaPage = pageResponse.page;
+          this.mediaSize = pageResponse.size;
+          this.mediaTotalPages = pageResponse.totalPages;
+          this.mediaLoading = false;
+        },
+        error: (error) => {
+          this.mediaErrorMessage = this.errorText(error, 'Không thể tải danh sách ảnh Media.');
+          this.mediaLoading = false;
+        },
+      });
+  }
+
+  selectMediaModule(module: string): void {
+    if (this.selectedMediaModule === module || this.mediaLoading) {
+      return;
+    }
+
+    this.selectedMediaModule = module;
+    this.loadMedia(0);
+  }
+
+  selectMediaImage(card: CategoryMediaCard): void {
+    if (!card.url) {
+      this.imageErrorMessage = 'Ảnh Media này chưa có URL hợp lệ.';
+      this.feedback.warning(this.imageErrorMessage);
+      return;
+    }
+
+    this.setImageUrl(card.url);
+    this.selectedUploadFileName = '';
+    this.closeMediaPicker();
+    this.feedback.success('Đã chọn ảnh danh mục từ Media.');
+  }
+
+  clearCategoryImage(): void {
+    this.setImageUrl('');
+    this.selectedUploadFileName = '';
+    this.imageErrorMessage = '';
+
+    if (this.categoryUploadInput) {
+      this.categoryUploadInput.nativeElement.value = '';
+    }
+  }
+
+  imageStatusText(): string {
+    return this.selectedImageUrl ? this.selectedUploadFileName || 'Đã chọn ảnh' : 'Chưa có ảnh danh mục';
+  }
+
+  shortImageUrl(): string {
+    if (!this.selectedImageUrl) {
+      return '';
+    }
+
+    return this.selectedImageUrl.length <= 56
+      ? this.selectedImageUrl
+      : `${this.selectedImageUrl.slice(0, 28)}...${this.selectedImageUrl.slice(-20)}`;
+  }
+
+  isSelectedMedia(card: CategoryMediaCard): boolean {
+    return !!card.url && card.url === this.selectedImageUrl;
+  }
+
   toggleStatus(category: AdminCategory): void {
     if (!category.id || this.updatingStatusId) {
       return;
@@ -377,6 +548,7 @@ export class AdminCategories implements OnInit {
 
   applyFilters(): void {
     const keyword = this.keyword.trim().toLowerCase();
+    this.reorderBlockedByFilter = !!keyword || this.statusFilter !== 'ALL';
 
     this.filteredCategories = this.categories.filter((category) => {
       const matchesKeyword = !keyword || [category.name, category.slug]
@@ -385,11 +557,58 @@ export class AdminCategories implements OnInit {
       const matchesStatus = this.statusFilter === 'ALL' || status === this.statusFilter;
 
       return matchesKeyword && matchesStatus;
-    });
+    }).sort((a, b) => this.sortCategory(a, b));
+  }
+
+  moveCategory(category: AdminCategory, currentIndex: number, direction: 'up' | 'down'): void {
+    if (this.reorderBlockedByFilter || this.reorderingCategoryIds.size > 0 || this.isCategoryReordering(category)) {
+      return;
+    }
+
+    const targetIndex = direction === 'up' ? currentIndex - 1 : currentIndex + 1;
+    const targetCategory = this.filteredCategories[targetIndex];
+
+    if (!category.id || !targetCategory?.id || targetIndex < 0 || targetIndex >= this.filteredCategories.length) {
+      return;
+    }
+
+    const categoryName = category.name || 'danh mục này';
+    const directionText = direction === 'up' ? 'lên trên' : 'xuống dưới';
+
+    this.feedback
+      .confirmWarning(
+        `Bạn có chắc muốn chuyển danh mục "${categoryName}" ${directionText} không?`,
+        'Xác nhận đổi thứ tự',
+        'Xác nhận',
+      )
+      .pipe(take(1))
+      .subscribe((confirmed) => {
+        if (!confirmed) {
+          return;
+        }
+
+        this.swapCategoryOrder(category, targetCategory);
+      });
+  }
+
+  canMoveCategoryUp(index: number): boolean {
+    return !this.reorderBlockedByFilter && this.filteredCategories.length > 1 && index > 0;
+  }
+
+  canMoveCategoryDown(index: number): boolean {
+    return !this.reorderBlockedByFilter && this.filteredCategories.length > 1 && index < this.filteredCategories.length - 1;
+  }
+
+  isCategoryReordering(category: AdminCategory): boolean {
+    return !!category.id && this.reorderingCategoryIds.has(category.id);
+  }
+
+  categoryOrder(category: AdminCategory): number {
+    return this.getCategoryOrder(category);
   }
 
   imagePreviewUrl(): string {
-    return this.form.controls.imageUrl.value.trim();
+    return this.selectedImageUrl;
   }
 
   getCategoryImage(category: AdminCategory): string {
@@ -432,6 +651,133 @@ export class AdminCategories implements OnInit {
     image.src = this.fallbackImage;
   }
 
+  private uploadImageFile(file: File, input: HTMLInputElement): void {
+    this.uploadingImage = true;
+    this.imageErrorMessage = '';
+
+    this.adminMediaApiService
+      .uploadMedia(file, 'categories')
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: (response) => {
+          const uploadedItem = this.extractUploadItem(response);
+          const uploadedUrl = uploadedItem ? this.extractMediaUrl(uploadedItem) : '';
+
+          this.uploadingImage = false;
+          input.value = '';
+
+          if (uploadedItem) {
+            const card = this.normalizeMediaCard(uploadedItem);
+
+            if (card) {
+              this.mediaCards = [card, ...this.mediaCards.filter((item) => item.item.id !== card.item.id)];
+            }
+          }
+
+          if (!uploadedUrl) {
+            this.imageErrorMessage = 'Upload thành công nhưng backend chưa trả URL ảnh.';
+            this.feedback.warning(this.imageErrorMessage);
+            return;
+          }
+
+          this.setImageUrl(uploadedUrl);
+          this.feedback.success('Tải ảnh thành công và đã chọn làm ảnh danh mục.');
+        },
+        error: (error) => {
+          this.imageErrorMessage = this.errorText(error, 'Không thể upload ảnh danh mục. Vui lòng thử lại.');
+          this.feedback.error(this.imageErrorMessage);
+          this.uploadingImage = false;
+          input.value = '';
+        },
+      });
+  }
+
+  private setImageUrl(url: string): void {
+    const normalizedUrl = url.trim();
+    this.selectedImageUrl = normalizedUrl;
+    this.form.controls.imageUrl.setValue(normalizedUrl);
+    this.form.controls.imageUrl.markAsDirty();
+    this.form.controls.imageUrl.markAsTouched();
+  }
+
+  private resetImageState(): void {
+    this.selectedImageUrl = '';
+    this.selectedUploadFileName = '';
+    this.uploadingImage = false;
+    this.imageErrorMessage = '';
+    this.closeMediaPicker();
+
+    if (this.categoryUploadInput) {
+      this.categoryUploadInput.nativeElement.value = '';
+    }
+  }
+
+  private swapCategoryOrder(category: AdminCategory, targetCategory: AdminCategory): void {
+    if (!category.id || !targetCategory.id) {
+      return;
+    }
+
+    const categoryOrder = this.getCategoryOrder(category);
+    const targetOrder = this.getCategoryOrder(targetCategory);
+    const firstPayload = this.buildCategoryUpdatePayload(category, targetOrder);
+    const secondPayload = this.buildCategoryUpdatePayload(targetCategory, categoryOrder);
+
+    this.reorderingCategoryIds = new Set([category.id, targetCategory.id]);
+    this.errorMessage = '';
+    this.successMessage = '';
+
+    this.adminCategoryApiService
+      .swapCategoryOrder(
+        { id: category.id, payload: firstPayload },
+        { id: targetCategory.id, payload: secondPayload },
+      )
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: (responses) => {
+          const firstUpdated = {
+            ...(this.extractItem(responses[0]) || category),
+            displayOrder: targetOrder,
+          };
+          const secondUpdated = {
+            ...(this.extractItem(responses[1]) || targetCategory),
+            displayOrder: categoryOrder,
+          };
+          const updatedIds = new Set([firstUpdated.id, secondUpdated.id]);
+
+          this.categories = this.normalizeCategoryOrders([
+            firstUpdated,
+            secondUpdated,
+            ...this.categories.filter((item) => !updatedIds.has(item.id)),
+          ]);
+          this.applyFilters();
+
+          this.successMessage = 'Đã cập nhật thứ tự danh mục.';
+          this.feedback.success(this.successMessage);
+          this.reorderingCategoryIds = new Set<number>();
+        },
+        error: (error) => {
+          this.errorMessage = this.errorText(error, 'Không thể cập nhật thứ tự danh mục. Danh sách sẽ được tải lại.');
+          this.feedback.error(this.errorMessage);
+          this.reorderingCategoryIds = new Set<number>();
+          this.loadCategories();
+        },
+      });
+  }
+
+  private buildCategoryUpdatePayload(category: AdminCategory, displayOrder: number): AdminCategoryUpdateRequest {
+    const name = (category.name || '').trim();
+    const slugSource = (category.slug || name).trim();
+
+    return {
+      name,
+      slug: this.generateSlug(slugSource) || slugSource,
+      description: category.description?.trim() || undefined,
+      imageUrl: category.imageUrl?.trim() || undefined,
+      displayOrder: Math.max(1, Math.trunc(displayOrder)),
+      status: this.parseStatus(category.status) || 'ACTIVE',
+    };
+  }
+
   private buildPayload(): AdminCategoryCreateRequest | AdminCategoryUpdateRequest {
     const rawValue = this.form.getRawValue();
     const payload: AdminCategoryCreateRequest | AdminCategoryUpdateRequest = {
@@ -439,7 +785,9 @@ export class AdminCategories implements OnInit {
       slug: this.generateSlug(rawValue.slug) || rawValue.slug.trim(),
       description: rawValue.description.trim() || undefined,
       imageUrl: rawValue.imageUrl.trim() || undefined,
-      displayOrder: Number(rawValue.displayOrder) || 0,
+      displayOrder: this.isEditMode && this.selectedCategory
+        ? this.getCategoryOrder(this.selectedCategory)
+        : this.nextCategoryOrder(),
     };
 
     if (this.isEditMode) {
@@ -453,11 +801,164 @@ export class AdminCategories implements OnInit {
   }
 
   private upsertCategory(category: AdminCategory): void {
-    this.categories = [
+    this.categories = this.normalizeCategoryOrders([
       category,
       ...this.categories.filter((item) => item.id !== category.id),
-    ].sort((a, b) => this.sortCategory(a, b));
+    ]);
     this.applyFilters();
+  }
+
+  private extractMediaPage(response: unknown): PageResponse<AdminMediaItem> {
+    const content = this.extractMediaList(response);
+    const source = this.isRecord(response) && this.isRecord(response['data']) ? response['data'] : response;
+    const record = this.isRecord(source) ? source : {};
+
+    return {
+      content,
+      page: this.parseNumber(record['page']) ?? 0,
+      size: this.parseNumber(record['size']) ?? this.mediaSize,
+      totalElements: this.parseNumber(record['totalElements']) ?? content.length,
+      totalPages: this.parseNumber(record['totalPages']) ?? (content.length ? 1 : 0),
+      first: Boolean(record['first'] ?? true),
+      last: Boolean(record['last'] ?? true),
+      empty: Boolean(record['empty'] ?? content.length === 0),
+      sortBy: typeof record['sortBy'] === 'string' ? record['sortBy'] : undefined,
+      sortDir: typeof record['sortDir'] === 'string' ? record['sortDir'] : undefined,
+    };
+  }
+
+  private extractMediaList(response: unknown): AdminMediaItem[] {
+    if (Array.isArray(response)) {
+      return response.map((item) => this.normalizeMediaItem(item)).filter(this.isMediaItem);
+    }
+
+    if (!this.isRecord(response)) {
+      return [];
+    }
+
+    const data = response['data'];
+
+    if (Array.isArray(data)) {
+      return data.map((item) => this.normalizeMediaItem(item)).filter(this.isMediaItem);
+    }
+
+    if (this.isRecord(data) && Array.isArray(data['content'])) {
+      return data['content'].map((item) => this.normalizeMediaItem(item)).filter(this.isMediaItem);
+    }
+
+    if (Array.isArray(response['content'])) {
+      return response['content'].map((item) => this.normalizeMediaItem(item)).filter(this.isMediaItem);
+    }
+
+    return [];
+  }
+
+  private extractUploadItem(response: unknown): AdminMediaItem | null {
+    if (this.isRecord(response)) {
+      const data = response['data'];
+
+      if (this.isRecord(data)) {
+        if (this.isRecord(data['media'])) {
+          return this.normalizeMediaItem(data['media']);
+        }
+
+        return this.normalizeMediaItem(data);
+      }
+
+      if (this.isRecord(response['media'])) {
+        return this.normalizeMediaItem(response['media']);
+      }
+    }
+
+    return this.normalizeMediaItem(response);
+  }
+
+  private normalizeMediaItem(value: unknown): AdminMediaItem | null {
+    if (!this.isRecord(value)) {
+      return null;
+    }
+
+    const mediaItem = value as AdminMediaItem;
+    const url = this.extractMediaUrl(mediaItem);
+
+    return {
+      ...mediaItem,
+      url: mediaItem.url || url || undefined,
+      sizeBytes: mediaItem.sizeBytes ?? mediaItem.bytes,
+      type: mediaItem.type || mediaItem.mediaType || mediaItem.resourceType,
+      module: mediaItem.module || mediaItem.folder,
+    };
+  }
+
+  private normalizeMediaCard(item: AdminMediaItem): CategoryMediaCard | null {
+    const url = this.extractMediaUrl(item);
+
+    if (!url || !this.isImageMedia(item)) {
+      return null;
+    }
+
+    return {
+      item,
+      url,
+      title: item.originalFilename || item.publicId || 'Ảnh chưa đặt tên',
+      moduleLabel: this.moduleLabel(item.module || item.folder),
+      createdAt: this.formatDate(item.createdAt),
+    };
+  }
+
+  private extractMediaUrl(item: AdminMediaItem): string {
+    return item.url
+      || item.secureUrl
+      || item.imageUrl
+      || item.fileUrl
+      || item.mediaUrl
+      || item.data?.url
+      || item.data?.secureUrl
+      || item.data?.imageUrl
+      || item.data?.fileUrl
+      || item.data?.mediaUrl
+      || '';
+  }
+
+  private isImageMedia(item: AdminMediaItem): boolean {
+    const type = `${item.contentType || item.type || item.mediaType || item.resourceType || ''}`.toLowerCase();
+    const format = `${item.format || ''}`.toLowerCase();
+
+    return !type || type.includes('image') || ['png', 'jpg', 'jpeg', 'webp', 'gif', 'avif'].includes(format);
+  }
+
+  private moduleLabel(module?: string): string {
+    if (module === 'categories') {
+      return 'Categories';
+    }
+
+    if (module === 'general') {
+      return 'General';
+    }
+
+    if (module === 'tours') {
+      return 'Tours';
+    }
+
+    if (module === 'destinations') {
+      return 'Destinations';
+    }
+
+    return module || 'Chưa phân loại';
+  }
+
+  private normalizeCategoryOrders(categories: AdminCategory[]): AdminCategory[] {
+    return [...categories]
+      .sort((a, b) => this.sortCategory(a, b))
+      .map((category, index) => ({
+        ...category,
+        displayOrder: index + 1,
+      }));
+  }
+
+  private nextCategoryOrder(): number {
+    const maxOrder = this.categories.reduce((max, category) => Math.max(max, this.getCategoryOrder(category)), 0);
+    return maxOrder + 1 || 1;
   }
 
   private extractList(response: unknown): AdminCategory[] {
@@ -499,18 +1000,37 @@ export class AdminCategories implements OnInit {
       return null;
     }
 
-    return value as AdminCategory;
+    const category = value as AdminCategory;
+
+    return {
+      ...category,
+      displayOrder: this.getCategoryOrder(category),
+    };
   }
 
   private sortCategory(a: AdminCategory, b: AdminCategory): number {
-    const orderA = a.displayOrder ?? 0;
-    const orderB = b.displayOrder ?? 0;
+    const orderA = this.getCategoryOrder(a);
+    const orderB = this.getCategoryOrder(b);
 
     if (orderA !== orderB) {
       return orderA - orderB;
     }
 
     return (a.id ?? 0) - (b.id ?? 0);
+  }
+
+  private getCategoryOrder(category: AdminCategory): number {
+    const order = this.parseNumber(category.displayOrder)
+      ?? this.parseNumber(category.sortOrder)
+      ?? this.parseNumber(category.orderIndex)
+      ?? this.parseNumber(category.order)
+      ?? this.parseNumber(category.position);
+
+    if (order === undefined || order < 1) {
+      return Number.MAX_SAFE_INTEGER;
+    }
+
+    return Math.trunc(order);
   }
 
   private generateSlug(value: string): string {
@@ -559,6 +1079,10 @@ export class AdminCategories implements OnInit {
   }
 
   private isCategory(value: AdminCategory | null): value is AdminCategory {
+    return !!value;
+  }
+
+  private isMediaItem(value: AdminMediaItem | null): value is AdminMediaItem {
     return !!value;
   }
 

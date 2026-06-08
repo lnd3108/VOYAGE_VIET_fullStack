@@ -384,9 +384,9 @@
     justify-content: flex-end;
 
     button[type='button'] {
-      border-color: rgba(37, 99, 235, 0.18);
-      background: #eff6ff;
-      color: #2563eb;
+      border-color: rgba(31, 111, 104, 0.22);
+      background: #eef8f6;
+      color: var(--cat-dark);
     }
   }
 
@@ -484,12 +484,6 @@
     }
   }
 
-  &__row-actions button:nth-child(2) {
-    border-color: rgba(245, 158, 11, 0.25);
-    background: #fff7ed;
-    color: #d97706;
-  }
-
   &__danger {
     border-color: rgba(218, 8, 8, 0.2) !important;
     color: var(--cat-danger) !important;
@@ -550,6 +544,29 @@
 
     &__toolbar,
     &__form-grid {
+      grid-template-columns: 1fr;
+    }
+
+    &__image-head,
+    &__image-card,
+    &__media-head {
+      flex-direction: column;
+    }
+
+    &__image-preview {
+      width: 100%;
+    }
+
+    &__image-actions button,
+    &__secondary-button {
+      width: 100%;
+    }
+
+    &__media-picker {
+      padding: 12px;
+    }
+
+    &__media-grid {
       grid-template-columns: 1fr;
     }
 

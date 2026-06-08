@@ -47,16 +47,122 @@
           <textarea rows="3" formControlName="description" placeholder="Mô tả ngắn về nhóm tour"></textarea>
         </label>
 
-        <label class="admin-categories__field admin-categories__field--wide">
-          URL ảnh Cloudinary
-          <input type="url" formControlName="imageUrl" placeholder="Dán URL ảnh từ /admin/media" />
-          <small>Upload ảnh tại Media, copy URL Cloudinary rồi paste vào đây.</small>
-        </label>
+        <section class="admin-categories__image-field admin-categories__field--wide">
+          <div class="admin-categories__image-head">
+            <div>
+              <label>Ảnh danh mục</label>
+              <p>Tải ảnh mới hoặc chọn ảnh đã có từ Media.</p>
+            </div>
+            <div class="admin-categories__image-actions">
+              <input
+                #categoryUploadInput
+                class="admin-categories__file-input"
+                type="file"
+                accept="image/png,image/jpeg,image/jpg,image/webp"
+                [disabled]="uploadingImage || saving"
+                (change)="onCategoryUploadSelected($event)"
+              />
+              <button type="button" [disabled]="uploadingImage || saving" (click)="openUploadPicker()">
+                {{ uploadingImage ? 'Đang tải ảnh...' : 'Tải ảnh từ máy' }}
+              </button>
+              <button type="button" class="admin-categories__secondary-button" [disabled]="mediaLoading" (click)="openMediaPicker()">
+                Chọn từ Media
+              </button>
+            </div>
+          </div>
 
-        <label class="admin-categories__field">
-          Thứ tự hiển thị
-          <input type="number" formControlName="displayOrder" min="0" />
-        </label>
+          <div class="admin-categories__image-card">
+            <div class="admin-categories__image-preview">
+              <img
+                *ngIf="selectedImageUrl; else emptyCategoryImage"
+                [src]="selectedImageUrl"
+                alt="Preview ảnh danh mục"
+                (error)="handleImageError($event)"
+              />
+              <ng-template #emptyCategoryImage>
+                <div class="admin-categories__image-empty">
+                  <tui-icon icon="@tui.image" />
+                  <span>Chưa có ảnh danh mục</span>
+                </div>
+              </ng-template>
+            </div>
+
+            <div class="admin-categories__image-meta">
+              <strong>{{ imageStatusText() }}</strong>
+              <code *ngIf="selectedImageUrl" [title]="selectedImageUrl">{{ shortImageUrl() }}</code>
+              <span *ngIf="!selectedImageUrl">Ảnh là tùy chọn. Có thể lưu danh mục khi chưa chọn ảnh.</span>
+              <small *ngIf="selectedUploadFileName">File vừa chọn: {{ selectedUploadFileName }}</small>
+              <button type="button" class="admin-categories__danger admin-categories__clear-image" *ngIf="selectedImageUrl" (click)="clearCategoryImage()">
+                Bỏ chọn ảnh
+              </button>
+            </div>
+          </div>
+
+          <p class="admin-categories__image-message admin-categories__image-message--error" *ngIf="imageErrorMessage">{{ imageErrorMessage }}</p>
+
+          <details class="admin-categories__advanced-url">
+            <summary>Tùy chọn nâng cao: URL ảnh</summary>
+            <input type="url" formControlName="imageUrl" readonly placeholder="URL ảnh sẽ được tự set sau khi upload hoặc chọn từ Media" />
+          </details>
+
+          <div class="admin-categories__media-picker" *ngIf="isMediaPickerOpen">
+            <div class="admin-categories__media-panel">
+              <div class="admin-categories__media-head">
+                <div>
+                  <strong>Chọn ảnh từ Media</strong>
+                  <span>Ưu tiên ảnh module Categories hoặc General.</span>
+                </div>
+                <button type="button" class="admin-categories__secondary-button" (click)="closeMediaPicker()">Đóng</button>
+              </div>
+
+              <div class="admin-categories__media-filters">
+                <button
+                  type="button"
+                  class="admin-categories__chip-button"
+                  *ngFor="let option of mediaModuleOptions"
+                  [class.admin-categories__chip-button--active]="selectedMediaModule === option.value"
+                  [disabled]="mediaLoading"
+                  (click)="selectMediaModule(option.value)"
+                >
+                  {{ option.label }}
+                </button>
+              </div>
+
+              <div class="admin-categories__media-error" *ngIf="mediaErrorMessage">
+                <span>Không thể tải danh sách ảnh Media.</span>
+                <button type="button" (click)="loadMedia(0)">Thử lại</button>
+              </div>
+
+              <div class="admin-categories__media-grid" *ngIf="mediaLoading">
+                <div class="admin-categories__media-skeleton" *ngFor="let item of mediaSkeletonCards"></div>
+              </div>
+
+              <div class="admin-categories__media-empty" *ngIf="!mediaLoading && !mediaErrorMessage && !mediaCards.length">
+                <strong>Chưa có ảnh trong Media.</strong>
+                <span>Gợi ý: tải ảnh trực tiếp từ form danh mục.</span>
+              </div>
+
+              <div class="admin-categories__media-grid" *ngIf="!mediaLoading && mediaCards.length">
+                <article
+                  class="admin-categories__media-item"
+                  *ngFor="let card of mediaCards"
+                  [class.admin-categories__media-item--selected]="isSelectedMedia(card)"
+                  (click)="selectMediaImage(card)"
+                >
+                  <div class="admin-categories__media-thumb">
+                    <img [src]="card.url" [alt]="card.title" (error)="handleImageError($event)" />
+                    <b *ngIf="isSelectedMedia(card)">Đang chọn</b>
+                  </div>
+                  <div class="admin-categories__media-info">
+                    <strong>{{ card.title }}</strong>
+                    <span>{{ card.moduleLabel }}</span>
+                    <small>{{ card.createdAt }}</small>
+                  </div>
+                </article>
+              </div>
+            </div>
+          </div>
+        </section>
 
         <label class="admin-categories__field" *ngIf="isEditMode">
           Trạng thái
@@ -93,22 +199,9 @@
           </div>
         </label>
 
-        <div class="admin-categories__preview admin-categories__field--wide">
-          <span>Preview ảnh</span>
-          <img
-            *ngIf="imagePreviewUrl(); else noPreview"
-            [src]="imagePreviewUrl()"
-            alt="Preview ảnh danh mục"
-            (error)="handleImageError($event)"
-          />
-          <ng-template #noPreview>
-            <div>Chưa có URL ảnh. Mở Media để lấy URL Cloudinary.</div>
-          </ng-template>
-        </div>
       </div>
 
       <div class="admin-categories__form-actions">
-        <a routerLink="/admin/media">Mở Media</a>
         <button type="button" *ngIf="isEditMode" [disabled]="updatingImage || saving" (click)="updateImageOnly()">
           {{ updatingImage ? 'Đang cập nhật ảnh...' : 'Cập nhật ảnh' }}
         </button>
@@ -159,6 +252,10 @@
     </div>
   </section>
 
+  <div class="admin-categories__reorder-note" *ngIf="reorderBlockedByFilter">
+    Tắt tìm kiếm và lọc trạng thái để sắp xếp thứ tự danh mục trên toàn bộ danh sách.
+  </div>
+
   <section class="admin-categories__table" *ngIf="loading">
     <div class="admin-categories__row admin-categories__row--skeleton" *ngFor="let item of [1, 2, 3, 4, 5]"></div>
   </section>
@@ -174,7 +271,7 @@
       <span>Hành động</span>
     </div>
 
-    <article class="admin-categories__row" *ngFor="let category of filteredCategories">
+    <article class="admin-categories__row" *ngFor="let category of filteredCategories; let categoryIndex = index">
       <div class="admin-categories__image" data-label="Ảnh">
         <img [src]="getCategoryImage(category)" [alt]="category.name || 'Danh mục'" (error)="handleImageError($event)" />
       </div>
@@ -194,12 +291,30 @@
         </span>
       </div>
 
-      <div data-label="Thứ tự">{{ category.displayOrder ?? 0 }}</div>
+      <div data-label="Thứ tự">{{ categoryOrder(category) }}</div>
       <div data-label="Cập nhật">{{ formatDate(category.updatedAt || category.createdAt) }}</div>
 
       <div class="admin-categories__row-actions" data-label="Hành động">
+        <button
+          type="button"
+          class="admin-categories__order-action"
+          *ngIf="canMoveCategoryUp(categoryIndex)"
+          [disabled]="reorderingCategoryIds.size > 0"
+          (click)="moveCategory(category, categoryIndex, 'up')"
+        >
+          Lên
+        </button>
+        <button
+          type="button"
+          class="admin-categories__order-action"
+          *ngIf="canMoveCategoryDown(categoryIndex)"
+          [disabled]="reorderingCategoryIds.size > 0"
+          (click)="moveCategory(category, categoryIndex, 'down')"
+        >
+          Xuống
+        </button>
         <button type="button" (click)="openEditForm(category)">Sửa</button>
-        <button type="button" [disabled]="updatingStatusId === category.id" (click)="toggleStatus(category)">
+        <button type="button" class="admin-categories__status-action" [disabled]="updatingStatusId === category.id" (click)="toggleStatus(category)">
           {{ updatingStatusId === category.id ? 'Đang đổi...' : nextStatusLabel(category) }}
         </button>
         <button type="button" class="admin-categories__danger" [disabled]="deletingId === category.id" (click)="deleteCategory(category)">
