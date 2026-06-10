@@ -1,4 +1,4 @@
-﻿import { NgIf } from '@angular/common';
+import { NgIf } from '@angular/common';
 import { Component, EventEmitter, Input, OnChanges, Output, SimpleChanges } from '@angular/core';
 import { AgGridAngular } from 'ag-grid-angular';
 import {
@@ -41,7 +41,7 @@ export class AdminCategoryTableComponent implements OnChanges {
   @Input() reorderingCategoryIds = new Set<number>();
 
   @Input() rowHeight = 76;
-  @Input() domLayout: DomLayoutType = 'autoHeight';
+  @Input() domLayout: DomLayoutType = 'normal';
   @Input() suppressCellFocus = true;
   @Input() loadThemeGoogleFonts = false;
 
@@ -64,6 +64,18 @@ export class AdminCategoryTableComponent implements OnChanges {
     headerCheckbox: true,
     enableClickSelection: false,
   };
+
+  readonly selectionColumnDef: ColDef<CategoryGridRow> = {
+    width: 52,
+    minWidth: 52,
+    maxWidth: 52,
+    pinned: 'left',
+    lockPinned: true,
+    sortable: false,
+    resizable: false,
+    suppressMovable: true,
+  };
+
   readonly getRowId = (params: GetRowIdParams<CategoryGridRow>) =>
     `${params.data.id ?? params.data.rowIndex}`;
   readonly columnDefs = buildCategoryColumnDefs();
@@ -144,7 +156,11 @@ export class AdminCategoryTableComponent implements OnChanges {
     const sortedColumns = this.gridApi?.getColumnState().filter((column) => column.sort) || [];
     const nextValue =
       sortedColumns.length > 0 &&
-      !(sortedColumns.length === 1 && sortedColumns[0].colId === 'order' && sortedColumns[0].sort === 'asc');
+      !(
+        sortedColumns.length === 1 &&
+        sortedColumns[0].colId === 'order' &&
+        sortedColumns[0].sort === 'asc'
+      );
 
     if (nextValue !== this.gridSortBlocksReorder) {
       this.gridSortBlocksReorder = nextValue;

@@ -19,8 +19,9 @@
 }
 
 .admin-category-table__grid {
-  min-width: 980px;
   width: 100%;
+  min-width: 0;
+  height: clamp(460px, calc(100vh - 340px), 720px);
 
   --ag-background-color: #fff;
   --ag-border-color: #dde7e4;
@@ -40,20 +41,11 @@
     overflow: visible;
   }
 
-  .ag-header {
-    border-bottom: 1px solid #dde7e4;
-  }
-
   .ag-header-cell-label {
     font-size: 12px;
     font-weight: 800;
     letter-spacing: 0.01em;
     text-transform: uppercase;
-  }
-
-  .ag-row,
-  .ag-cell {
-    overflow: visible;
   }
 
   .ag-cell {
@@ -66,10 +58,42 @@
     width: 100%;
   }
 
-  .ag-center-cols-container,
+  .ag-row {
+    overflow: visible;
+  }
+
+  .ag-cell {
+    overflow: hidden;
+  }
+
+  .ag-cell-value {
+    width: 100%;
+    overflow: hidden;
+  }
+
+  .ag-pinned-left-header,
+  .ag-pinned-left-cols-container {
+    z-index: 30;
+    background: #ffffff;
+    box-shadow: 10px 0 24px rgba(15, 23, 42, 0.06);
+  }
+
+  .ag-pinned-right-header,
   .ag-pinned-right-cols-container,
   .ag-pinned-right-cols-viewport {
+    z-index: 50;
     overflow: visible !important;
+    background: #ffffff;
+    box-shadow: -10px 0 24px rgba(15, 23, 42, 0.06);
+  }
+
+  .ag-cell[col-id='actions'] {
+    overflow: visible !important;
+    z-index: 120;
+  }
+
+  .ag-row:has(.admin-categories__action-menu) {
+    z-index: 160;
   }
 
   .ag-row {
@@ -83,6 +107,33 @@
   .ag-cell[col-id='actions'] {
     overflow: visible !important;
     z-index: 120;
+  }
+
+  .ag-root-wrapper,
+  .ag-root,
+  .ag-root-wrapper-body,
+  .ag-layout-normal {
+    min-height: 0;
+  }
+
+  .ag-header {
+    position: relative;
+    z-index: 60;
+    border-bottom: 1px solid #dde7e4;
+    background: #f8faf9;
+  }
+
+  .ag-body {
+    min-height: 0;
+  }
+
+  .ag-body-viewport {
+    overflow-y: auto !important;
+  }
+
+  .ag-body-horizontal-scroll {
+    z-index: 70;
+    background: #ffffff;
   }
 }
 
@@ -222,10 +273,4 @@
 :host ::ng-deep .admin-categories__approval--empty {
   background: #f1f5f9;
   color: #64748b;
-}
-
-@media (max-width: 1180px) {
-  .admin-category-table__grid {
-    min-width: 920px;
-  }
 }

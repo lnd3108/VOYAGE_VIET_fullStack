@@ -1,4 +1,4 @@
-﻿<section class="admin-category-form">
+<section class="admin-category-form">
   <div class="admin-category-form__head">
     <div>
       <span>{{ headerEyebrow }}</span>
@@ -10,22 +10,22 @@
       class="admin-category-form__button admin-category-form__button--secondary admin-category-form__button--sm"
       (click)="close()"
     >
-      ÄÃ³ng
+      Đóng
     </button>
   </div>
 
   <form [formGroup]="form" (ngSubmit)="submitForm()">
     <div class="admin-category-form__grid">
       <label class="admin-category-form__field">
-        TÃªn danh má»¥c
+        Tên danh mục
         <input
           type="text"
           formControlName="name"
-          placeholder="VÃ­ dá»¥: Tour trong nÆ°á»›c"
+          placeholder="Ví dụ: Tour trong nước"
           (input)="handleNameInput()"
         />
         <small *ngIf="form.controls.name.touched && form.controls.name.invalid">
-          TÃªn danh má»¥c lÃ  báº¯t buá»™c.
+          Tên danh mục là bắt buộc.
         </small>
       </label>
 
@@ -38,24 +38,24 @@
           (input)="markSlugEdited()"
         />
         <small *ngIf="form.controls.slug.touched && form.controls.slug.invalid">
-          Slug lÃ  báº¯t buá»™c.
+          Slug là bắt buộc.
         </small>
       </label>
 
       <label class="admin-category-form__field admin-category-form__field--wide">
-        MÃ´ táº£
+        Mô tả
         <textarea
           rows="3"
           formControlName="description"
-          placeholder="MÃ´ táº£ ngáº¯n vá» nhÃ³m tour"
+          placeholder="Mô tả ngắn về nhóm tour"
         ></textarea>
       </label>
 
       <section class="admin-category-form__image-field admin-category-form__field--wide">
         <div class="admin-category-form__image-head">
           <div>
-            <label>áº¢nh danh má»¥c</label>
-            <p>Táº£i áº£nh má»›i hoáº·c chá»n áº£nh Ä‘Ã£ cÃ³ tá»« Media.</p>
+            <label>Ảnh danh mục</label>
+            <p>Tải ảnh mới hoặc chọn ảnh đã có từ Media.</p>
           </div>
 
           <div class="admin-category-form__image-actions">
@@ -75,7 +75,7 @@
               *ngIf="canUpdateImage"
               (click)="openUploadPicker()"
             >
-              {{ uploadingImage ? 'Äang táº£i áº£nh...' : 'Táº£i áº£nh tá»« mÃ¡y' }}
+              {{ uploadingImage ? 'Đang tải ảnh...' : 'Tải ảnh từ máy' }}
             </button>
 
             <button
@@ -85,7 +85,7 @@
               *ngIf="canUpdateImage && canPickMedia"
               (click)="openMediaPicker()"
             >
-              Chá»n tá»« Media
+              Chọn từ Media
             </button>
           </div>
         </div>
@@ -95,14 +95,14 @@
             <img
               *ngIf="selectedImageUrl; else emptyCategoryImage"
               [src]="selectedImageUrl"
-              alt="Preview áº£nh danh má»¥c"
+              alt="Preview ảnh danh mục"
               (error)="handleImageError($event)"
             />
 
             <ng-template #emptyCategoryImage>
               <div class="admin-category-form__image-empty">
                 <tui-icon icon="@tui.image" />
-                <span>ChÆ°a cÃ³ áº£nh danh má»¥c</span>
+                <span>Chưa có ảnh danh mục</span>
               </div>
             </ng-template>
           </div>
@@ -115,11 +115,11 @@
             </code>
 
             <span *ngIf="!selectedImageUrl">
-              áº¢nh lÃ  tÃ¹y chá»n. CÃ³ thá»ƒ lÆ°u danh má»¥c khi chÆ°a chá»n áº£nh.
+              Ảnh là tùy chọn. Có thể lưu danh mục khi chưa chọn ảnh.
             </span>
 
             <small *ngIf="selectedUploadFileName">
-              File vá»«a chá»n: {{ selectedUploadFileName }}
+              File vừa chọn: {{ selectedUploadFileName }}
             </small>
 
             <button
@@ -128,7 +128,7 @@
               *ngIf="selectedImageUrl"
               (click)="clearImage()"
             >
-              Bá» chá»n áº£nh
+              Bỏ chọn ảnh
             </button>
           </div>
         </div>
@@ -144,16 +144,16 @@
           class="admin-category-form__image-message admin-category-form__image-message--info"
           *ngIf="isMediaLimited"
         >
-          TÃ i khoáº£n STAFF chá»‰ Ä‘Æ°á»£c táº£i lÃªn vÃ  chá»n áº£nh trong module Categories.
+          Tài khoản STAFF chỉ được tải lên và chọn ảnh trong module Categories.
         </p>
 
         <details class="admin-category-form__advanced-url">
-          <summary>TÃ¹y chá»n nÃ¢ng cao: URL áº£nh</summary>
+          <summary>Tùy chọn nâng cao: URL ảnh</summary>
           <input
             type="url"
             formControlName="imageUrl"
             readonly
-            placeholder="URL áº£nh sáº½ Ä‘Æ°á»£c tá»± set sau khi upload hoáº·c chá»n tá»« Media"
+            placeholder="URL ảnh sẽ được tự set sau khi upload hoặc chọn từ Media"
           />
         </details>
 
@@ -161,9 +161,9 @@
           <div class="admin-category-form__media-panel">
             <div class="admin-category-form__media-head">
               <div>
-                <strong>Chá»n áº£nh tá»« Media</strong>
-                <span *ngIf="!isMediaLimited"> Æ¯u tiÃªn áº£nh module Categories hoáº·c General. </span>
-                <span *ngIf="isMediaLimited"> Chá»‰ hiá»ƒn thá»‹ áº£nh module Categories. </span>
+                <strong>Chọn ảnh từ Media</strong>
+                <span *ngIf="!isMediaLimited"> Ưu tiên ảnh module Categories hoặc General. </span>
+                <span *ngIf="isMediaLimited"> Chỉ hiển thị ảnh module Categories. </span>
               </div>
 
               <button
@@ -171,7 +171,7 @@
                 class="admin-category-form__button admin-category-form__button--secondary admin-category-form__button--sm"
                 (click)="closeMediaPicker()"
               >
-                ÄÃ³ng
+                Đóng
               </button>
             </div>
 
@@ -191,14 +191,14 @@
             </div>
 
             <div class="admin-category-form__media-error" *ngIf="mediaErrorMessage">
-              <span>KhÃ´ng thá»ƒ táº£i danh sÃ¡ch áº£nh Media.</span>
+              <span>Không thể tải danh sách ảnh Media.</span>
 
               <button
                 type="button"
                 class="admin-category-form__button admin-category-form__button--danger-soft admin-category-form__button--sm"
                 (click)="loadMedia(0)"
               >
-                Thá»­ láº¡i
+                Thử lại
               </button>
             </div>
 
@@ -213,8 +213,8 @@
               class="admin-category-form__media-empty"
               *ngIf="!mediaLoading && !mediaErrorMessage && !mediaCards.length"
             >
-              <strong>ChÆ°a cÃ³ áº£nh trong Media.</strong>
-              <span>Gá»£i Ã½: táº£i áº£nh trá»±c tiáº¿p tá»« form danh má»¥c.</span>
+              <strong>Chưa có ảnh trong Media.</strong>
+              <span>Gợi ý: tải ảnh trực tiếp từ form danh mục.</span>
             </div>
 
             <div class="admin-category-form__media-grid" *ngIf="!mediaLoading && mediaCards.length">
@@ -226,7 +226,7 @@
               >
                 <div class="admin-category-form__media-thumb">
                   <img [src]="card.url" [alt]="card.title" (error)="handleImageError($event)" />
-                  <b *ngIf="isSelectedMedia(card)">Äang chá»n</b>
+                  <b *ngIf="isSelectedMedia(card)">Đang chọn</b>
                 </div>
 
                 <div class="admin-category-form__media-info">
@@ -249,7 +249,7 @@
         [disabled]="updatingImage || saving"
         (click)="updateImageOnly()"
       >
-        {{ updatingImage ? 'Äang cáº­p nháº­t áº£nh...' : 'Cáº­p nháº­t áº£nh' }}
+        {{ updatingImage ? 'Đang cập nhật ảnh...' : 'Cập nhật ảnh' }}
       </button>
 
       <button

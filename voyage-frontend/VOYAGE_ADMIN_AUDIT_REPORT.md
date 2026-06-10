@@ -2094,3 +2094,66 @@ Thời gian cập nhật: 2026-06-10
 - Parent still owns reorder because it depends on the currently filtered/sorted list and swaps two category orders.
 - Form emits `saved` and parent reloads the list to preserve backend workflow/newData behavior after create, edit and image-only update.
 - Manual runtime verification in browser is still recommended for permission-sensitive flows: STAFF create/edit/upload/submit/reorder and ADMIN/SUPER_ADMIN approve/reject/display/delete paths.
+
+## 2026-06-10 14:20:34 +07:00 - Fix Admin Categories action dropdown overlay
+
+### Files changed
+- Updated `src/app/pages/admin/categories/components/category-action-cell/category-action-cell.ts`
+- Updated `src/app/pages/admin/categories/components/category-action-cell/category-action-cell.html`
+
+### Root cause
+- The action-cell renderer toggled `isMenuOpen`, but AG Grid cell renderers can fail to repaint immediately after internal renderer state changes unless change detection is explicitly triggered.
+- Even with `position: fixed`, rendering the dropdown inside the AG Grid pinned-right cell can still be affected by grid/pinned container overflow/stacking/transform behavior, making the menu appear not to open or be clipped.
+
+### Fix
+- Kept a single dropdown state: `isMenuOpen`.
+- Added `ChangeDetectorRef.detectChanges()` after open/close state and `menuPosition` changes.
+- Added a template ref `#actionMenu` and moved the rendered menu element to `document.body` on open, so the dropdown no longer depends on `.ag-cell`, `.ag-row`, `.ag-pinned-right-cols-container`, horizontal scrollbar or grid body overflow.
+- Preserved outside click and Escape close behavior.
+- Preserved action execution behavior: choosing an action closes the menu first, then runs the existing workflow/API logic.
+
+### Build/test result
+- `npm run build`: passed.
+- Compile/template checks passed.
+- Browser manual verification still required in a running app for first/middle/last row, vertical scroll, horizontal scroll and role-specific option visibility.
+
+### Remaining warnings/errors
+- No build errors.
+- Existing Angular budget warnings remain:
+  - Initial bundle exceeds 500 kB budget by 367.87 kB.
+  - `home-hero.scss` exceeds 8 kB budget by 1.88 kB.
+  - `tour-form.scss` exceeds 8 kB budget by 1.99 kB.
+  - `tours.scss` exceeds 8 kB budget by 1.98 kB.
+  - `category-form.scss` exceeds 8 kB budget by 400 bytes.
+  - `public-layout.scss` exceeds 8 kB budget by 1.99 kB.
+  - `destinations.scss` exceeds 8 kB budget by 1.93 kB.
+
+### Technical notes / risks
+- The dropdown DOM is temporarily portaled to `document.body` while open and removed by Angular/ngOnDestroy when the cell renderer is destroyed.
+- Position is still calculated from the clicked trigger using viewport coordinates, with max height and internal vertical scroll.
+- No API endpoint, workflow, route, permission rule or data model was changed.
+
+## 2026-06-10 14:22:29 +07:00 - Enforce single Admin Categories action dropdown
+
+### Files changed
+- Updated `src/app/pages/admin/categories/components/category-action-cell/category-action-cell.ts`
+
+### Root cause
+- Each AG Grid action-cell renderer owned its own `isMenuOpen` state. After the menu was portaled to `document.body`, opening another row did not automatically close the previously opened renderer's menu, so multiple dropdowns could remain visible.
+
+### Fix
+- Added a static `activeMenu` reference in `CategoryActionCellRendererComponent`.
+- Before opening a new dropdown, the component closes the currently active dropdown if it belongs to another cell renderer.
+- `closeMenu()` clears `activeMenu` when closing the active instance.
+- `ngOnDestroy()` clears `activeMenu` and removes the portaled menu DOM for destroyed cell renderers.
+
+### Build/test result
+- `npm run build`: passed.
+- Expected runtime behavior: only one row action dropdown can be open at a time; opening a different row closes the old menu.
+
+### Remaining warnings/errors
+- No build errors.
+- Existing Angular budget warnings remain for initial bundle and several SCSS files.
+
+### Technical notes / risks
+- The singleton is scoped to the action-cell component class and does not affect API, workflow, route, permissions or data model.

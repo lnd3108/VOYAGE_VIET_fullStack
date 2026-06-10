@@ -5,11 +5,11 @@
     class="admin-category-detail"
     role="dialog"
     aria-modal="true"
-    aria-label="Dá»¯ liá»‡u thay Ä‘á»•i chá» duyá»‡t"
+    aria-label="Dữ liệu thay đổi chờ duyệt"
   >
     <header class="admin-category-detail__head">
       <div>
-        <p>Dá»¯ liá»‡u thay Ä‘á»•i chá» duyá»‡t</p>
+        <p>Dữ liệu thay đổi chờ duyệt</p>
         <h2>{{ detail.title }}</h2>
 
         <div class="admin-category-detail__badges">
@@ -26,7 +26,7 @@
             [class.admin-category-detail__approval--pending]="detail.hasPendingData"
             [class.admin-category-detail__approval--empty]="!detail.hasPendingData"
           >
-            {{ detail.hasPendingData ? 'CÃ³ dá»¯ liá»‡u chá» duyá»‡t' : 'KhÃ´ng cÃ³ dá»¯ liá»‡u chá» duyá»‡t' }}
+            {{ detail.hasPendingData ? 'Có dữ liệu chờ duyệt' : 'Không có dữ liệu chờ duyệt' }}
           </span>
         </div>
       </div>
@@ -37,13 +37,13 @@
         [disabled]="submitting"
         (click)="close()"
       >
-        ÄÃ³ng
+        Đóng
       </button>
     </header>
 
     <section class="admin-category-detail__summary">
       <article>
-        <span>TÃªn hiá»‡n táº¡i</span>
+        <span>Tên hiện tại</span>
         <strong>{{ detail.title }}</strong>
       </article>
 
@@ -68,15 +68,15 @@
     </div>
 
     <div class="admin-category-detail__empty" *ngIf="!detail.parseError && !detail.rows.length">
-      KhÃ´ng cÃ³ dá»¯ liá»‡u thay Ä‘á»•i Ä‘á»ƒ so sÃ¡nh.
+      Không có dữ liệu thay đổi để so sánh.
     </div>
 
     <section class="admin-category-detail__table" *ngIf="detail.rows.length">
       <div class="admin-category-detail__table-head">
-        <span>TrÆ°á»ng dá»¯ liá»‡u</span>
-        <span>Hiá»‡n táº¡i</span>
-        <span>Dá»¯ liá»‡u chá» duyá»‡t</span>
-        <span>Tráº¡ng thÃ¡i</span>
+        <span>Trường dữ liệu</span>
+        <span>Hiện tại</span>
+        <span>Dữ liệu chờ duyệt</span>
+        <span>Trạng thái</span>
       </div>
 
       <article
@@ -94,12 +94,12 @@
               class="admin-category-detail__thumb"
               *ngIf="row.currentImageUrl; else currentEmptyImage"
               [src]="row.currentImageUrl"
-              alt="áº¢nh hiá»‡n táº¡i"
+              alt="Ảnh hiện tại"
               (error)="handleImageError($event)"
             />
 
             <ng-template #currentEmptyImage>
-              <span class="admin-category-detail__image-empty">ChÆ°a cÃ³ áº£nh</span>
+              <span class="admin-category-detail__image-empty">Chưa có ảnh</span>
             </ng-template>
 
             <code *ngIf="row.currentImageUrl" [title]="row.currentImageUrl">
@@ -118,12 +118,12 @@
               class="admin-category-detail__thumb"
               *ngIf="row.pendingImageUrl; else pendingEmptyImage"
               [src]="row.pendingImageUrl"
-              alt="áº¢nh chá» duyá»‡t"
+              alt="Ảnh chờ duyệt"
               (error)="handleImageError($event)"
             />
 
             <ng-template #pendingEmptyImage>
-              <span class="admin-category-detail__image-empty">ChÆ°a cÃ³ áº£nh</span>
+              <span class="admin-category-detail__image-empty">Chưa có ảnh</span>
             </ng-template>
 
             <code *ngIf="row.pendingImageUrl" [title]="row.pendingImageUrl">
@@ -141,7 +141,7 @@
             [class.admin-category-detail__state--changed]="row.changed"
             [class.admin-category-detail__state--same]="!row.changed"
           >
-            {{ row.changed ? 'ÄÃ£ thay Ä‘á»•i' : 'KhÃ´ng Ä‘á»•i' }}
+            {{ row.changed ? 'Đã thay đổi' : 'Không đổi' }}
           </span>
         </div>
       </article>
@@ -153,12 +153,12 @@
 
     <section class="admin-category-detail__reject" *ngIf="rejectMode">
       <label>
-        LÃ½ do tá»« chá»‘i
+        Lý do từ chối
         <textarea
           rows="4"
           [value]="rejectReason"
           [disabled]="submitting"
-          placeholder="Nháº­p lÃ½ do tá»« chá»‘i Ä‘á»ƒ ngÆ°á»i chá»‰nh sá»­a biáº¿t cáº§n sá»­a gÃ¬"
+          placeholder="Nhập lý do từ chối để người chỉnh sửa biết cần sửa gì"
           (input)="updateRejectReason($event)"
         ></textarea>
       </label>
@@ -166,7 +166,7 @@
 
     <footer class="admin-category-detail__footer">
       <p *ngIf="detail.parseError && detail.canCancelApprove">
-        Dá»¯ liá»‡u thay Ä‘á»•i khÃ´ng Ä‘á»c Ä‘Æ°á»£c. CÃ³ thá»ƒ há»§y trÃ¬nh duyá»‡t Ä‘á»ƒ backend xÃ³a dá»¯ liá»‡u lá»—i.
+        Dữ liệu thay đổi không đọc được. Có thể hủy trình duyệt để backend xóa dữ liệu lỗi.
       </p>
 
       <div class="admin-category-detail__actions">
@@ -176,7 +176,7 @@
           [disabled]="submitting"
           (click)="close()"
         >
-          ÄÃ³ng
+          Đóng
         </button>
 
         <button
@@ -186,7 +186,7 @@
           [disabled]="submitting"
           (click)="startReject()"
         >
-          Tá»« chá»‘i
+          Từ chối
         </button>
 
         <button
@@ -196,7 +196,7 @@
           [disabled]="submitting"
           (click)="cancelReject()"
         >
-          Há»§y tá»« chá»‘i
+          Hủy từ chối
         </button>
 
         <button
@@ -206,7 +206,7 @@
           [disabled]="submitting"
           (click)="rejectPendingReview()"
         >
-          {{ submitting ? 'Äang tá»« chá»‘i...' : 'XÃ¡c nháº­n tá»« chá»‘i' }}
+          {{ submitting ? 'Đang từ chối...' : 'Xác nhận từ chối' }}
         </button>
 
         <button
@@ -216,7 +216,7 @@
           [disabled]="submitting"
           (click)="cancelApprovePendingReview()"
         >
-          {{ submitting ? 'Äang há»§y...' : 'Há»§y trÃ¬nh duyá»‡t' }}
+          {{ submitting ? 'Đang hủy...' : 'Hủy trình duyệt' }}
         </button>
 
         <button
@@ -226,7 +226,7 @@
           [disabled]="submitting"
           (click)="approvePendingReview()"
         >
-          {{ submitting ? 'Äang duyá»‡t...' : 'Duyá»‡t' }}
+          {{ submitting ? 'Đang duyệt...' : 'Duyệt' }}
         </button>
       </div>
     </footer>

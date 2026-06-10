@@ -8,7 +8,7 @@
       type="button"
       class="admin-categories__action-trigger"
       aria-label="Mở menu thao tác danh mục"
-      [attr.aria-expanded]="isOpen"
+      [attr.aria-expanded]="isMenuOpen"
       [disabled]="!row.category.id"
       (mousedown)="stopGridEvent($event)"
       (click)="toggleMenu($event)"
@@ -17,9 +17,10 @@
     </button>
 
     <div
+      #actionMenu
       class="admin-categories__action-menu"
-      *ngIf="isOpen"
-      [class.admin-categories__action-menu--top]="isMenuTop"
+      *ngIf="isMenuOpen"
+      [ngStyle]="menuPosition"
       (mousedown)="stopGridEvent($event)"
       (click)="stopGridEvent($event)"
     >

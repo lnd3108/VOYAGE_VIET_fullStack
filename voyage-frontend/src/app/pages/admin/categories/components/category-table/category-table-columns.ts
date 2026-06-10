@@ -1,4 +1,4 @@
-﻿import { ColDef, ICellRendererParams } from 'ag-grid-community';
+import { ColDef, ICellRendererParams } from 'ag-grid-community';
 
 import { CategoryActionCellRendererComponent } from '../category-action-cell/category-action-cell';
 import { AdminCategory } from '../../../../../core/models/category.model';
@@ -97,61 +97,78 @@ export function buildCategoryColumnDefs(): ColDef<CategoryGridRow>[] {
       headerName: 'Ảnh',
       field: 'imageUrl',
       width: 92,
-      minWidth: 84,
+      minWidth: 92,
+      maxWidth: 92,
+      pinned: 'left',
+      lockPinned: true,
       sortable: false,
-      cellRenderer: (params: ICellRendererParams<CategoryGridRow, string>) => renderImageCell(params.data),
+      resizable: false,
+      suppressMovable: true,
+      cellRenderer: (params: ICellRendererParams<CategoryGridRow, string>) =>
+        renderImageCell(params.data),
     },
     {
       headerName: 'Tên danh mục',
       field: 'name',
-      minWidth: 220,
-      flex: 1.35,
-      cellRenderer: (params: ICellRendererParams<CategoryGridRow, string>) => renderNameCell(params.data),
+      width: 280,
+      minWidth: 260,
+      maxWidth: 320,
+      pinned: 'left',
+      lockPinned: true,
+      suppressMovable: true,
+      cellRenderer: (params: ICellRendererParams<CategoryGridRow, string>) =>
+        renderNameCell(params.data),
     },
     {
       headerName: 'Slug',
       field: 'slug',
-      minWidth: 150,
-      flex: 0.85,
+      width: 230,
+      minWidth: 210,
       cellRenderer: (params: ICellRendererParams<CategoryGridRow, string>) => {
         const slug = escapeHtml(params.data?.slug || 'dang-cap-nhat');
         return `<code class="admin-categories__grid-slug">${slug}</code>`;
       },
     },
     {
-      headerName: 'Workflow',
+      headerName: 'Trạng Thái',
       field: 'workflowLabel',
       width: 148,
       minWidth: 138,
-      cellRenderer: (params: ICellRendererParams<CategoryGridRow, string>) => renderWorkflowCell(params.data),
+      cellRenderer: (params: ICellRendererParams<CategoryGridRow, string>) =>
+        renderWorkflowCell(params.data),
     },
     {
       headerName: 'Hiển thị',
       field: 'displayLabel',
       width: 154,
       minWidth: 144,
-      cellRenderer: (params: ICellRendererParams<CategoryGridRow, string>) => renderDisplayCell(params.data),
+      cellRenderer: (params: ICellRendererParams<CategoryGridRow, string>) =>
+        renderDisplayCell(params.data),
     },
     {
       headerName: 'Phê duyệt',
       field: 'pendingChangeLabel',
       width: 186,
       minWidth: 176,
-      cellRenderer: (params: ICellRendererParams<CategoryGridRow, string>) => renderApprovalCell(params.data),
+      cellRenderer: (params: ICellRendererParams<CategoryGridRow, string>) =>
+        renderApprovalCell(params.data),
     },
     {
       headerName: 'Thứ tự',
       field: 'order',
-      width: 104,
-      minWidth: 92,
+      width: 132,
+      minWidth: 132,
+      maxWidth: 132,
       sort: 'asc',
+      headerClass: 'admin-categories__grid-header--center',
+      cellClass: 'admin-categories__grid-cell--center',
       comparator: (valueA, valueB) => Number(valueA || 0) - Number(valueB || 0),
     },
     {
       headerName: 'Ngày tạo',
       field: 'createdDisplay',
-      width: 152,
-      minWidth: 142,
+      width: 172,
+      minWidth: 164,
       comparator: (_valueA, _valueB, nodeA, nodeB) => {
         return (nodeA.data?.createdTimestamp || 0) - (nodeB.data?.createdTimestamp || 0);
       },
@@ -159,8 +176,8 @@ export function buildCategoryColumnDefs(): ColDef<CategoryGridRow>[] {
     {
       headerName: 'Cập nhật',
       field: 'updatedDisplay',
-      width: 152,
-      minWidth: 142,
+      width: 172,
+      minWidth: 164,
       comparator: (_valueA, _valueB, nodeA, nodeB) => {
         return (nodeA.data?.updatedTimestamp || 0) - (nodeB.data?.updatedTimestamp || 0);
       },
@@ -168,11 +185,14 @@ export function buildCategoryColumnDefs(): ColDef<CategoryGridRow>[] {
     {
       headerName: 'Hành động',
       colId: 'actions',
-      width: 106,
-      minWidth: 96,
+      width: 112,
+      minWidth: 112,
+      maxWidth: 112,
+      pinned: 'right',
+      lockPinned: true,
       sortable: false,
       resizable: false,
-      pinned: 'right',
+      suppressMovable: true,
       cellRenderer: CategoryActionCellRendererComponent,
     },
   ];

@@ -21,5 +21,6 @@
     (gridReady)="handleGridReady($event)"
     (sortChanged)="handleSortChanged($event)"
     (selectionChanged)="handleSelectionChanged($event)"
+    [selectionColumnDef]="selectionColumnDef"
   ></ag-grid-angular>
 </section>
