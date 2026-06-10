@@ -1,4 +1,4 @@
-export type RoleCode = 'USER' | 'ADMIN' | 'SUPER_ADMIN';
+export type RoleCode = 'USER' | 'STAFF' | 'ADMIN' | 'SUPER_ADMIN';
 
 export type UserStatus = 'ACTIVE' | 'INACTIVE' | 'BANNED';
 

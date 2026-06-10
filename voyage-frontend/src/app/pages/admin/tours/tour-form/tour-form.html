@@ -110,7 +110,7 @@
                 <button
                   type="button"
                   class="admin-tour-form__soft-button admin-tour-form__ms-option"
-                  *ngFor="let category of categories"
+                  *ngFor="let category of categoryOptions"
                   [class.admin-tour-form__soft-button--active]="form.controls.categoryId.value === category.id"
                   (click)="selectCategory(category.id)"
                 >
@@ -120,6 +120,7 @@
             </div>
             <div class="admin-tour-form__message-slot">
               <p class="admin-tour-form__field-error" *ngIf="hasFieldError('categoryId')">Vui lòng chọn danh mục.</p>
+              <p class="admin-tour-form__field-warning" *ngIf="hasInvalidCurrentCategory()">{{ currentCategoryWarning() }}</p>
             </div>
           </div>
 
@@ -163,14 +164,15 @@
             </div>
             <div class="admin-tour-form__message-slot">
               <p class="admin-tour-form__field-error" *ngIf="hasFieldError('destinationId')">Vui lòng chọn điểm đến.</p>
+              <p class="admin-tour-form__field-warning" *ngIf="hasInvalidCurrentDestination()">{{ currentDestinationWarning() }}</p>
               <p class="admin-tour-form__field-help" *ngIf="destinations.length">Điểm đến đầu tiên sẽ được dùng làm điểm đến chính của tour.</p>
               <p class="admin-tour-form__field-help" *ngIf="!destinations.length">Chưa có điểm đến. Vui lòng tạo điểm đến trong Admin &gt; Điểm đến.</p>
             </div>
           </div>
         </div>
 
-        <div class="admin-tour-form__media-empty" *ngIf="!categories.length">
-          <span>Chưa có danh mục. Vui lòng tạo danh mục trong Admin &gt; Danh mục.</span>
+        <div class="admin-tour-form__media-empty" *ngIf="!categoryOptions.length">
+          <span>Chưa có danh mục đã duyệt và đang hiển thị. Vui lòng kiểm tra Admin &gt; Danh mục.</span>
           <a routerLink="/admin/categories">Mở danh mục</a>
         </div>
 

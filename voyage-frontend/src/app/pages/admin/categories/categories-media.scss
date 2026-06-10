@@ -163,6 +163,12 @@
     --hc: #b45309;
   }
 
+  &__action-item--pending {
+    --c: #b45309;
+    --h: #fff7ed;
+    --hc: #92400e;
+  }
+
   &__action-item--danger {
     --c: var(--cat-danger);
     --h: #fef2f2;
@@ -323,6 +329,7 @@
     &--error {
       color: var(--cat-danger);
     }
+
   }
 
   &__advanced-url {

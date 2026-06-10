@@ -887,3 +887,38 @@ Thời gian cập nhật: 2026-06-03 10:04:23 +07:00
 - Verify token chỉ được đọc từ query params và gửi một lần sang backend; không lưu vào browser storage.
 - Backend email verify token đến từ email hoặc log server, frontend không có flow gửi lại verify email trong bước này vì chưa có API resend.
 - Nếu user đang đăng nhập sẵn, trang verify vẫn không tự refresh `currentUser`; profile sẽ phản ánh `emailVerified` khi gọi lại `/users/me`.
+
+## 2026-06-09 21:50:30 +07:00 - B??c 13: S?a encoding ti?ng Vi?t frontend public/report
+
+### File ?? s?a
+- .editorconfig
+- voyage-frontend/src/app/pages/public/profile/profile.ts
+- voyage-frontend/VOYAGE_FRONTEND_AUDIT_REPORT.md
+- voyage-frontend/VOYAGE_ADMIN_AUDIT_REPORT.md
+- voyage-backend/BACKEND_API_REPORT.md
+
+### Ph?m vi ?? scan
+- To?n repo, b? qua .git/node_modules/dist/target/.angular/.idea.
+- Frontend src/app, layouts, admin pages, public pages, shared/core.
+- Backend src/main Java/resources, SQL/manual migration, report markdown.
+- B? pattern exact mojibake ph? bi?n v? broad scan ?? ki?m false positive.
+
+### Nh?m l?i encoding ?? s?a
+- Public profile: message t?i/c?p nh?t h? s?, upload ?nh ??i di?n, label vai tr? Kh?ch h?ng/Nh?n vi?n.
+- Frontend audit report: ti?u ??, k?t qu? build/test, ghi ch? k? thu?t/r?i ro v? n?i dung l?ch s? b? sai encoding.
+- Gi? nguy?n c?c text ti?ng Vi?t ??ng nh? Ch?u ?u, H? S? C? NH?N, S?N PH?M B?N ?? XEM.
+
+### K?t qu? build/test
+- npx ng build --configuration development: pass.
+- npm run build: pass.
+- Backend test/package c?ng pass v? b??c n?y c? s?a m?t chu?i backend.
+
+### Warning/l?i c?n l?i
+- Production build c?n warning budget m?m hi?n h?u: initial bundle 863.30 kB v? m?t s? SCSS v??t warning budget 8 kB.
+- Kh?ng ch?y browser automation do repo kh?ng c? Playwright/e2e dependency.
+
+### Ghi ch? k? thu?t/r?i ro
+- File ?? l?u UTF-8 kh?ng BOM.
+- index.html ?? c? meta charset utf-8.
+- Kh?ng ??i nghi?p v?, route, API ho?c layout l?n.
+- N?u c?n d? li?u mojibake t? DB th? c?n x? l? b?ng script ri?ng, kh?ng s?a h?ng lo?t trong b??c n?y.

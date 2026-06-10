@@ -153,6 +153,7 @@ export class Profile implements OnInit {
   roleLabel(role?: RoleCode): string {
     const labels: Record<RoleCode, string> = {
       USER: 'Khách hàng',
+      STAFF: 'Nhân viên',
       ADMIN: 'Quản trị viên',
       SUPER_ADMIN: 'Super Admin',
     };

@@ -71,6 +71,8 @@ public enum ErrorCode {
     REVIEW_INVALID_RATING("REVIEW_422", "Review rating is invalid", HttpStatus.UNPROCESSABLE_ENTITY),
     FEATURE_DISABLED("FEATURE_403", "Feature is disabled", HttpStatus.FORBIDDEN),
 
+    NO_DATA_CHANGED("NO_DATA_CHANGED", "Không có dữ liệu thay đổi", HttpStatus.NOT_FOUND),
+
     MEDIA_NOT_FOUND("MEDIA_404", "Media not found", HttpStatus.NOT_FOUND),
     MEDIA_UPLOAD_FAILED("MEDIA_500", "Media upload failed", HttpStatus.INTERNAL_SERVER_ERROR),
     MEDIA_INVALID_FILE("MEDIA_400", "Invalid media file", HttpStatus.BAD_REQUEST);

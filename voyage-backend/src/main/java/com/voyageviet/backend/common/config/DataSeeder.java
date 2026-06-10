@@ -283,7 +283,8 @@ public class DataSeeder implements CommandLineRunner {
                         .slug(slug)
                         .description(description)
                         .imageUrl(imageUrl)
-                        .status(CategoryStatus.ACTIVE)
+                        .status(CategoryStatus.APPROVED)
+                        .isDisplay(1)
                         .displayOrder(displayOrder)
                         .build()));
     }
@@ -304,7 +305,8 @@ public class DataSeeder implements CommandLineRunner {
                         .country(country)
                         .description(description)
                         .imageUrl(imageUrl)
-                        .status(DestinationStatus.ACTIVE)
+                        .status(DestinationStatus.APPROVED)
+                        .isDisplay(1)
                         .build()));
     }
 

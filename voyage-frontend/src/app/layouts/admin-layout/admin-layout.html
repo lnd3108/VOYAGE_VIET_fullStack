@@ -17,6 +17,7 @@
         routerLink="/admin"
         routerLinkActive="admin-layout__nav-link--active"
         [routerLinkActiveOptions]="{ exact: true }"
+        *ngIf="authService.isAdmin()"
       >
         Dashboard
       </a>
@@ -33,6 +34,7 @@
         class="admin-layout__nav-link"
         routerLink="/admin/destinations"
         routerLinkActive="admin-layout__nav-link--active"
+        *ngIf="authService.isStaff()"
       >
         Điểm đến
       </a>
@@ -41,6 +43,7 @@
         class="admin-layout__nav-link"
         routerLink="/admin/tours"
         routerLinkActive="admin-layout__nav-link--active"
+        *ngIf="authService.isAdmin()"
       >
         Tour
       </a>
@@ -49,6 +52,7 @@
         class="admin-layout__nav-link"
         routerLink="/admin/bookings"
         routerLinkActive="admin-layout__nav-link--active"
+        *ngIf="authService.isAdmin()"
       >
         Booking
       </a>
@@ -57,6 +61,7 @@
         class="admin-layout__nav-link"
         routerLink="/admin/users"
         routerLinkActive="admin-layout__nav-link--active"
+        *ngIf="authService.isAdmin()"
       >
         Người dùng
       </a>
@@ -65,6 +70,7 @@
         class="admin-layout__nav-link"
         routerLink="/admin/reviews"
         routerLinkActive="admin-layout__nav-link--active"
+        *ngIf="authService.isAdmin()"
       >
         Đánh giá
       </a>
@@ -73,6 +79,7 @@
         class="admin-layout__nav-link"
         routerLink="/admin/media"
         routerLinkActive="admin-layout__nav-link--active"
+        *ngIf="authService.isAdmin()"
       >
         Media
       </a>
@@ -81,6 +88,7 @@
         class="admin-layout__nav-link"
         routerLink="/admin/features"
         routerLinkActive="admin-layout__nav-link--active"
+        *ngIf="authService.isAdmin()"
       >
         Tính năng
       </a>
@@ -89,6 +97,7 @@
         class="admin-layout__nav-link"
         routerLink="/admin/audit-logs"
         routerLinkActive="admin-layout__nav-link--active"
+        *ngIf="authService.isAdmin()"
       >
         Audit Logs
       </a>

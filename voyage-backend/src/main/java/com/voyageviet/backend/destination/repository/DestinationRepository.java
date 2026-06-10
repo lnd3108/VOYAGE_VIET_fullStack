@@ -19,5 +19,9 @@ public interface DestinationRepository extends JpaRepository<Destination, Long> 
 
     List<Destination> findByStatusOrderByNameAsc(DestinationStatus status);
 
+    List<Destination> findByStatusAndIsDisplayOrderByNameAsc(DestinationStatus status, Integer isDisplay);
+
     long countByStatus(DestinationStatus status);
+
+    long countByStatusAndIsDisplay(DestinationStatus status, Integer isDisplay);
 }

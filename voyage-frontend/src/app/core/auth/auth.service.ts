@@ -92,6 +92,10 @@ export class AuthService {
     return this.hasRole('ADMIN', 'SUPER_ADMIN');
   }
 
+  isStaff(): boolean {
+    return this.hasRole('STAFF', 'ADMIN', 'SUPER_ADMIN');
+  }
+
   private getStoredToken(): string | null {
     return localStorage.getItem(ACCESS_TOKEN_KEY);
   }

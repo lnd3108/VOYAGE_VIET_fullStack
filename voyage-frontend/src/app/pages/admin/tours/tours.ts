@@ -3,9 +3,11 @@ import { Component, DestroyRef, HostListener, OnDestroy, OnInit, inject } from '
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { Router, RouterLink } from '@angular/router';
 import { TuiIcon } from '@taiga-ui/core';
-import { take } from 'rxjs';
+import { catchError, forkJoin, of, take } from 'rxjs';
 
+import { AdminCategoryApiService } from '../../../core/api/admin-category-api.service';
 import { AdminTourApiService } from '../../../core/api/admin-tour-api.service';
+import { AdminCategory, isCategorySelectableForTour } from '../../../core/models/category.model';
 import { AdminTour, TourPublishChecklist, TourStatus } from '../../../core/models/admin-tour.model';
 import { AdminUiFeedbackService } from '../../../core/services/admin-ui-feedback.service';
 import { TourPreviewPanelComponent } from '../../../shared/components/tour-preview-panel/tour-preview-panel.component';
@@ -40,6 +42,7 @@ interface TourStats {
 })
 export class AdminTours implements OnInit, OnDestroy {
   private readonly adminTourApiService = inject(AdminTourApiService);
+  private readonly adminCategoryApiService = inject(AdminCategoryApiService);
   private readonly destroyRef = inject(DestroyRef);
   private readonly feedback = inject(AdminUiFeedbackService);
   private readonly router = inject(Router);
@@ -79,6 +82,8 @@ export class AdminTours implements OnInit, OnDestroy {
   successMessage = '';
   tours: AdminTour[] = [];
   filteredTours: AdminTour[] = [];
+  categories: AdminCategory[] = [];
+  categoryCatalogLoaded = false;
   categoryOptions: EntityFilterOption[] = [];
   destinationOptions: EntityFilterOption[] = [];
   keyword = '';
@@ -142,12 +147,18 @@ export class AdminTours implements OnInit, OnDestroy {
     this.errorMessage = '';
     this.successMessage = '';
 
-    this.adminTourApiService
-      .getTours()
+    forkJoin({
+      tours: this.adminTourApiService.getTours(),
+      categories: this.adminCategoryApiService.getCategories().pipe(catchError(() => of(null))),
+    })
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
         next: (response) => {
-          this.tours = this.extractList(response).sort((a, b) => this.sortTour(a, b));
+          this.tours = this.extractList<AdminTour>(response.tours).sort((a, b) => this.sortTour(a, b));
+          this.categoryCatalogLoaded = response.categories !== null;
+          this.categories = this.extractList<AdminCategory>(response.categories)
+            .filter((category) => !!category.id)
+            .filter((category) => isCategorySelectableForTour(category));
           this.rebuildEntityOptions();
           this.applyFilters();
           this.loading = false;
@@ -832,6 +843,15 @@ export class AdminTours implements OnInit, OnDestroy {
   }
 
   private buildEntityOptions(type: 'category' | 'destination'): EntityFilterOption[] {
+    if (type === 'category' && this.categoryCatalogLoaded) {
+      return this.categories
+        .map((category) => ({
+          value: this.entityKey(category.id, category.name),
+          label: category.name || category.slug || `#${category.id}`,
+        }))
+        .sort((a, b) => a.label.localeCompare(b.label, 'vi'));
+    }
+
     const map = new Map<string, string>();
 
     this.tours.forEach((tour) => {
@@ -858,9 +878,9 @@ export class AdminTours implements OnInit, OnDestroy {
     this.applyFilters();
   }
 
-  private extractList(response: unknown): AdminTour[] {
+  private extractList<T>(response: unknown): T[] {
     if (Array.isArray(response)) {
-      return response.map((item) => this.normalizeTour(item)).filter(this.isTour);
+      return response as T[];
     }
 
     if (!this.isRecord(response)) {
@@ -870,15 +890,15 @@ export class AdminTours implements OnInit, OnDestroy {
     const data = response['data'];
 
     if (Array.isArray(data)) {
-      return data.map((item) => this.normalizeTour(item)).filter(this.isTour);
+      return data as T[];
     }
 
     if (this.isRecord(data) && Array.isArray(data['content'])) {
-      return data['content'].map((item) => this.normalizeTour(item)).filter(this.isTour);
+      return data['content'] as T[];
     }
 
     if (Array.isArray(response['content'])) {
-      return response['content'].map((item) => this.normalizeTour(item)).filter(this.isTour);
+      return response['content'] as T[];
     }
 
     return [];
@@ -1060,10 +1080,6 @@ export class AdminTours implements OnInit, OnDestroy {
       .toLowerCase()
       .trim()
       .replace(/\s+/g, '-');
-  }
-
-  private isTour(value: AdminTour | null): value is AdminTour {
-    return !!value;
   }
 
   private isRecord(value: unknown): value is Record<string, unknown> {

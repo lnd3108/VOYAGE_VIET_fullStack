@@ -4,6 +4,8 @@ import com.voyageviet.backend.common.entity.BaseEntity;
 import jakarta.persistence.*;
 import lombok.*;
 
+import java.util.Objects;
+
 @Getter
 @Setter
 @Builder
@@ -38,9 +40,74 @@ public class Category extends BaseEntity {
     @Builder.Default
     @Enumerated(EnumType.STRING)
     @Column(name = "STATUS", nullable = false, length = 30)
-    private CategoryStatus status = CategoryStatus.ACTIVE;
+    private CategoryStatus status = CategoryStatus.DRAFT;
+
+    @Builder.Default
+    @Column(name = "IS_DISPLAY", nullable = false)
+    private Integer isDisplay = 0;
 
     @Builder.Default
     @Column(name = "DISPLAY_ORDER", nullable = false)
     private Integer displayOrder = 0;
+
+    @Column(name = "REJECT_REASON", length = 500)
+    private String rejectReason;
+
+    @Lob
+    @Column(name = "NEW_DATA")
+    private String newData;
+
+    public void markAsDraft() {
+        this.status = CategoryStatus.DRAFT;
+    }
+
+    public void markAsPending() {
+        this.status = CategoryStatus.PENDING;
+    }
+
+    public void markAsApproved() {
+        this.status = CategoryStatus.APPROVED;
+        this.rejectReason = null;
+    }
+
+    public void markAsRejected(String reason) {
+        this.status = CategoryStatus.REJECTED;
+        this.rejectReason = reason;
+    }
+
+    public void markAsCancelApproved() {
+        this.status = CategoryStatus.CANCEL_APPROVE;
+    }
+
+    public void show() {
+        this.isDisplay = 1;
+    }
+
+    public void hide() {
+        this.isDisplay = 0;
+    }
+
+    public void replaceNewData(String newData) {
+        this.newData = newData;
+    }
+
+    public void clearNewData() {
+        this.newData = null;
+    }
+
+    public boolean hasNewData() {
+        return this.newData != null && !this.newData.isBlank();
+    }
+
+    public boolean isPending() {
+        return this.status == CategoryStatus.PENDING;
+    }
+
+    public boolean isPublished() {
+        return this.status == CategoryStatus.APPROVED;
+    }
+
+    public boolean isPublicVisible() {
+        return this.status == CategoryStatus.APPROVED && Objects.equals(this.isDisplay, 1);
+    }
 }

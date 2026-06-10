@@ -1,4 +1,4 @@
-<section class="admin-destinations">
+﻿<section class="admin-destinations">
   <header class="admin-destinations__header">
     <div>
       <p class="admin-destinations__eyebrow">Admin Destinations</p>
@@ -7,7 +7,7 @@
     </div>
 
     <div class="admin-destinations__actions">
-      <a routerLink="/admin/media">Mở Media</a>
+      <a routerLink="/admin/media" *ngIf="canOpenFullMediaLibrary()">Mở Media</a>
       <button type="button" (click)="openCreateForm()">Thêm điểm đến</button>
     </div>
   </header>
@@ -288,42 +288,6 @@
           <div class="admin-destinations__message-slot"></div>
         </div>
 
-        <div class="admin-destinations__field" *ngIf="isEditMode">
-          <label class="admin-destinations__label">Trạng thái</label>
-          <div
-            class="admin-destinations__control-wrap admin-destinations__control-wrap--select"
-            [class.admin-destinations__control-wrap--open]="focusedSelect === 'formStatus'"
-          >
-            <button
-              type="button"
-              class="admin-destinations__select-trigger"
-              (click)="toggleSelect('formStatus')"
-            >
-              {{ statusLabel(form.controls.status.value) }}
-            </button>
-            <tui-icon class="admin-destinations__chevron-icon admin-destinations__chevron-icon--select" icon="@tui.chevron-down" />
-            <div class="admin-destinations__select-menu" *ngIf="focusedSelect === 'formStatus'">
-              <button
-                type="button"
-                class="admin-destinations__select-option"
-                [class.admin-destinations__select-option--selected]="form.controls.status.value === 'ACTIVE'"
-                (click)="selectFormStatus('ACTIVE')"
-              >
-                Đang hiển thị
-              </button>
-              <button
-                type="button"
-                class="admin-destinations__select-option"
-                [class.admin-destinations__select-option--selected]="form.controls.status.value === 'INACTIVE'"
-                (click)="selectFormStatus('INACTIVE')"
-              >
-                Tạm ẩn
-              </button>
-            </div>
-          </div>
-          <div class="admin-destinations__message-slot"></div>
-        </div>
-
         <div class="admin-destinations__preview admin-destinations__field--full">
           <span>Preview ảnh</span>
           <img
@@ -338,7 +302,7 @@
         </div>
       </div>
       <div class="admin-destinations__form-actions">
-        <a routerLink="/admin/media">Mở Media</a>
+        <a routerLink="/admin/media" *ngIf="canOpenFullMediaLibrary()">Mở Media</a>
         <button type="button" *ngIf="isEditMode" [disabled]="updatingImage || saving" (click)="updateImageOnly()">
           {{ updatingImage ? 'Đang cập nhật ảnh...' : 'Cập nhật ảnh' }}
         </button>
@@ -421,20 +385,46 @@
     <div class="admin-destinations__row admin-destinations__row--skeleton" *ngFor="let item of [1, 2, 3, 4, 5]"></div>
   </section>
 
+  <section class="admin-destinations__batch" *ngIf="selectedBatchCount && canUseBatchWorkflow()">
+    <div>
+      <strong>{{ selectedBatchCount }} điểm đến đã chọn</strong>
+      <p *ngIf="batchErrorMessage">{{ batchErrorMessage }}</p>
+    </div>
+    <div class="admin-destinations__batch-actions">
+      <button type="button" [disabled]="batchProcessing || !canRunBatchAction('submit')" (click)="runBatchAction('submit')">Gửi duyệt</button>
+      <button type="button" [disabled]="batchProcessing || !canRunBatchAction('approve')" (click)="runBatchAction('approve')">Duyệt</button>
+      <button type="button" [disabled]="batchProcessing || !canRunBatchAction('reject')" (click)="runBatchAction('reject')">Từ chối</button>
+      <button type="button" [disabled]="batchProcessing || !canRunBatchAction('cancelApprove')" (click)="runBatchAction('cancelApprove')">Hủy trình duyệt</button>
+      <button type="button" [disabled]="batchProcessing || !canRunBatchAction('show')" (click)="runBatchAction('show')">Hiển thị public</button>
+      <button type="button" [disabled]="batchProcessing || !canRunBatchAction('hide')" (click)="runBatchAction('hide')">Ẩn public</button>
+      <button type="button" (click)="clearBatchSelection()">Bỏ chọn</button>
+    </div>
+    <div class="admin-destinations__batch-reject" *ngIf="batchRejectMode">
+      <textarea rows="2" [value]="batchRejectReason" placeholder="Lý do từ chối batch" (input)="updateBatchRejectReason($event)"></textarea>
+      <button type="button" [disabled]="batchProcessing" (click)="runBatchAction('reject')">Xác nhận từ chối</button>
+      <button type="button" [disabled]="batchProcessing" (click)="cancelBatchReject()">Hủy</button>
+    </div>
+  </section>
+
   <section class="admin-destinations__table" *ngIf="!loading && filteredDestinations.length">
     <div class="admin-destinations__table-head">
+      <span>Chọn</span>
       <span>Ảnh</span>
       <span>Tên điểm đến</span>
-      <span>Slug</span>
       <span>Region</span>
       <span>Country</span>
-      <span>Tọa độ</span>
-      <span>Trạng thái</span>
+      <span>Workflow</span>
+      <span>Hiển thị</span>
+      <span>Phê duyệt</span>
       <span>Cập nhật</span>
       <span>Hành động</span>
     </div>
 
     <article class="admin-destinations__row" *ngFor="let destination of filteredDestinations">
+      <div data-label="Chọn">
+        <input type="checkbox" [checked]="isDestinationSelected(destination)" (change)="toggleDestinationSelection(destination, $event)" />
+      </div>
+
       <div class="admin-destinations__image" data-label="Ảnh">
         <img [src]="getDestinationImage(destination)" [alt]="destination.name || 'Điểm đến'" (error)="handleImageError($event)" />
       </div>
@@ -442,34 +432,99 @@
       <div data-label="Tên điểm đến">
         <strong>{{ destination.name || 'Chưa đặt tên' }}</strong>
         <small>{{ destination.description || 'Chưa có mô tả' }}</small>
-      </div>
-
-      <div data-label="Slug">
         <code>{{ destination.slug || 'dang-cap-nhat' }}</code>
       </div>
 
       <div data-label="Region">{{ formatRegion(destination.region) }}</div>
       <div data-label="Country">{{ destination.country || 'Đang cập nhật' }}</div>
-      <div data-label="Tọa độ">{{ coordinatesText(destination) }}</div>
 
-      <div data-label="Trạng thái">
+      <div data-label="Workflow">
         <span class="admin-destinations__status" [ngClass]="statusClass(destination.status)">
           {{ statusLabel(destination.status) }}
         </span>
       </div>
 
+      <div data-label="Hiển thị">
+        <span class="admin-destinations__display" [ngClass]="displayClass(destination)">
+          {{ displayLabel(destination) }}
+        </span>
+      </div>
+
+      <div data-label="Phê duyệt">
+        <button type="button" class="admin-destinations__pending" [ngClass]="pendingDataClass(destination)" (click)="openPendingReview(destination)">
+          {{ pendingDataLabel(destination) }}
+        </button>
+        <small *ngIf="destination.rejectReason">Lý do: {{ destination.rejectReason }}</small>
+      </div>
+
       <div data-label="Cập nhật">{{ formatDate(destination.updatedAt || destination.createdAt) }}</div>
 
       <div class="admin-destinations__row-actions" data-label="Hành động">
-        <button type="button" (click)="openEditForm(destination)">Sửa</button>
-        <button type="button" [disabled]="updatingStatusId === destination.id" (click)="toggleStatus(destination)">
-          {{ updatingStatusId === destination.id ? 'Đang đổi...' : nextStatusLabel(destination) }}
-        </button>
-        <button type="button" class="admin-destinations__danger" [disabled]="deletingId === destination.id" (click)="deleteDestination(destination)">
+        <button type="button" *ngIf="canEditDestination(destination)" (click)="openEditForm(destination)">Sửa</button>
+        <button type="button" *ngIf="canSubmitDestination(destination)" [disabled]="updatingWorkflowId === destination.id" (click)="submitWorkflow(destination)">Gửi duyệt</button>
+        <button type="button" *ngIf="canApproveDestination(destination)" [disabled]="updatingWorkflowId === destination.id" (click)="approveWorkflow(destination)">Duyệt</button>
+        <button type="button" *ngIf="canRejectDestination(destination)" [disabled]="updatingWorkflowId === destination.id" (click)="openPendingReview(destination)">Từ chối</button>
+        <button type="button" *ngIf="canCancelApproveDestination(destination)" [disabled]="updatingWorkflowId === destination.id" (click)="cancelApproveWorkflow(destination)">Hủy trình duyệt</button>
+        <button type="button" *ngIf="canUpdateDisplay(destination) && !isDisplayEnabled(destination)" [disabled]="updatingDisplayId === destination.id" (click)="updateDisplay(destination, 1)">Hiển thị public</button>
+        <button type="button" *ngIf="canUpdateDisplay(destination) && isDisplayEnabled(destination)" [disabled]="updatingDisplayId === destination.id" (click)="updateDisplay(destination, 0)">Ẩn public</button>
+        <button type="button" *ngIf="canDeleteDestination()" class="admin-destinations__danger" [disabled]="deletingId === destination.id" (click)="deleteDestination(destination)">
           {{ deletingId === destination.id ? 'Đang xóa...' : 'Xóa' }}
         </button>
       </div>
     </article>
+  </section>
+
+  <section class="admin-destinations__review" *ngIf="pendingReview">
+    <div class="admin-destinations__review-card">
+      <header>
+        <div>
+          <span>Review thay đổi</span>
+          <h2>{{ pendingReview.title }}</h2>
+          <code>{{ pendingReview.slug }}</code>
+        </div>
+        <button type="button" (click)="closePendingReview()">Đóng</button>
+      </header>
+
+      <div class="admin-destinations__review-badges">
+        <span class="admin-destinations__status" [ngClass]="pendingReview.workflowClassName">{{ pendingReview.workflowLabel }}</span>
+        <span class="admin-destinations__display" [ngClass]="pendingReview.displayClassName">{{ pendingReview.displayLabel }}</span>
+      </div>
+
+      <p class="admin-destinations__error" *ngIf="pendingReview.parseError">{{ pendingReview.parseError }}</p>
+      <p *ngIf="!pendingReview.hasPendingData && !pendingReview.parseError">Không có dữ liệu thay đổi chờ duyệt.</p>
+
+      <div class="admin-destinations__review-table" *ngIf="pendingReview.rows.length">
+        <div class="admin-destinations__review-row admin-destinations__review-row--head">
+          <span>Trường</span>
+          <span>Dữ liệu hiện tại</span>
+          <span>Dữ liệu chờ duyệt</span>
+        </div>
+        <div class="admin-destinations__review-row" [class.admin-destinations__review-row--changed]="row.changed" *ngFor="let row of pendingReview.rows">
+          <strong>{{ row.label }}</strong>
+          <span>
+            <img *ngIf="row.type === 'image' && row.currentImageUrl" [src]="row.currentImageUrl" alt="Ảnh hiện tại" (error)="handleImageError($event)" />
+            {{ row.currentValue }}
+          </span>
+          <span>
+            <img *ngIf="row.type === 'image' && row.pendingImageUrl" [src]="row.pendingImageUrl" alt="Ảnh chờ duyệt" (error)="handleImageError($event)" />
+            {{ row.pendingValue }}
+          </span>
+        </div>
+      </div>
+
+      <div class="admin-destinations__reject-box" *ngIf="pendingRejectMode">
+        <label>Lý do từ chối</label>
+        <textarea rows="3" [value]="pendingRejectReason" (input)="updatePendingRejectReason($event)"></textarea>
+      </div>
+
+      <div class="admin-destinations__form-actions">
+        <button type="button" *ngIf="pendingReview.canApproveReject" [disabled]="pendingReviewSubmitting" (click)="approvePendingReview()">Duyệt</button>
+        <button type="button" *ngIf="pendingReview.canApproveReject && !pendingRejectMode" [disabled]="pendingReviewSubmitting" (click)="startRejectPendingReview()">Từ chối</button>
+        <button type="button" *ngIf="pendingReview.canApproveReject && pendingRejectMode" [disabled]="pendingReviewSubmitting" (click)="confirmRejectPendingReview()">Xác nhận từ chối</button>
+        <button type="button" *ngIf="pendingRejectMode" [disabled]="pendingReviewSubmitting" (click)="cancelRejectPendingReview()">Hủy từ chối</button>
+        <button type="button" *ngIf="pendingReview.canCancelApprove" [disabled]="pendingReviewSubmitting" (click)="cancelApprovePendingReview()">Hủy trình duyệt</button>
+      </div>
+    </div>
   </section>
 
   <div class="admin-destinations__empty" *ngIf="!loading && !filteredDestinations.length && !errorMessage">

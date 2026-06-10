@@ -98,7 +98,7 @@ public class TourStatsService {
         return "Vietnam".equalsIgnoreCase(country)
                 || "Viet Nam".equalsIgnoreCase(country)
                 || "Việt Nam".equalsIgnoreCase(country)
-                || "Viá»‡t Nam".equalsIgnoreCase(country);
+                || "Việt Nam".equalsIgnoreCase(country);
     }
 
     private Tour findTour(Long tourId) {

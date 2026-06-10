@@ -101,6 +101,21 @@ public class MediaService {
         return PageResponse.from(mediaPage, this::toResponse);
     }
 
+    @Transactional(readOnly = true)
+    public PageResponse<MediaUploadResponse> getMediaListByModule(
+            String module,
+            int page,
+            int size,
+            String sortBy,
+            String sortDir
+    ) {
+        Pageable pageable = buildPageable(page, size, sortBy, sortDir);
+        String folder = buildFolder(module);
+        Page<Media> mediaPage = mediaRepository.findByFolderIgnoreCase(folder, pageable);
+
+        return PageResponse.from(mediaPage, this::toResponse);
+    }
+
     @Transactional
     public void deleteMedia(Long id) {
         Media media = mediaRepository.findById(id)

@@ -68,7 +68,7 @@
   &__grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
   &__grid--four { grid-template-columns: repeat(4, minmax(0, 1fr)); }
 
-  &__field { display: grid; grid-template-rows: auto auto 34px; gap: 6px; align-self: start; font-weight: 700; }
+  &__field { display: grid; grid-template-rows: auto auto minmax(34px, auto); gap: 6px; align-self: start; font-weight: 700; }
   &__label { min-height: 18px; color: #475569; font-size: 13px; font-weight: 800; }
   &__control, &__media-toolbar input { width: 100%; box-sizing: border-box; padding: 11px 12px; border: 1px solid var(--b); border-radius: 12px; background: #fff; color: #0f172a; resize: vertical; transition: border-color 0.18s ease, box-shadow 0.18s ease; }
   &__control { min-height: 42px; }
@@ -93,9 +93,10 @@
   &__ms-option.admin-tour-form__soft-button--active { background: #eef7f5 !important; color: #14534f !important; font-weight: 700; }
   &__ms-check { width: 18px; flex: 0 0 auto; color: var(--p); text-align: center; }
   &__message-slot { min-height: 34px; display: grid; align-content: start; overflow: hidden; }
-  &__field-error, &__field-help { margin: 0; overflow: hidden; font-size: 12px; font-weight: 700; line-height: 16px; }
+  &__field-error, &__field-help, &__field-warning { margin: 0; font-size: 12px; font-weight: 700; line-height: 16px; }
   &__field-error { color: var(--r); }
-  &__validation { margin-top: 0; color: var(--r) !important; font-size: 12px; }
+  &__field-warning { padding: 6px 8px; background: #fff7ed; color: #c2410c; }
+  &__validation { color: var(--r) !important; font-size: 12px; }
   &__field--wide { grid-column: 1 / -1; }
   &__field--switch { min-height: 44px; padding: 10px 12px; display: flex; align-items: center; gap: 10px; border: 1px solid var(--b); border-radius: 12px; background: #fbfefd; input { width: 20px; height: 20px; flex: 0 0 auto; accent-color: var(--p); } }
 

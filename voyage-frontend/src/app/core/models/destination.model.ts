@@ -1,4 +1,4 @@
-export type DestinationStatus = 'ACTIVE' | 'INACTIVE';
+export type DestinationStatus = 'DRAFT' | 'PENDING' | 'APPROVED' | 'REJECTED' | 'CANCEL_APPROVE';
 export type DestinationRegion = 'DOMESTIC' | 'INTERNATIONAL';
 export type DestinationSubRegion = 'NORTH' | 'CENTRAL' | 'SOUTH';
 
@@ -29,6 +29,8 @@ export interface ProvinceRegionMap {
   SOUTH: string[];
 }
 
+export type DestinationDisplayValue = number | boolean | string | null | undefined;
+
 export interface DestinationResponse {
   id?: number;
   name?: string;
@@ -40,6 +42,9 @@ export interface DestinationResponse {
   latitude?: number | null;
   longitude?: number | null;
   status?: DestinationStatus | string;
+  isDisplay?: DestinationDisplayValue;
+  rejectReason?: string | null;
+  newData?: string | null;
   createdAt?: string;
   updatedAt?: string;
 }
@@ -55,6 +60,9 @@ export interface AdminDestination {
   latitude?: number | null;
   longitude?: number | null;
   status?: DestinationStatus | string;
+  isDisplay?: DestinationDisplayValue;
+  rejectReason?: string | null;
+  newData?: string | null;
   createdAt?: string;
   updatedAt?: string;
 }
@@ -72,4 +80,40 @@ export interface AdminDestinationCreateRequest {
 
 export interface AdminDestinationUpdateRequest extends AdminDestinationCreateRequest {
   status?: DestinationStatus;
+}
+
+export interface DestinationNewData {
+  name?: string | null;
+  slug?: string | null;
+  region?: string | null;
+  country?: string | null;
+  description?: string | null;
+  imageUrl?: string | null;
+  latitude?: number | string | null;
+  longitude?: number | string | null;
+  status?: DestinationStatus | string | null;
+  isDisplay?: DestinationDisplayValue;
+}
+
+export interface DestinationBatchActionItemResponse {
+  id: number | null;
+  name?: string | null;
+  success: boolean;
+  message?: string | null;
+}
+
+export interface DestinationBatchActionResponse {
+  total: number;
+  successCount: number;
+  failedCount: number;
+  successItems: DestinationBatchActionItemResponse[];
+  failedItems: DestinationBatchActionItemResponse[];
+}
+
+export function isDestinationDisplayEnabled(value: DestinationDisplayValue): boolean {
+  return value === 1 || value === true || value === '1' || value === 'true';
+}
+
+export function isDestinationSelectableForTour(destination: Pick<AdminDestination, 'status' | 'isDisplay'>): boolean {
+  return destination.status === 'APPROVED' && isDestinationDisplayEnabled(destination.isDisplay);
 }

@@ -9,8 +9,8 @@ import { AdminCategoryApiService } from '../../../../core/api/admin-category-api
 import { AdminDestinationApiService } from '../../../../core/api/admin-destination-api.service';
 import { AdminMediaApiService } from '../../../../core/api/admin-media-api.service';
 import { AdminTourApiService } from '../../../../core/api/admin-tour-api.service';
-import { AdminCategory } from '../../../../core/models/category.model';
-import { AdminDestination } from '../../../../core/models/destination.model';
+import { AdminCategory, isCategorySelectableForTour } from '../../../../core/models/category.model';
+import { AdminDestination, isDestinationSelectableForTour } from '../../../../core/models/destination.model';
 import { AdminMediaItem } from '../../../../core/models/media.model';
 import { PageResponse } from '../../../../core/models/page-response.model';
 import { AdminTour, AdminTourCreateRequest, AdminTourUpdateRequest, TourStatus } from '../../../../core/models/admin-tour.model';
@@ -99,6 +99,7 @@ export class TourForm implements OnInit, OnDestroy {
   isEditMode = false;
   tourId: number | null = null;
   categories: AdminCategory[] = [];
+  categoryOptions: AdminCategory[] = [];
   destinations: AdminDestination[] = [];
   destinationSelectOptions: DestinationSelectOption[] = [];
   departureSelectOptions: DepartureOption[] = [];
@@ -542,10 +543,29 @@ export class TourForm implements OnInit, OnDestroy {
     return this.form.controls.destinationSelectionKeys.value.includes(option.value);
   }
 
+  hasInvalidCurrentCategory(): boolean {
+    const category = this.selectedCategory();
+    return !!category && !isCategorySelectableForTour(category);
+  }
+
+  currentCategoryWarning(): string {
+    return this.hasInvalidCurrentCategory()
+      ? 'Danh mục hiện tại chưa được duyệt hoặc đang bị ẩn. Tour có thể không đủ điều kiện xuất bản nếu danh mục chưa hợp lệ.'
+      : '';
+  }
+
   submitForm(): void {
     if (this.form.invalid) {
       this.form.markAllAsTouched();
       this.errorMessage = 'Vui lòng kiểm tra lại các trường đang báo lỗi.';
+      this.feedback.warning(this.errorMessage);
+      return;
+    }
+
+    if (!this.isEditMode && !this.isSelectedCategoryValidForCreate()) {
+      this.form.controls.categoryId.markAsDirty();
+      this.form.controls.categoryId.markAsTouched();
+      this.errorMessage = 'Vui lòng chọn danh mục đã duyệt và đang hiển thị trước khi tạo tour.';
       this.feedback.warning(this.errorMessage);
       return;
     }
@@ -606,14 +626,12 @@ export class TourForm implements OnInit, OnDestroy {
   }
 
   previewCategoryName(): string {
-    const categoryId = this.form.controls.categoryId.value;
-    const category = this.categories.find((item) => item.id === categoryId);
+    const category = this.selectedCategory();
     return category ? this.categoryLabel(category, false) : 'Chưa chọn danh mục';
   }
 
   selectedCategoryLabel(): string {
-    const categoryId = this.form.controls.categoryId.value;
-    const category = this.categories.find((item) => item.id === categoryId);
+    const category = this.selectedCategory();
     return category ? this.categoryLabel(category) : 'Chọn danh mục';
   }
 
@@ -721,23 +739,41 @@ export class TourForm implements OnInit, OnDestroy {
 
   categoryLabel(category: AdminCategory, includeStatus = true): string {
     const name = category.name?.trim() || this.categoryNameFromSlug(category.slug) || category.slug || `#${category.id}`;
-    return includeStatus && category.status === 'INACTIVE' ? `${name} - Tạm ẩn` : name;
+    return includeStatus && !isCategorySelectableForTour(category)
+      ? `${name} (${this.categoryUnavailableLabel(category)})`
+      : name;
   }
 
   destinationLabel(destination: AdminDestination): string {
     const name = destination.name || destination.slug || `#${destination.id}`;
     const country = destination.country?.trim();
     const region = destination.region?.trim();
+    const availability = this.destinationUnavailableLabel(destination);
 
     if (this.destinationMatchesRegion(destination, 'DOMESTIC')) {
-      return [name, country || 'Việt Nam', region && region !== 'DOMESTIC' ? region : ''].filter(Boolean).join(' - ');
+      return [name, country || 'Việt Nam', region && region !== 'DOMESTIC' ? region : '', availability].filter(Boolean).join(' - ');
     }
 
-    return [name, country].filter(Boolean).join(' - ');
+    return [name, country, availability].filter(Boolean).join(' - ');
   }
 
   destinationShortLabel(destination: AdminDestination): string {
-    return destination.name || destination.slug || `#${destination.id}`;
+    const name = destination.name || destination.slug || `#${destination.id}`;
+    const availability = this.destinationUnavailableLabel(destination);
+    return availability ? `${name} ${availability}` : name;
+  }
+
+  hasInvalidCurrentDestination(): boolean {
+    return this.selectedDestinationOptions.some((option) => {
+      const destination = this.destinations.find((item) => item.id === option.destinationId);
+      return !!destination && !isDestinationSelectableForTour(destination);
+    });
+  }
+
+  currentDestinationWarning(): string {
+    return this.hasInvalidCurrentDestination()
+      ? 'Điểm đến hiện tại chưa duyệt hoặc không còn hiển thị. Tour cũ vẫn được giữ để tránh mất dữ liệu.'
+      : '';
   }
 
   private applyDestinationSelection(selectedKeys: string[], markDirty: boolean): void {
@@ -853,6 +889,7 @@ export class TourForm implements OnInit, OnDestroy {
     this.form.controls.categoryId.valueChanges
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe(() => {
+        this.rebuildCategorySelectOptions();
         this.rebuildDestinationSelectOptions();
         this.updateSelectedDestinationState();
       });
@@ -875,21 +912,40 @@ export class TourForm implements OnInit, OnDestroy {
   }
 
   private rebuildTourSelectOptions(): void {
+    this.rebuildCategorySelectOptions();
     this.rebuildDestinationSelectOptions();
     this.rebuildDepartureSelectOptions();
     this.updateSelectedDestinationState();
   }
 
+  private rebuildCategorySelectOptions(): void {
+    const selectedCategoryId = this.form.controls.categoryId.value;
+    const selectableCategories = this.categories.filter((category) => isCategorySelectableForTour(category));
+    const selectedCategory = this.categories.find((category) => category.id === selectedCategoryId);
+
+    this.categoryOptions = this.isEditMode && selectedCategory && !selectableCategories.some((category) => category.id === selectedCategory.id)
+      ? [selectedCategory, ...selectableCategories]
+      : selectableCategories;
+  }
+
   private rebuildDestinationSelectOptions(): void {
     const regionHint = this.selectedCategoryRegionHint();
+    const selectedDestinationIds = new Set(this.form.controls.destinationSelectionKeys.value
+      .map((key) => this.parseNumber(key.replace('destination:', '')))
+      .filter((id): id is number => id !== undefined));
+    const selectableDestinations = this.destinations.filter((destination) => isDestinationSelectableForTour(destination));
+    const stableDestinations = this.isEditMode
+      ? this.destinations.filter((destination) => !!destination.id && selectedDestinationIds.has(destination.id) && !isDestinationSelectableForTour(destination))
+      : [];
+    const sourceDestinations = [...stableDestinations, ...selectableDestinations.filter((destination) => !stableDestinations.some((item) => item.id === destination.id))];
 
     const sortedDestinations = regionHint
-      ? [...this.destinations].sort((a, b) => {
+      ? [...sourceDestinations].sort((a, b) => {
           const aMatch = this.destinationMatchesRegion(a, regionHint) ? 0 : 1;
           const bMatch = this.destinationMatchesRegion(b, regionHint) ? 0 : 1;
           return aMatch - bMatch;
         })
-      : this.destinations;
+      : sourceDestinations;
 
     this.destinationSelectOptions = sortedDestinations.map((destination) => ({
       label: this.destinationLabel(destination),
@@ -1025,10 +1081,40 @@ export class TourForm implements OnInit, OnDestroy {
   }
 
   private normalizeCategories(categories: AdminCategory[]): AdminCategory[] {
-    const validCategories = categories.filter((item) => !!item.id);
-    const activeCategories = validCategories.filter((item) => item.status === 'ACTIVE' || !item.status);
+    return categories
+      .filter((item) => !!item.id)
+      .sort((a, b) => (a.displayOrder ?? a.sortOrder ?? a.orderIndex ?? 0) - (b.displayOrder ?? b.sortOrder ?? b.orderIndex ?? 0));
+  }
 
-    return activeCategories.length ? activeCategories : validCategories;
+  private selectedCategory(): AdminCategory | undefined {
+    const categoryId = this.form.controls.categoryId.value;
+    return this.categoryOptions.find((item) => item.id === categoryId)
+      || this.categories.find((item) => item.id === categoryId);
+  }
+
+  private isSelectedCategoryValidForCreate(): boolean {
+    const category = this.selectedCategory();
+    return !!category && isCategorySelectableForTour(category);
+  }
+
+  private categoryUnavailableLabel(category: AdminCategory): string {
+    if (category.status !== 'APPROVED') {
+      return 'chưa duyệt';
+    }
+
+    return 'không còn hiển thị';
+  }
+
+  private destinationUnavailableLabel(destination: AdminDestination): string {
+    if (isDestinationSelectableForTour(destination)) {
+      return '';
+    }
+
+    if (destination.status !== 'APPROVED') {
+      return '(chưa duyệt)';
+    }
+
+    return '(không còn hiển thị)';
   }
 
   private destinationSelectionKey(destination: AdminDestination): string {

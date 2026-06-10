@@ -1,8 +1,10 @@
 package com.voyageviet.backend.destination.dto;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
 import com.voyageviet.backend.destination.entity.DestinationStatus;
 
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
 
 public record DestinationResponse(
         Long id,
@@ -14,6 +16,13 @@ public record DestinationResponse(
         String imageUrl,
         BigDecimal latitude,
         BigDecimal longitude,
-        DestinationStatus status
+        DestinationStatus status,
+        Integer isDisplay,
+        @JsonInclude(JsonInclude.Include.NON_NULL)
+        String newData,
+        @JsonInclude(JsonInclude.Include.NON_NULL)
+        String rejectReason,
+        LocalDateTime createdAt,
+        LocalDateTime updatedAt
 ) {
 }

@@ -9,9 +9,14 @@ import {
   AdminDestinationUpdateRequest,
   CountriesNowCitiesResponse,
   CountryOption,
+  DestinationBatchActionResponse,
   DestinationStatus,
 } from '../models/destination.model';
 import { PageResponse } from '../models/page-response.model';
+
+export interface AdminDestinationRejectRequest {
+  reason?: string | null;
+}
 
 export type AdminDestinationListResponse =
   | ApiResponse<AdminDestination[] | PageResponse<AdminDestination>>
@@ -51,10 +56,71 @@ export class AdminDestinationApiService {
     return this.http.put<ApiResponse<AdminDestination> | AdminDestination>(`${this.apiUrl}/admin/destinations/${id}`, payload);
   }
 
+  patchDestination(id: number, payload: AdminDestinationUpdateRequest) {
+    return this.http.patch<ApiResponse<AdminDestination> | AdminDestination>(`${this.apiUrl}/admin/destinations/${id}`, payload);
+  }
+
   updateDestinationStatus(id: number, status: DestinationStatus) {
     return this.http.patch<ApiResponse<AdminDestination> | AdminDestination>(`${this.apiUrl}/admin/destinations/${id}/status`, {
       status,
     });
+  }
+
+  submitDestination(id: number) {
+    return this.http.patch<ApiResponse<AdminDestination> | AdminDestination>(`${this.apiUrl}/admin/destinations/${id}/submit`, {});
+  }
+
+  submitDestinations(ids: number[]) {
+    return this.http.patch<ApiResponse<DestinationBatchActionResponse> | DestinationBatchActionResponse>(
+      `${this.apiUrl}/admin/destinations/batch/submit`,
+      { ids },
+    );
+  }
+
+  approveDestination(id: number) {
+    return this.http.patch<ApiResponse<AdminDestination> | AdminDestination>(`${this.apiUrl}/admin/destinations/${id}/approve`, {});
+  }
+
+  approveDestinations(ids: number[]) {
+    return this.http.patch<ApiResponse<DestinationBatchActionResponse> | DestinationBatchActionResponse>(
+      `${this.apiUrl}/admin/destinations/batch/approve`,
+      { ids },
+    );
+  }
+
+  rejectDestination(id: number, payload: AdminDestinationRejectRequest = {}) {
+    return this.http.patch<ApiResponse<AdminDestination> | AdminDestination>(`${this.apiUrl}/admin/destinations/${id}/reject`, payload);
+  }
+
+  rejectDestinations(ids: number[], reason?: string | null) {
+    return this.http.patch<ApiResponse<DestinationBatchActionResponse> | DestinationBatchActionResponse>(
+      `${this.apiUrl}/admin/destinations/batch/reject`,
+      { ids, reason: reason || null },
+    );
+  }
+
+  cancelApproveDestination(id: number) {
+    return this.http.patch<ApiResponse<AdminDestination> | AdminDestination>(`${this.apiUrl}/admin/destinations/${id}/cancel-approve`, {});
+  }
+
+  cancelApproveDestinations(ids: number[]) {
+    return this.http.patch<ApiResponse<DestinationBatchActionResponse> | DestinationBatchActionResponse>(
+      `${this.apiUrl}/admin/destinations/batch/cancel-approve`,
+      { ids },
+    );
+  }
+
+  updateDestinationDisplay(id: number, isDisplay: 0 | 1) {
+    return this.http.patch<ApiResponse<AdminDestination> | AdminDestination>(`${this.apiUrl}/admin/destinations/${id}/display`, {
+      isDisplay,
+    });
+  }
+
+  updateDestinationsDisplay(ids: number[], isDisplay: 0 | 1) {
+    return this.http.patch<ApiResponse<DestinationBatchActionResponse> | DestinationBatchActionResponse>(
+      `${this.apiUrl}/admin/destinations/batch/display`,
+      { ids, isDisplay },
+    );
   }
 
   updateDestinationImage(id: number, imageUrl: string) {

@@ -13,21 +13,61 @@ import {
   AdminDestinationCreateRequest,
   AdminDestinationUpdateRequest,
   CountryOption,
+  DestinationBatchActionResponse,
+  DestinationNewData,
   DestinationRegion,
   DestinationStatus,
   DestinationSubRegion,
   ProvinceRegionMap,
+  isDestinationDisplayEnabled,
 } from '../../../core/models/destination.model';
+import { AuthService } from '../../../core/auth/auth.service';
+import { RoleCode } from '../../../core/models/user.model';
 import { VietnamProvince } from '../../../core/models/vietnam-province.model';
 import { AdminUiFeedbackService } from '../../../core/services/admin-ui-feedback.service';
 import { AdminImageUpload } from '../shared/admin-image-upload/admin-image-upload';
 
 type DestinationStatusFilter = 'ALL' | DestinationStatus;
 type DestinationRegionFilter = 'ALL' | DestinationRegion;
+type DestinationBatchAction = 'submit' | 'approve' | 'reject' | 'cancelApprove' | 'show' | 'hide';
 
 interface FilterOption<T> {
   label: string;
   value: T;
+}
+
+type DestinationPendingFieldType = 'text' | 'image' | 'status' | 'display' | 'number';
+type DestinationPendingDataKey = keyof DestinationNewData;
+
+interface DestinationPendingComparisonRow {
+  key: string;
+  label: string;
+  currentValue: string;
+  pendingValue: string;
+  changed: boolean;
+  type: DestinationPendingFieldType;
+  currentImageUrl: string;
+  pendingImageUrl: string;
+}
+
+interface DestinationPendingReviewViewModel {
+  destination: AdminDestination;
+  title: string;
+  slug: string;
+  workflowLabel: string;
+  workflowClassName: string;
+  displayLabel: string;
+  displayClassName: string;
+  hasPendingData: boolean;
+  parseError: string;
+  rows: DestinationPendingComparisonRow[];
+  canApproveReject: boolean;
+  canCancelApprove: boolean;
+}
+
+interface DestinationNewDataParseResult {
+  data: Partial<Record<DestinationPendingDataKey, unknown>> | null;
+  errorMessage: string;
 }
 
 @Component({
@@ -42,12 +82,16 @@ export class AdminDestinations implements OnInit {
   private readonly formBuilder = inject(FormBuilder);
   private readonly destroyRef = inject(DestroyRef);
   private readonly feedback = inject(AdminUiFeedbackService);
+  private readonly authService = inject(AuthService);
 
   readonly fallbackImage = '/hero/bg-home.png';
   readonly statusFilters: FilterOption<DestinationStatusFilter>[] = [
     { label: 'Tất cả', value: 'ALL' },
-    { label: 'Đang hiển thị', value: 'ACTIVE' },
-    { label: 'Tạm ẩn', value: 'INACTIVE' },
+    { label: 'Nháp', value: 'DRAFT' },
+    { label: 'Chờ duyệt', value: 'PENDING' },
+    { label: 'Đã duyệt', value: 'APPROVED' },
+    { label: 'Từ chối', value: 'REJECTED' },
+    { label: 'Hủy trình duyệt', value: 'CANCEL_APPROVE' },
   ];
   readonly regionFilters: FilterOption<DestinationRegionFilter>[] = [
     { label: 'Tất cả khu vực', value: 'ALL' },
@@ -99,6 +143,8 @@ export class AdminDestinations implements OnInit {
   saving = false;
   deletingId: number | null = null;
   updatingStatusId: number | null = null;
+  updatingWorkflowId: number | null = null;
+  updatingDisplayId: number | null = null;
   updatingImage = false;
   errorMessage = '';
   successMessage = '';
@@ -141,6 +187,18 @@ export class AdminDestinations implements OnInit {
   isFormOpen = false;
   isEditMode = false;
   focusedSelect: 'statusFilter' | 'regionFilter' | 'subRegion' | 'formStatus' | null = null;
+  pendingReview: DestinationPendingReviewViewModel | null = null;
+  pendingRejectMode = false;
+  pendingRejectReason = '';
+  pendingReviewErrorMessage = '';
+  pendingReviewSubmitting = false;
+  selectedDestinationIds = new Set<number>();
+  selectedBatchDestinations: AdminDestination[] = [];
+  selectedBatchCount = 0;
+  batchProcessing = false;
+  batchRejectMode = false;
+  batchRejectReason = '';
+  batchErrorMessage = '';
   private slugManuallyEdited = false;
 
   readonly form = this.formBuilder.nonNullable.group({
@@ -156,7 +214,7 @@ export class AdminDestinations implements OnInit {
     imageUrl: [''],
     latitude: [''],
     longitude: [''],
-    status: ['ACTIVE' as DestinationStatus],
+    status: ['DRAFT' as DestinationStatus],
   });
 
   ngOnInit(): void {
@@ -196,6 +254,7 @@ export class AdminDestinations implements OnInit {
         next: (response) => {
           this.destinations = this.extractList(response).sort((a, b) => this.sortDestination(a, b));
           this.applyFilters();
+          this.syncBatchSelection();
           this.loading = false;
         },
         error: (error) => {
@@ -245,6 +304,11 @@ export class AdminDestinations implements OnInit {
   }
 
   openCreateForm(): void {
+    if (!this.canCreateDestination()) {
+      this.denyDestinationAction();
+      return;
+    }
+
     this.isFormOpen = true;
     this.isEditMode = false;
     this.selectedDestination = null;
@@ -264,7 +328,7 @@ export class AdminDestinations implements OnInit {
       imageUrl: '',
       latitude: '',
       longitude: '',
-      status: 'ACTIVE',
+      status: 'DRAFT',
     }, { emitEvent: false });
     this.resetDestinationSelectionState();
     this.filterDomesticProvinces();
@@ -272,6 +336,11 @@ export class AdminDestinations implements OnInit {
   }
 
   openEditForm(destination: AdminDestination): void {
+    if (!this.canEditDestination(destination)) {
+      this.denyDestinationAction();
+      return;
+    }
+
     const region = this.resolveDestinationRegion(destination);
     const cityName = destination.name || '';
     const country = region === 'DOMESTIC' ? 'Việt Nam' : destination.country || '';
@@ -298,7 +367,7 @@ export class AdminDestinations implements OnInit {
       imageUrl: destination.imageUrl || '',
       latitude: this.numberToInput(destination.latitude),
       longitude: this.numberToInput(destination.longitude),
-      status: this.parseStatus(destination.status) || 'ACTIVE',
+      status: this.parseStatus(destination.status) || 'DRAFT',
     }, { emitEvent: false });
     this.manualInternationalCityInput = false;
     this.provinceSearchKeyword = region === 'DOMESTIC' ? cityName : '';
@@ -334,7 +403,7 @@ export class AdminDestinations implements OnInit {
       imageUrl: '',
       latitude: '',
       longitude: '',
-      status: 'ACTIVE',
+      status: 'DRAFT',
     }, { emitEvent: false });
     this.resetDestinationSelectionState();
   }
@@ -961,63 +1030,103 @@ export class AdminDestinations implements OnInit {
       });
   }
 
-  toggleStatus(destination: AdminDestination): void {
-    if (!destination.id || this.updatingStatusId) {
-      return;
-    }
-
-    const currentStatus = this.parseStatus(destination.status) || 'ACTIVE';
-    const nextStatus: DestinationStatus = currentStatus === 'ACTIVE' ? 'INACTIVE' : 'ACTIVE';
-
-    if (nextStatus === 'INACTIVE') {
-      this.feedback
-        .confirmWarning(
-          'B\u1ea1n c\u00f3 ch\u1eafc mu\u1ed1n t\u1ea1m \u1ea9n \u0111i\u1ec3m \u0111\u1ebfn n\u00e0y? \u0110i\u1ec3m \u0111\u1ebfn inactive s\u1ebd kh\u00f4ng hi\u1ec3n th\u1ecb tr\u00ean public.',
-          'X\u00e1c nh\u1eadn thao t\u00e1c',
-          'T\u1ea1m \u1ea9n',
-        )
-        .pipe(take(1))
-        .subscribe((confirmed) => {
-          if (confirmed) {
-            this.updateDestinationStatus(destination, nextStatus);
-          }
-        });
-      return;
-    }
-
-    this.updateDestinationStatus(destination, nextStatus);
+  submitWorkflow(destination: AdminDestination): void {
+    this.runWorkflowAction(destination, 'submit');
   }
 
-  private updateDestinationStatus(destination: AdminDestination, nextStatus: DestinationStatus): void {
-    if (!destination.id || this.updatingStatusId) {
+  approveWorkflow(destination: AdminDestination): void {
+    this.runWorkflowAction(destination, 'approve');
+  }
+
+  rejectWorkflow(destination: AdminDestination, reason?: string | null): void {
+    this.runWorkflowAction(destination, 'reject', reason);
+  }
+
+  cancelApproveWorkflow(destination: AdminDestination): void {
+    this.runWorkflowAction(destination, 'cancelApprove');
+  }
+
+  updateDisplay(destination: AdminDestination, isDisplay: 0 | 1): void {
+    if (!destination.id || this.updatingDisplayId) {
       return;
     }
 
-    this.updatingStatusId = destination.id;
+    this.updatingDisplayId = destination.id;
     this.errorMessage = '';
     this.successMessage = '';
 
     this.adminDestinationApiService
-      .updateDestinationStatus(destination.id, nextStatus)
+      .updateDestinationDisplay(destination.id, isDisplay)
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
         next: (response) => {
-          const updatedDestination = this.extractItem(response) || { ...destination, status: nextStatus };
+          const updatedDestination = this.extractItem(response) || { ...destination, isDisplay };
           this.upsertDestination(updatedDestination);
-          this.successMessage = nextStatus === 'ACTIVE' ? '\u0110\u00e3 b\u1eadt hi\u1ec3n th\u1ecb \u0111i\u1ec3m \u0111\u1ebfn.' : '\u0110\u00e3 t\u1ea1m \u1ea9n \u0111i\u1ec3m \u0111\u1ebfn.';
+          this.successMessage = isDisplay === 1 ? 'Đã bật hiển thị public.' : 'Đã ẩn khỏi public.';
           this.feedback.success(this.successMessage);
-          this.updatingStatusId = null;
+          this.updatingDisplayId = null;
         },
         error: (error) => {
-          this.errorMessage = this.errorText(error, 'Kh\u00f4ng th\u1ec3 c\u1eadp nh\u1eadt tr\u1ea1ng th\u00e1i \u0111i\u1ec3m \u0111\u1ebfn. Vui l\u00f2ng th\u1eed l\u1ea1i sau.');
+          this.errorMessage = this.errorText(error, 'Không thể cập nhật hiển thị điểm đến. Vui lòng thử lại sau.');
           this.feedback.error(this.errorMessage);
-          this.updatingStatusId = null;
+          this.updatingDisplayId = null;
+        },
+      });
+  }
+
+  private runWorkflowAction(destination: AdminDestination, action: DestinationBatchAction, reason?: string | null): void {
+    if (!destination.id || this.updatingWorkflowId) {
+      return;
+    }
+
+    this.updatingWorkflowId = destination.id;
+    this.errorMessage = '';
+    this.successMessage = '';
+
+    const request$ = action === 'submit'
+      ? this.adminDestinationApiService.submitDestination(destination.id)
+      : action === 'approve'
+        ? this.adminDestinationApiService.approveDestination(destination.id)
+        : action === 'reject'
+          ? this.adminDestinationApiService.rejectDestination(destination.id, { reason: reason || null })
+          : this.adminDestinationApiService.cancelApproveDestination(destination.id);
+
+    request$
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: (response) => {
+          const updatedDestination = this.extractItem(response);
+          if (updatedDestination?.id) {
+            this.upsertDestination(updatedDestination);
+            if (this.pendingReview?.destination.id === updatedDestination.id) {
+              this.pendingReview = this.buildPendingReview(updatedDestination);
+            }
+          } else {
+            this.loadDestinations();
+          }
+          this.successMessage = this.workflowSuccessMessage(action);
+          this.feedback.success(this.successMessage);
+          this.updatingWorkflowId = null;
+          this.pendingReviewSubmitting = false;
+          this.pendingRejectMode = false;
+          this.pendingRejectReason = '';
+        },
+        error: (error) => {
+          this.errorMessage = this.errorText(error, 'Không thể cập nhật workflow điểm đến. Vui lòng thử lại sau.');
+          this.feedback.error(this.errorMessage);
+          this.updatingWorkflowId = null;
+          this.pendingReviewSubmitting = false;
         },
       });
   }
 
   deleteDestination(destination: AdminDestination): void {
     if (!destination.id || this.deletingId) {
+      return;
+    }
+
+    if (!this.canDeleteDestination()) {
+      this.denyDestinationAction();
       return;
     }
 
@@ -1041,7 +1150,11 @@ export class AdminDestinations implements OnInit {
           .subscribe({
             next: () => {
               this.destinations = this.destinations.filter((item) => item.id !== destination.id);
+              if (destination.id) {
+                this.selectedDestinationIds.delete(destination.id);
+              }
               this.applyFilters();
+              this.syncBatchSelection();
               this.successMessage = '\u0110\u00e3 x\u00f3a \u0111i\u1ec3m \u0111\u1ebfn.';
               this.feedback.success(this.successMessage);
               this.deletingId = null;
@@ -1094,15 +1207,109 @@ export class AdminDestinations implements OnInit {
   }
 
   statusLabel(status?: string): string {
-    return this.parseStatus(status) === 'INACTIVE' ? 'Tạm ẩn' : 'Đang hiển thị';
+    return this.workflowLabel(status);
   }
 
   statusClass(status?: string): string {
-    return `admin-destinations__status--${(this.parseStatus(status) || 'active').toLowerCase()}`;
+    return this.workflowClass(status);
   }
 
   nextStatusLabel(destination: AdminDestination): string {
-    return this.parseStatus(destination.status) === 'ACTIVE' ? 'Tạm ẩn' : 'Bật';
+    return this.isDisplayEnabled(destination) ? 'Ẩn public' : 'Hiển thị public';
+  }
+
+  workflowLabel(status?: string): string {
+    switch (this.parseStatus(status)) {
+      case 'DRAFT':
+        return 'Nháp';
+      case 'PENDING':
+        return 'Chờ duyệt';
+      case 'APPROVED':
+        return 'Đã duyệt';
+      case 'REJECTED':
+        return 'Từ chối';
+      case 'CANCEL_APPROVE':
+        return 'Hủy trình duyệt';
+      default:
+        return 'Chưa xác định';
+    }
+  }
+
+  workflowClass(status?: string): string {
+    return `admin-destinations__status--${(this.parseStatus(status) || 'draft').toLowerCase().replace('_', '-')}`;
+  }
+
+  displayLabel(destination: AdminDestination): string {
+    if (this.parseStatus(destination.status) !== 'APPROVED') {
+      return 'Chưa thể hiển thị';
+    }
+
+    return this.isDisplayEnabled(destination) ? 'Đang hiển thị' : 'Đang ẩn';
+  }
+
+  displayClass(destination: AdminDestination): string {
+    if (this.parseStatus(destination.status) !== 'APPROVED') {
+      return 'admin-destinations__display--blocked';
+    }
+
+    return this.isDisplayEnabled(destination) ? 'admin-destinations__display--shown' : 'admin-destinations__display--hidden';
+  }
+
+  pendingDataLabel(destination: AdminDestination): string {
+    return this.hasPendingData(destination) ? 'Có dữ liệu chờ duyệt' : 'Không có';
+  }
+
+  pendingDataClass(destination: AdminDestination): string {
+    return this.hasPendingData(destination) ? 'admin-destinations__pending--yes' : 'admin-destinations__pending--no';
+  }
+
+  isDisplayEnabled(destination: AdminDestination): boolean {
+    return isDestinationDisplayEnabled(destination.isDisplay);
+  }
+
+  hasPendingData(destination: AdminDestination): boolean {
+    return typeof destination.newData === 'string' && destination.newData.trim().length > 0;
+  }
+
+  canCreateDestination(): boolean {
+    return this.hasAnyRole('STAFF', 'ADMIN', 'SUPER_ADMIN');
+  }
+
+  canEditDestination(destination: AdminDestination): boolean {
+    return this.hasAnyRole('STAFF', 'ADMIN', 'SUPER_ADMIN') && this.parseStatus(destination.status) !== 'PENDING';
+  }
+
+  canSubmitDestination(destination: AdminDestination): boolean {
+    const status = this.parseStatus(destination.status);
+    return this.hasAnyRole('STAFF', 'ADMIN', 'SUPER_ADMIN') && (status === 'DRAFT' || status === 'REJECTED' || status === 'CANCEL_APPROVE');
+  }
+
+  canApproveDestination(destination: AdminDestination): boolean {
+    return this.hasAnyRole('ADMIN', 'SUPER_ADMIN') && this.parseStatus(destination.status) === 'PENDING';
+  }
+
+  canRejectDestination(destination: AdminDestination): boolean {
+    return this.hasAnyRole('ADMIN', 'SUPER_ADMIN') && this.parseStatus(destination.status) === 'PENDING';
+  }
+
+  canCancelApproveDestination(destination: AdminDestination): boolean {
+    return this.hasAnyRole('ADMIN', 'SUPER_ADMIN') && this.parseStatus(destination.status) === 'PENDING';
+  }
+
+  canUpdateDisplay(destination: AdminDestination): boolean {
+    return this.hasAnyRole('ADMIN', 'SUPER_ADMIN') && this.parseStatus(destination.status) === 'APPROVED';
+  }
+
+  canDeleteDestination(): boolean {
+    return this.hasAnyRole('SUPER_ADMIN');
+  }
+
+  canOpenFullMediaLibrary(): boolean {
+    return this.hasAnyRole('ADMIN', 'SUPER_ADMIN');
+  }
+
+  canUseBatchWorkflow(): boolean {
+    return this.hasAnyRole('ADMIN', 'SUPER_ADMIN');
   }
 
   formatRegion(value?: string): string {
@@ -1139,6 +1346,180 @@ export class AdminDestinations implements OnInit {
     }
 
     image.src = this.fallbackImage;
+  }
+
+  openPendingReview(destination: AdminDestination): void {
+    this.pendingReview = this.buildPendingReview(destination);
+    this.pendingRejectMode = false;
+    this.pendingRejectReason = destination.rejectReason || '';
+    this.pendingReviewErrorMessage = '';
+  }
+
+  closePendingReview(): void {
+    this.pendingReview = null;
+    this.pendingRejectMode = false;
+    this.pendingRejectReason = '';
+    this.pendingReviewErrorMessage = '';
+    this.pendingReviewSubmitting = false;
+  }
+
+  approvePendingReview(): void {
+    const destination = this.pendingReview?.destination;
+    if (!destination) {
+      return;
+    }
+
+    this.pendingReviewSubmitting = true;
+    this.approveWorkflow(destination);
+  }
+
+  startRejectPendingReview(): void {
+    this.pendingRejectMode = true;
+    this.pendingReviewErrorMessage = '';
+  }
+
+  cancelRejectPendingReview(): void {
+    this.pendingRejectMode = false;
+    this.pendingRejectReason = this.pendingReview?.destination.rejectReason || '';
+  }
+
+  confirmRejectPendingReview(): void {
+    const destination = this.pendingReview?.destination;
+    if (!destination) {
+      return;
+    }
+
+    this.pendingReviewSubmitting = true;
+    this.rejectWorkflow(destination, this.pendingRejectReason);
+  }
+
+  cancelApprovePendingReview(): void {
+    const destination = this.pendingReview?.destination;
+    if (!destination) {
+      return;
+    }
+
+    this.pendingReviewSubmitting = true;
+    this.cancelApproveWorkflow(destination);
+  }
+
+  updatePendingRejectReason(event: Event): void {
+    this.pendingRejectReason = (event.target as HTMLTextAreaElement).value;
+  }
+
+  updateBatchRejectReason(event: Event): void {
+    this.batchRejectReason = (event.target as HTMLTextAreaElement).value;
+  }
+
+  toggleDestinationSelection(destination: AdminDestination, event: Event): void {
+    const checked = (event.target as HTMLInputElement).checked;
+    const id = destination.id;
+
+    if (!id) {
+      return;
+    }
+
+    if (checked) {
+      this.selectedDestinationIds.add(id);
+    } else {
+      this.selectedDestinationIds.delete(id);
+    }
+
+    this.syncBatchSelection();
+  }
+
+  isDestinationSelected(destination: AdminDestination): boolean {
+    return !!destination.id && this.selectedDestinationIds.has(destination.id);
+  }
+
+  clearBatchSelection(): void {
+    this.selectedDestinationIds.clear();
+    this.syncBatchSelection();
+  }
+
+  runBatchAction(action: DestinationBatchAction): void {
+    if (!this.selectedBatchCount || this.batchProcessing) {
+      return;
+    }
+
+    if (action === 'reject' && !this.batchRejectMode) {
+      this.batchRejectMode = true;
+      return;
+    }
+
+    const ids = this.selectedBatchDestinations.map((destination) => destination.id).filter((id): id is number => !!id);
+    this.batchProcessing = true;
+    this.batchErrorMessage = '';
+
+    const request$ = action === 'submit'
+      ? this.adminDestinationApiService.submitDestinations(ids)
+      : action === 'approve'
+        ? this.adminDestinationApiService.approveDestinations(ids)
+        : action === 'reject'
+          ? this.adminDestinationApiService.rejectDestinations(ids, this.batchRejectReason)
+          : action === 'cancelApprove'
+            ? this.adminDestinationApiService.cancelApproveDestinations(ids)
+            : action === 'show'
+              ? this.adminDestinationApiService.updateDestinationsDisplay(ids, 1)
+              : this.adminDestinationApiService.updateDestinationsDisplay(ids, 0);
+
+    request$
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: (response) => {
+          const result = this.extractBatchActionResponse(response) || this.fallbackBatchResponse(ids.length);
+          this.batchProcessing = false;
+          this.batchRejectMode = false;
+          this.batchRejectReason = '';
+          this.clearBatchSelection();
+          this.loadDestinations();
+          this.successMessage = `${this.batchSuccessVerb(action)} ${result.successCount}/${result.total} điểm đến.`;
+          if (result.failedCount > 0) {
+            this.batchErrorMessage = `${result.failedCount} điểm đến lỗi. ${result.failedItems.map((item) => item.message).filter(Boolean).join('; ')}`;
+            this.feedback.warning(this.batchErrorMessage);
+          } else {
+            this.feedback.success(this.successMessage);
+          }
+        },
+        error: (error) => {
+          this.batchProcessing = false;
+          this.batchErrorMessage = this.errorText(error, 'Không thể xử lý batch điểm đến.');
+          this.feedback.error(this.batchErrorMessage);
+        },
+      });
+  }
+
+  cancelBatchReject(): void {
+    this.batchRejectMode = false;
+    this.batchRejectReason = '';
+  }
+
+  canRunBatchAction(action: DestinationBatchAction): boolean {
+    if (!this.selectedBatchCount) {
+      return false;
+    }
+
+    if (action === 'submit') {
+      return this.selectedBatchDestinations.some((destination) => this.canSubmitDestination(destination));
+    }
+
+    if (action === 'approve') {
+      return this.hasAnyRole('ADMIN', 'SUPER_ADMIN') && this.selectedBatchDestinations.some((destination) => this.canApproveDestination(destination));
+    }
+
+    if (action === 'reject') {
+      return this.hasAnyRole('ADMIN', 'SUPER_ADMIN') && this.selectedBatchDestinations.some((destination) => this.canRejectDestination(destination));
+    }
+
+    if (action === 'cancelApprove') {
+      return this.hasAnyRole('ADMIN', 'SUPER_ADMIN') && this.selectedBatchDestinations.some((destination) => this.canCancelApproveDestination(destination));
+    }
+
+    if (action === 'show') {
+      return this.hasAnyRole('ADMIN', 'SUPER_ADMIN') && this.selectedBatchDestinations.some((destination) => this.canUpdateDisplay(destination) && !this.isDisplayEnabled(destination));
+    }
+
+    return this.hasAnyRole('ADMIN', 'SUPER_ADMIN') && this.selectedBatchDestinations.some((destination) => this.canUpdateDisplay(destination) && this.isDisplayEnabled(destination));
   }
 
   getProvinceSubRegion(provinceName: string): DestinationSubRegion | null {
@@ -1486,6 +1867,162 @@ export class AdminDestinations implements OnInit {
     return this.isInternationalDestination(destination) ? 'INTERNATIONAL' : 'DOMESTIC';
   }
 
+  private buildPendingReview(destination: AdminDestination): DestinationPendingReviewViewModel {
+    const parseResult = this.parseDestinationNewData(destination.newData);
+    const pendingData = parseResult.data;
+    const rows = pendingData ? this.buildPendingComparisonRows(destination, pendingData) : [];
+    const status = this.parseStatus(destination.status);
+    const hasParseError = !!parseResult.errorMessage;
+
+    return {
+      destination,
+      title: destination.name || 'Điểm đến chưa đặt tên',
+      slug: destination.slug || 'dang-cap-nhat',
+      workflowLabel: this.workflowLabel(destination.status),
+      workflowClassName: this.workflowClass(destination.status),
+      displayLabel: this.displayLabel(destination),
+      displayClassName: this.displayClass(destination),
+      hasPendingData: this.hasPendingData(destination),
+      parseError: parseResult.errorMessage,
+      rows,
+      canApproveReject:
+        status === 'PENDING' &&
+        !hasParseError &&
+        this.canApproveDestination(destination) &&
+        this.canRejectDestination(destination),
+      canCancelApprove: status === 'PENDING' && this.canCancelApproveDestination(destination),
+    };
+  }
+
+  private parseDestinationNewData(newData: AdminDestination['newData']): DestinationNewDataParseResult {
+    if (newData === null || newData === undefined || newData === '') {
+      return { data: null, errorMessage: '' };
+    }
+
+    if (this.isRecord(newData)) {
+      return { data: newData as Partial<Record<DestinationPendingDataKey, unknown>>, errorMessage: '' };
+    }
+
+    if (typeof newData !== 'string' || !newData.trim()) {
+      return { data: null, errorMessage: '' };
+    }
+
+    try {
+      const parsed = JSON.parse(newData);
+
+      if (!this.isRecord(parsed)) {
+        return { data: null, errorMessage: 'Không thể đọc dữ liệu thay đổi.' };
+      }
+
+      return { data: parsed as Partial<Record<DestinationPendingDataKey, unknown>>, errorMessage: '' };
+    } catch {
+      return { data: null, errorMessage: 'Không thể đọc dữ liệu thay đổi.' };
+    }
+  }
+
+  private buildPendingComparisonRows(
+    destination: AdminDestination,
+    pendingData: Partial<Record<DestinationPendingDataKey, unknown>>,
+  ): DestinationPendingComparisonRow[] {
+    const fields: Array<{ key: DestinationPendingDataKey; label: string; type: DestinationPendingFieldType }> = [
+      { key: 'name', label: 'Tên điểm đến', type: 'text' },
+      { key: 'slug', label: 'Slug', type: 'text' },
+      { key: 'region', label: 'Khu vực', type: 'text' },
+      { key: 'country', label: 'Quốc gia', type: 'text' },
+      { key: 'description', label: 'Mô tả', type: 'text' },
+      { key: 'imageUrl', label: 'Ảnh', type: 'image' },
+      { key: 'latitude', label: 'Vĩ độ', type: 'number' },
+      { key: 'longitude', label: 'Kinh độ', type: 'number' },
+      { key: 'status', label: 'Workflow', type: 'status' },
+      { key: 'isDisplay', label: 'Hiển thị public', type: 'display' },
+    ];
+
+    return fields.map((field) => {
+      const currentRawValue = this.destinationFieldValue(destination, field.key);
+      const pendingRawValue = Object.prototype.hasOwnProperty.call(pendingData, field.key)
+        ? pendingData[field.key]
+        : currentRawValue;
+      const currentValue = this.formatPendingValue(field.type, currentRawValue);
+      const pendingValue = this.formatPendingValue(field.type, pendingRawValue);
+
+      return {
+        key: field.key,
+        label: field.label,
+        currentValue,
+        pendingValue,
+        changed: currentValue !== pendingValue,
+        type: field.type,
+        currentImageUrl: field.type === 'image' ? String(currentRawValue || '') : '',
+        pendingImageUrl: field.type === 'image' ? String(pendingRawValue || '') : '',
+      };
+    });
+  }
+
+  private destinationFieldValue(destination: AdminDestination, key: DestinationPendingDataKey): unknown {
+    return destination[key as keyof AdminDestination];
+  }
+
+  private formatPendingValue(type: DestinationPendingFieldType, value: unknown): string {
+    if (type === 'status') {
+      return this.workflowLabel(typeof value === 'string' ? value : undefined);
+    }
+
+    if (type === 'display') {
+      return isDestinationDisplayEnabled(value as string | number | boolean | null | undefined) ? 'Đang hiển thị' : 'Đang ẩn';
+    }
+
+    if (value === null || value === undefined || value === '') {
+      return 'Chưa có';
+    }
+
+    return String(value);
+  }
+
+  private workflowSuccessMessage(action: DestinationBatchAction): string {
+    switch (action) {
+      case 'submit':
+        return 'Đã gửi duyệt điểm đến.';
+      case 'approve':
+        return 'Đã duyệt điểm đến.';
+      case 'reject':
+        return 'Đã từ chối điểm đến.';
+      case 'cancelApprove':
+        return 'Đã hủy trình duyệt điểm đến.';
+      case 'show':
+        return 'Đã bật hiển thị public.';
+      case 'hide':
+        return 'Đã ẩn khỏi public.';
+    }
+  }
+
+  private batchSuccessVerb(action: DestinationBatchAction): string {
+    switch (action) {
+      case 'submit':
+        return 'Đã gửi duyệt';
+      case 'approve':
+        return 'Đã duyệt';
+      case 'reject':
+        return 'Đã từ chối';
+      case 'cancelApprove':
+        return 'Đã hủy trình duyệt';
+      case 'show':
+        return 'Đã bật hiển thị';
+      case 'hide':
+        return 'Đã ẩn';
+    }
+  }
+
+  private syncBatchSelection(): void {
+    this.selectedBatchDestinations = this.destinations.filter((destination) => !!destination.id && this.selectedDestinationIds.has(destination.id));
+    this.selectedBatchCount = this.selectedBatchDestinations.length;
+
+    if (!this.selectedBatchCount) {
+      this.batchRejectMode = false;
+      this.batchRejectReason = '';
+      this.batchErrorMessage = '';
+    }
+  }
+
   private buildPayload(): AdminDestinationCreateRequest | AdminDestinationUpdateRequest {
     const rawValue = this.form.getRawValue();
     const region = rawValue.region as DestinationRegion;
@@ -1505,7 +2042,7 @@ export class AdminDestinations implements OnInit {
     if (this.isEditMode) {
       return {
         ...payload,
-        status: this.parseStatus(rawValue.status) || 'ACTIVE',
+        status: this.parseStatus(rawValue.status) || 'DRAFT',
       };
     }
 
@@ -1518,6 +2055,7 @@ export class AdminDestinations implements OnInit {
       ...this.destinations.filter((item) => item.id !== destination.id),
     ].sort((a, b) => this.sortDestination(a, b));
     this.applyFilters();
+    this.syncBatchSelection();
   }
 
   private extractList(response: unknown): AdminDestination[] {
@@ -1554,12 +2092,70 @@ export class AdminDestinations implements OnInit {
     return this.normalizeDestination(response);
   }
 
+  private extractBatchActionResponse(response: unknown): DestinationBatchActionResponse | null {
+    const source = this.isRecord(response) && this.isRecord(response['data']) ? response['data'] : response;
+
+    if (!this.isRecord(source)) {
+      return null;
+    }
+
+    const total = this.parseNumber(source['total']);
+    const successCount = this.parseNumber(source['successCount']);
+    const failedCount = this.parseNumber(source['failedCount']);
+
+    if (total === undefined || successCount === undefined || failedCount === undefined) {
+      return null;
+    }
+
+    return {
+      total,
+      successCount,
+      failedCount,
+      successItems: Array.isArray(source['successItems'])
+        ? source['successItems'].map((item) => this.normalizeBatchActionItem(item))
+        : [],
+      failedItems: Array.isArray(source['failedItems'])
+        ? source['failedItems'].map((item) => this.normalizeBatchActionItem(item))
+        : [],
+    };
+  }
+
+  private normalizeBatchActionItem(value: unknown) {
+    const record = this.isRecord(value) ? value : {};
+
+    return {
+      id: this.parseNumber(record['id']) ?? null,
+      name: typeof record['name'] === 'string' ? record['name'] : null,
+      success: Boolean(record['success']),
+      message: typeof record['message'] === 'string' ? record['message'] : null,
+    };
+  }
+
+  private fallbackBatchResponse(total: number): DestinationBatchActionResponse {
+    return {
+      total,
+      successCount: total,
+      failedCount: 0,
+      successItems: [],
+      failedItems: [],
+    };
+  }
+
   private normalizeDestination(value: unknown): AdminDestination | null {
     if (!this.isRecord(value)) {
       return null;
     }
 
     return value as AdminDestination;
+  }
+
+  private hasAnyRole(...roles: RoleCode[]): boolean {
+    return this.authService.hasRole(...roles);
+  }
+
+  private denyDestinationAction(): void {
+    this.errorMessage = 'Bạn không có quyền thực hiện thao tác này.';
+    this.feedback.warning(this.errorMessage);
   }
 
   private matchesRegionFilter(destination: AdminDestination): boolean {
@@ -1618,7 +2214,13 @@ export class AdminDestinations implements OnInit {
   }
 
   private parseStatus(status?: string): DestinationStatus | null {
-    return status === 'ACTIVE' || status === 'INACTIVE' ? status : null;
+    return status === 'DRAFT' ||
+      status === 'PENDING' ||
+      status === 'APPROVED' ||
+      status === 'REJECTED' ||
+      status === 'CANCEL_APPROVE'
+      ? status
+      : null;
   }
 
   private errorText(error: unknown, fallback: string): string {

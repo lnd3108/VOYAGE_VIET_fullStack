@@ -1,10 +1,7 @@
 package com.voyageviet.backend.destination.controller;
 
 import com.voyageviet.backend.common.response.ApiResponse;
-import com.voyageviet.backend.destination.dto.DestinationCreateRequest;
-import com.voyageviet.backend.destination.dto.DestinationResponse;
-import com.voyageviet.backend.destination.dto.DestinationStatusUpdateRequest;
-import com.voyageviet.backend.destination.dto.DestinationUpdateRequest;
+import com.voyageviet.backend.destination.dto.*;
 import com.voyageviet.backend.destination.service.DestinationService;
 import com.voyageviet.backend.media.dto.ImageUrlUpdateRequest;
 import jakarta.validation.Valid;
@@ -44,8 +41,19 @@ public class AdminDestinationController {
             @Valid @RequestBody DestinationUpdateRequest request
     ) {
         return ApiResponse.success(
-                "Update destination successfully",
+                "Save destination change successfully",
                 destinationService.updateDestination(id, request)
+        );
+    }
+
+    @PatchMapping("/{id}")
+    public ApiResponse<DestinationResponse> patchDestination(
+            @PathVariable Long id,
+            @Valid @RequestBody DestinationPatchRequest request
+    ) {
+        return ApiResponse.success(
+                "Save destination change successfully",
+                destinationService.patchDestination(id, request)
         );
     }
 
@@ -55,8 +63,104 @@ public class AdminDestinationController {
             @Valid @RequestBody DestinationStatusUpdateRequest request
     ) {
         return ApiResponse.success(
-                "Update destination status successfully",
+                "Update destination workflow status successfully",
                 destinationService.updateDestinationStatus(id, request)
+        );
+    }
+
+    @PatchMapping("/{id}/submit")
+    public ApiResponse<DestinationResponse> submitDestination(@PathVariable Long id) {
+        return ApiResponse.success(
+                "Submit destination successfully",
+                destinationService.submitDestination(id)
+        );
+    }
+
+    @PatchMapping("/batch/submit")
+    public ApiResponse<DestinationBatchActionResponse> submitDestinations(
+            @Valid @RequestBody DestinationBatchRequest request
+    ) {
+        return ApiResponse.success(
+                "Submit destinations successfully",
+                destinationService.submitDestinations(request)
+        );
+    }
+
+    @PatchMapping("/{id}/approve")
+    public ApiResponse<DestinationResponse> approveDestination(@PathVariable Long id) {
+        return ApiResponse.success(
+                "Approve destination successfully",
+                destinationService.approveDestination(id)
+        );
+    }
+
+    @PatchMapping("/batch/approve")
+    public ApiResponse<DestinationBatchActionResponse> approveDestinations(
+            @Valid @RequestBody DestinationBatchRequest request
+    ) {
+        return ApiResponse.success(
+                "Approve destinations successfully",
+                destinationService.approveDestinations(request)
+        );
+    }
+
+    @PatchMapping("/{id}/reject")
+    public ApiResponse<DestinationResponse> rejectDestination(
+            @PathVariable Long id,
+            @Valid @RequestBody(required = false) DestinationRejectRequest request
+    ) {
+        return ApiResponse.success(
+                "Reject destination successfully",
+                destinationService.rejectDestination(id, request == null ? null : request.reason())
+        );
+    }
+
+    @PatchMapping("/batch/reject")
+    public ApiResponse<DestinationBatchActionResponse> rejectDestinations(
+            @Valid @RequestBody DestinationBatchRejectRequest request
+    ) {
+        return ApiResponse.success(
+                "Reject destinations successfully",
+                destinationService.rejectDestinations(request)
+        );
+    }
+
+    @PatchMapping("/{id}/cancel-approve")
+    public ApiResponse<DestinationResponse> cancelApproveDestination(@PathVariable Long id) {
+        return ApiResponse.success(
+                "Cancel destination approval successfully",
+                destinationService.cancelApproveDestination(id)
+        );
+    }
+
+    @PatchMapping("/batch/cancel-approve")
+    public ApiResponse<DestinationBatchActionResponse> cancelApproveDestinations(
+            @Valid @RequestBody DestinationBatchRequest request
+    ) {
+        return ApiResponse.success(
+                "Cancel destinations approval successfully",
+                destinationService.cancelApproveDestinations(request)
+        );
+    }
+
+    @PatchMapping("/{id}/display")
+    public ApiResponse<DestinationResponse> updateDestinationDisplay(
+            @PathVariable Long id,
+            @Valid @RequestBody DestinationDisplayUpdateRequest request
+    ) {
+        return ApiResponse.success(
+                "Update destination display successfully",
+                destinationService.updateDestinationDisplay(id, request)
+        );
+    }
+
+    @PatchMapping("/batch/display")
+    public ApiResponse<DestinationBatchActionResponse> updateDestinationsDisplay(
+            @Valid @RequestBody DestinationBatchDisplayRequest request
+    ) {
+        return ApiResponse.success(
+                "Update destinations display successfully",
+                destinationService.updateDestinationsDisplay(request)
         );
     }
 
@@ -72,7 +176,7 @@ public class AdminDestinationController {
             @Valid @RequestBody ImageUrlUpdateRequest request
     ) {
         return ApiResponse.success(
-                "Update destination image successfully",
+                "Save destination image change successfully",
                 destinationService.updateDestinationImage(id, request)
         );
     }

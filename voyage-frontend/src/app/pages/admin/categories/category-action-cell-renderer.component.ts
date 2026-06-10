@@ -50,6 +50,23 @@ interface CategoryActionCellParams extends ICellRendererParams<CategoryActionRow
         >
           <button
             type="button"
+            class="admin-categories__action-item admin-categories__action-item--pending"
+            *ngIf="canViewChanges"
+            [disabled]="workflowBusy"
+            (click)="runAction($event, viewChanges)"
+          >
+            <tui-icon class="admin-categories__action-item-icon" icon="@tui.eye" />
+            <span>Xem thay đổi</span>
+          </button>
+
+          <div
+            class="admin-categories__action-separator"
+            *ngIf="canViewChanges"
+            aria-hidden="true"
+          ></div>
+
+          <button
+            type="button"
             class="admin-categories__action-item admin-categories__action-item--order"
             *ngIf="canMoveUp"
             [disabled]="isReorderBusy"
@@ -79,6 +96,7 @@ interface CategoryActionCellParams extends ICellRendererParams<CategoryActionRow
           <button
             type="button"
             class="admin-categories__action-item admin-categories__action-item--edit"
+            *ngIf="canEdit"
             (click)="runAction($event, edit)"
           >
             <tui-icon class="admin-categories__action-item-icon" icon="@tui.pencil" />
@@ -89,19 +107,69 @@ interface CategoryActionCellParams extends ICellRendererParams<CategoryActionRow
 
           <button
             type="button"
-            class="admin-categories__action-item admin-categories__action-item--status"
-            [disabled]="statusBusy"
-            (click)="runAction($event, toggleStatus)"
+            class="admin-categories__action-item admin-categories__action-item--edit"
+            *ngIf="canSubmit"
+            [disabled]="workflowBusy"
+            (click)="runAction($event, submit)"
           >
-            <tui-icon class="admin-categories__action-item-icon" [icon]="statusIcon" />
-            <span>{{ statusBusy ? 'Đang đổi...' : nextStatusLabel }}</span>
+            <tui-icon class="admin-categories__action-item-icon" icon="@tui.arrow-up" />
+            <span>{{ workflowBusy ? 'Đang gửi...' : 'Gửi duyệt' }}</span>
           </button>
 
-          <div class="admin-categories__action-separator" aria-hidden="true"></div>
+          <button
+            type="button"
+            class="admin-categories__action-item admin-categories__action-item--edit"
+            *ngIf="canApprove"
+            [disabled]="workflowBusy"
+            (click)="runAction($event, approve)"
+          >
+            <tui-icon class="admin-categories__action-item-icon" icon="@tui.eye" />
+            <span>{{ workflowBusy ? 'Đang duyệt...' : 'Duyệt' }}</span>
+          </button>
+
+          <button
+            type="button"
+            class="admin-categories__action-item admin-categories__action-item--status"
+            *ngIf="canReject"
+            [disabled]="workflowBusy"
+            (click)="runAction($event, reject)"
+          >
+            <tui-icon class="admin-categories__action-item-icon" icon="@tui.eye-off" />
+            <span>{{ workflowBusy ? 'Đang từ chối...' : 'Từ chối' }}</span>
+          </button>
+
+          <button
+            type="button"
+            class="admin-categories__action-item admin-categories__action-item--status"
+            *ngIf="canCancelApprove"
+            [disabled]="workflowBusy"
+            (click)="runAction($event, cancelApprove)"
+          >
+            <tui-icon class="admin-categories__action-item-icon" icon="@tui.arrow-down" />
+            <span>{{ workflowBusy ? 'Đang hủy...' : 'Hủy trình duyệt' }}</span>
+          </button>
+
+          <button
+            type="button"
+            class="admin-categories__action-item admin-categories__action-item--edit"
+            *ngIf="canToggleDisplay"
+            [disabled]="displayBusy"
+            (click)="runAction($event, toggleDisplay)"
+          >
+            <tui-icon class="admin-categories__action-item-icon" [icon]="displayIcon" />
+            <span>{{ displayBusy ? 'Đang cập nhật...' : displayLabel }}</span>
+          </button>
+
+          <div
+            class="admin-categories__action-separator"
+            *ngIf="hasWorkflowActions"
+            aria-hidden="true"
+          ></div>
 
           <button
             type="button"
             class="admin-categories__action-item admin-categories__action-item--danger"
+            *ngIf="canDelete"
             [disabled]="deleteBusy"
             (click)="runAction($event, remove)"
           >
@@ -120,8 +188,18 @@ export class CategoryActionCellRendererComponent implements ICellRendererAngular
   readonly moveUp = (): void => this.move('up');
   readonly moveDown = (): void => this.move('down');
   readonly edit = (): void => this.withContext((parent, row) => parent.openEditForm(row.category));
-  readonly toggleStatus = (): void =>
-    this.withContext((parent, row) => parent.toggleStatus(row.category));
+  readonly submit = (): void =>
+    this.withContext((parent, row) => parent.submitCategory(row.category));
+  readonly approve = (): void =>
+    this.withContext((parent, row) => parent.approveCategory(row.category));
+  readonly reject = (): void =>
+    this.withContext((parent, row) => parent.rejectCategory(row.category));
+  readonly cancelApprove = (): void =>
+    this.withContext((parent, row) => parent.cancelApproveCategory(row.category));
+  readonly viewChanges = (): void =>
+    this.withContext((parent, row) => parent.openPendingChangesPanel(row.category));
+  readonly toggleDisplay = (): void =>
+    this.withContext((parent, row) => parent.toggleCategoryDisplay(row.category));
   readonly remove = (): void =>
     this.withContext((parent, row) => parent.deleteCategory(row.category));
 
@@ -144,11 +222,19 @@ export class CategoryActionCellRendererComponent implements ICellRendererAngular
   }
 
   get canMoveUp(): boolean {
-    return !!this.row && !!this.parent?.canMoveCategoryUp(this.row.rowIndex);
+    return (
+      !!this.row &&
+      !!this.parent?.canReorderCategory(this.row.category) &&
+      !!this.parent?.canMoveCategoryUp(this.row.rowIndex)
+    );
   }
 
   get canMoveDown(): boolean {
-    return !!this.row && !!this.parent?.canMoveCategoryDown(this.row.rowIndex);
+    return (
+      !!this.row &&
+      !!this.parent?.canReorderCategory(this.row.category) &&
+      !!this.parent?.canMoveCategoryDown(this.row.rowIndex)
+    );
   }
 
   get isReorderBusy(): boolean {
@@ -162,24 +248,70 @@ export class CategoryActionCellRendererComponent implements ICellRendererAngular
     );
   }
 
-  get statusBusy(): boolean {
-    return !!this.row?.category.id && this.parent?.updatingStatusId === this.row.category.id;
+  get workflowBusy(): boolean {
+    return !!this.row?.category.id && this.parent?.updatingWorkflowId === this.row.category.id;
+  }
+
+  get displayBusy(): boolean {
+    return !!this.row?.category.id && this.parent?.updatingDisplayId === this.row.category.id;
   }
 
   get deleteBusy(): boolean {
     return !!this.row?.category.id && this.parent?.deletingId === this.row.category.id;
   }
 
-  get nextStatusLabel(): string {
-    if (!this.row || !this.parent) {
-      return 'Tạm ẩn';
-    }
-
-    return this.parent.nextStatusLabel(this.row.category);
+  get canSubmit(): boolean {
+    return (
+      !!this.row &&
+      !!this.parent?.canSubmitCategory(this.row.category) &&
+      ['DRAFT', 'REJECTED', 'CANCEL_APPROVE'].includes(this.status)
+    );
   }
 
-  get statusIcon(): string {
-    return this.nextStatusLabel === 'Bật' ? '@tui.eye' : '@tui.eye-off';
+  get canApprove(): boolean {
+    return !!this.row && !!this.parent?.canApproveCategory(this.row.category) && this.status === 'PENDING';
+  }
+
+  get canReject(): boolean {
+    return !!this.row && !!this.parent?.canRejectCategory(this.row.category) && this.status === 'PENDING';
+  }
+
+  get canCancelApprove(): boolean {
+    return !!this.row && !!this.parent?.canCancelApproveCategory(this.row.category) && this.status === 'PENDING';
+  }
+
+  get canViewChanges(): boolean {
+    return this.status === 'PENDING' || this.hasNewData;
+  }
+
+  get canToggleDisplay(): boolean {
+    return !!this.row && !!this.parent?.canDisplayCategory(this.row.category) && this.status === 'APPROVED';
+  }
+
+  get canEdit(): boolean {
+    return !!this.row && !!this.parent?.canEditCategory(this.row.category);
+  }
+
+  get canDelete(): boolean {
+    return !!this.row && !!this.parent?.canDeleteCategory(this.row.category);
+  }
+
+  get hasWorkflowActions(): boolean {
+    return (
+      this.canSubmit ||
+      this.canApprove ||
+      this.canReject ||
+      this.canCancelApprove ||
+      this.canToggleDisplay
+    );
+  }
+
+  get displayLabel(): string {
+    return this.isDisplayEnabled ? 'Ẩn public' : 'Hiển thị public';
+  }
+
+  get displayIcon(): string {
+    return this.isDisplayEnabled ? '@tui.eye-off' : '@tui.eye';
   }
 
   stopGridEvent(event: Event): void {
@@ -198,6 +330,18 @@ export class CategoryActionCellRendererComponent implements ICellRendererAngular
     event.stopPropagation();
 
     action();
+  }
+
+  private get status(): string {
+    return `${this.row?.category.status || 'DRAFT'}`;
+  }
+
+  private get isDisplayEnabled(): boolean {
+    return this.row?.category.isDisplay === true || this.row?.category.isDisplay === 1;
+  }
+
+  private get hasNewData(): boolean {
+    return typeof this.row?.category.newData === 'string' && this.row.category.newData.trim().length > 0;
   }
 
   private move(direction: 'up' | 'down'): void {

@@ -1360,14 +1360,14 @@ Không sửa logic Java, không đổi endpoint, DTO, entity, enum hoặc busine
 
 ### 15.4 Pattern Lỗi Đã Xử Lý
 
-- `Ã`
-- `Â`
-- `áº`
-- `á»`
-- `Ä`
-- `Æ`
-- `Å`
-- `â€`
+- U+00C3 LATIN CAPITAL LETTER A WITH TILDE
+- U+00C2 LATIN CAPITAL LETTER A WITH CIRCUMFLEX
+- Sequence U+00E1 U+00BA
+- Sequence U+00E1 U+00BB
+- U+00C4 LATIN CAPITAL LETTER A WITH DIAERESIS
+- U+00C6 LATIN CAPITAL LETTER AE
+- U+00C5 LATIN CAPITAL LETTER A WITH RING ABOVE
+- Sequence U+00E2 U+20AC
 
 ### 15.5 Kết Quả Kiểm Tra
 
@@ -1717,3 +1717,537 @@ TODO production:
 - WebSocket JWT handshake vẫn chưa làm.
 - Admin Booking Detail frontend vẫn chưa làm.
 - Nếu dữ liệu lớn, chuyển `recomputeAllTourStats()` sang job/batch có phân trang.
+
+
+
+## Cap nhat 08/06/2026 - Category Workflow Status va IS_DISPLAY
+
+### Thoi gian cap nhat
+
+- 2026-06-08 18:18 +07.
+
+### File backend da sua/them
+
+- `src/main/java/com/voyageviet/backend/category/entity/Category.java`
+- `src/main/java/com/voyageviet/backend/category/entity/CategoryStatus.java`
+- `src/main/java/com/voyageviet/backend/category/repository/CategoryRepository.java`
+- `src/main/java/com/voyageviet/backend/category/service/CategoryService.java`
+- `src/main/java/com/voyageviet/backend/category/controller/AdminCategoryController.java`
+- `src/main/java/com/voyageviet/backend/category/controller/CategoryController.java` checked; endpoint unchanged, service logic now filters APPROVED + IS_DISPLAY = 1
+- `src/main/java/com/voyageviet/backend/category/dto/CategoryCreateRequest.java`
+- `src/main/java/com/voyageviet/backend/category/dto/CategoryUpdateRequest.java`
+- `src/main/java/com/voyageviet/backend/category/dto/CategoryPatchRequest.java`
+- `src/main/java/com/voyageviet/backend/category/dto/CategoryStatusUpdateRequest.java`
+- `src/main/java/com/voyageviet/backend/category/dto/CategoryResponse.java`
+- `src/main/java/com/voyageviet/backend/category/dto/CategoryNewData.java`
+- `src/main/java/com/voyageviet/backend/category/dto/CategoryDisplayUpdateRequest.java`
+- `src/main/java/com/voyageviet/backend/category/dto/CategoryRejectRequest.java`
+- `src/main/java/com/voyageviet/backend/admin/service/AdminDashboardService.java` only updated Category count from ACTIVE to APPROVED + IS_DISPLAY = 1.
+- `src/main/java/com/voyageviet/backend/common/config/DataSeeder.java` only updated sample categories to seed APPROVED + IS_DISPLAY = 1.
+
+### Migration DB da them
+
+- `src/main/resources/db/manual/oracle/V20260608_01_category_workflow_status_is_display.sql`.
+- Migration them `CATEGORIES.IS_DISPLAY NUMBER(1) DEFAULT 1 NOT NULL` neu thieu.
+- Migration them `CATEGORIES.REJECT_REASON VARCHAR2(500)` neu thieu.
+- Du lieu cu duoc convert: `ACTIVE -> APPROVED + IS_DISPLAY = 1`, `INACTIVE -> APPROVED + IS_DISPLAY = 0`.
+- Recreate check constraint `CK_CATEGORIES_STATUS` voi `DRAFT`, `PENDING`, `APPROVED`, `REJECTED`, `CANCEL_APPROVE`.
+- Recreate check constraint `CK_CATEGORIES_IS_DISPLAY` voi `0`, `1`.
+- `NEW_DATA` va `DISPLAY_ORDER` duoc giu nguyen.
+
+### Chuc nang da thay doi
+
+- `CategoryStatus` doi tu display status `ACTIVE/INACTIVE` sang workflow status `DRAFT/PENDING/APPROVED/REJECTED/CANCEL_APPROVE`.
+- `Category` them `isDisplay`, `rejectReason`, domain methods `markAsDraft`, `markAsPending`, `markAsApproved`, `markAsRejected`, `markAsCancelApproved`, `show`, `hide`, `replaceNewData`, `clearNewData`, `hasNewData`, `isPending`, `isPublished`, `isPublicVisible`.
+- Public category query chi lay `status = APPROVED` va `isDisplay = 1`, sort theo `displayOrder ASC`.
+- Create category moi luu data that voi `status = DRAFT`, `isDisplay = 0`, `newData = null`.
+- `PATCH /api/admin/categories/{id}` khong apply truc tiep data that; chi ghi JSON vao `NEW_DATA` va set `status = PENDING`.
+- Approve category chi cho `PENDING`; neu co `NEW_DATA` thi parse/apply vao data that, clear `NEW_DATA`, set `APPROVED`.
+- Reject category chi cho `PENDING`; set `REJECTED`, giu `NEW_DATA`, khong apply data that, luu `rejectReason` neu co.
+- Cancel approve chi cho `PENDING`; clear `NEW_DATA`, set `CANCEL_APPROVE`, khong apply data that.
+- Show/hide public khong dung `STATUS`; dung `IS_DISPLAY` va chi cho show/hide category da `APPROVED`.
+- `NEW_DATA` cu co `status` legacy `ACTIVE/INACTIVE` duoc service doc bang JsonNode va map tam sang workflow de tranh loi parse enum khi approve.
+
+### API da them/sua
+
+- `PATCH /api/admin/categories/{id}/submit`
+- `PATCH /api/admin/categories/{id}/approve`
+- `PATCH /api/admin/categories/{id}/reject` voi body optional `{ "reason": "..." }`
+- `PATCH /api/admin/categories/{id}/cancel-approve`
+- `PATCH /api/admin/categories/{id}/display` voi body `{ "isDisplay": 0|1 }`
+- `PATCH /api/admin/categories/{id}/status` van ton tai nhung chi con y nghia workflow status, khong dung de bat/tat public display.
+- `GET /api/public/categories` giu endpoint cu nhung khong tra `newData`, chi tra category public visible.
+
+### Ket qua build/test
+
+- Da apply local Oracle migration `V20260608_01_category_workflow_status_is_display.sql` vao schema `VOYAGE` luc 2026-06-08 18:27 +07. Ket qua: them `IS_DISPLAY`, `REJECT_REASON`, convert 5 category cu sang `APPROVED` voi `IS_DISPLAY` phu hop.\n- Da chay `./mvnw.cmd test`: `BUILD SUCCESS`, tests run 1, failures 0, errors 0 luc 2026-06-08 18:27 +07.
+- Da chay `./mvnw.cmd clean package -DskipTests`: `BUILD SUCCESS` luc 2026-06-08 18:20 +07.
+
+### Warning/loi con lai
+
+- Can apply `V20260608_01_category_workflow_status_is_display.sql` tren Oracle local/prod truoc khi chay app/test voi schema validation.
+- Chua chay API thu cong vi DB local chua co column `IS_DISPLAY`.
+- Frontend admin hien co neu con goi `/status` de bat/tat category thi can chuyen sang `/display`.
+
+### Ghi chu ky thuat/rui ro
+
+- Frontend admin can cap nhat enum status theo workflow moi.
+- Frontend public khong can biet `newData`.
+- Du lieu cu `ACTIVE/INACTIVE` da co migration sang `APPROVED + IS_DISPLAY`.
+- Neu ton tai `NEW_DATA` cu co payload status `ACTIVE/INACTIVE`, backend da co mapping doc legacy de khong fail khi approve.
+
+
+
+
+## Cap nhat 09/06/2026 - Category Batch Workflow API
+
+### Thoi gian cap nhat
+
+- 2026-06-09 12:24:52 +07.
+
+### File backend da sua/them
+
+- `src/main/java/com/voyageviet/backend/category/controller/AdminCategoryController.java`
+- `src/main/java/com/voyageviet/backend/category/service/CategoryService.java`
+- `src/main/java/com/voyageviet/backend/category/dto/CategoryBatchRequest.java`
+- `src/main/java/com/voyageviet/backend/category/dto/CategoryBatchRejectRequest.java`
+- `src/main/java/com/voyageviet/backend/category/dto/CategoryBatchDisplayRequest.java`
+- `src/main/java/com/voyageviet/backend/category/dto/CategoryBatchActionResponse.java`
+- `src/main/java/com/voyageviet/backend/category/dto/CategoryBatchActionItemResponse.java`
+
+### DTO da them
+
+- `CategoryBatchRequest`: `List<Long> ids`.
+- `CategoryBatchRejectRequest`: `List<Long> ids`, `String reason`.
+- `CategoryBatchDisplayRequest`: `List<Long> ids`, `Integer isDisplay`.
+- `CategoryBatchActionResponse`: `total`, `successCount`, `failedCount`, `successItems`, `failedItems`.
+- `CategoryBatchActionItemResponse`: `id`, `name`, `success`, `message`.
+
+### API batch da them
+
+- `PATCH /api/admin/categories/batch/submit`
+- `PATCH /api/admin/categories/batch/approve`
+- `PATCH /api/admin/categories/batch/reject`
+- `PATCH /api/admin/categories/batch/cancel-approve`
+- `PATCH /api/admin/categories/batch/display`
+
+### Logic backend
+
+- Giu nguyen single API hien co va tai su dung logic single action de tranh lech rule nghiep vu.
+- Batch submit chi xu ly category `DRAFT`, `REJECTED`, `CANCEL_APPROVE`.
+- Batch approve chi xu ly category `PENDING`; neu co `NEW_DATA` thi apply theo logic single approve va clear `NEW_DATA`.
+- Batch reject chi xu ly category `PENDING`, giu `NEW_DATA` va luu `rejectReason` neu co.
+- Batch cancel approve chi xu ly category `PENDING`, clear `NEW_DATA` va set `CANCEL_APPROVE`.
+- Batch display chi xu ly category `APPROVED`, dung `isDisplay = 0|1`, khong dung `/status`.
+- Moi id duoc xu ly doc lap trong try/catch; item loi duoc ghi vao `failedItems`, khong lam dung toan bo batch.
+- Id trung duoc loai bo bang `LinkedHashSet` de giu thu tu dau vao.
+
+### Ket qua build/test backend
+
+- `./mvnw.cmd clean test`: `BUILD SUCCESS`, tests run 1, failures 0, errors 0.
+- `./mvnw.cmd clean package -DskipTests`: `BUILD SUCCESS`.
+
+### Warning/loi con lai
+
+- Khi chay test local, `DataSeeder` van log warning ORA-02290 cho role/feature enum constraint chua apply migration hardening moi; test khong fail.
+- Co warning Java/Lombok/Mockito hien huu ve deprecated Unsafe/dynamic agent.
+- Chua test API batch thu cong bang HTTP trong phien nay.
+
+### Ghi chu ky thuat/rui ro
+
+- Single API van giu nguyen de frontend action tung dong tiep tuc hoat dong.
+- Batch API validate workflow rule o backend, khong phu thuoc vao frontend filter.
+- Neu mot item fail, cac item khac van tra ket qua trong cung response.
+- Neu can toi uu transaction tuyet doi tung item rieng biet hon, co the tach sang service item-level voi propagation rieng trong giai doan sau.
+## Cap nhat 2026-06-09 12:39:35 +07:00 - Category Workflow E2E Test buoc 10
+
+### File da sua trong buoc 10
+- src/main/java/com/voyageviet/backend/category/dto/CategoryResponse.java
+- BACKEND_API_REPORT.md
+
+### Test DB migration
+- Da ket noi Oracle local jdbc:oracle:thin:@//localhost:1521/ORCL21PDB1, schema VOYAGE.
+- Xac nhan bang CATEGORIES co du cot: STATUS, IS_DISPLAY, NEW_DATA, REJECT_REASON, DISPLAY_ORDER.
+- Constraint CK_CATEGORIES_STATUS hien cho phep: DRAFT, PENDING, APPROVED, REJECTED, CANCEL_APPROVE.
+- Constraint CK_CATEGORIES_IS_DISPLAY hien cho phep: 0, 1.
+- Truy van STATUS IN ('ACTIVE','INACTIVE') tra ve 0, du lieu legacy da migrate het.
+- Trang thai hien tai sau E2E co nhieu category test moi duoc tao them de kiem thu workflow.
+
+### Test backend single API
+- Da test bang HTTP tren backend chay tu source hien tai tai http://localhost:18081/api.
+- Login admin thanh cong voi seed admin local.
+- POST /api/admin/categories: category moi tao co status = DRAFT, isDisplay = 0, newData = null.
+- PATCH /api/admin/categories/{id}/submit: chuyen DRAFT/REJECTED sang PENDING.
+- PATCH /api/admin/categories/{id}/reject: chuyen sang REJECTED, luu rejectReason.
+- Submit lai category REJECTED: chuyen lai PENDING.
+- PATCH /api/admin/categories/{id}/approve: chuyen PENDING sang APPROVED, clear newData neu co.
+- PATCH /api/admin/categories/{id}/display: set isDisplay = 1 va isDisplay = 0 thanh cong khi category APPROVED.
+- Patch category da approve tao newData, set PENDING, khong apply truc tiep data that.
+- PATCH /api/admin/categories/{id}/cancel-approve: set CANCEL_APPROVE, clear newData, giu data that.
+- Display category CANCEL_APPROVE bi reject dung rule.
+
+### Test backend batch API
+- Da test cac endpoint batch bang HTTP voi danh sach hop le/khong hop le/id khong ton tai.
+- PATCH /api/admin/categories/batch/submit: response mau success=2, failed=2, total=4; id trung duoc loai bo.
+- PATCH /api/admin/categories/batch/approve: response mau success=2, failed=1.
+- PATCH /api/admin/categories/batch/reject: response mau success=2, failed=1, co gui reason.
+- PATCH /api/admin/categories/batch/cancel-approve: response mau success=2, failed=1.
+- PATCH /api/admin/categories/batch/display show: response mau success=2, failed=2.
+- PATCH /api/admin/categories/batch/display hide: response mau success=2, failed=1.
+- Xac nhan mot item fail khong lam fail toan bo batch; response co total, successCount, failedCount, successItems, failedItems.
+
+### Test public category API
+- GET /api/public/categories chi tra category APPROVED + isDisplay = 1.
+- Category DRAFT, PENDING, REJECTED, CANCEL_APPROVE, va APPROVED + isDisplay = 0 khong xuat hien trong response public.
+- Phat hien response public van co field newData va rejectReason gia tri null; da fix bang JsonInclude NON_NULL tren hai record component nay trong CategoryResponse.
+- Sau fix, HTTP E2E xac nhan public response khong con expose newData/rejectReason khi null.
+
+### Ket qua build/test backend
+- ./mvnw.cmd clean test: pass, tests run 1, failures 0, errors 0.
+- ./mvnw.cmd clean package -DskipTests: pass.
+
+### Warning/loi con lai
+- Backend test van log warning ORA-02290 tu DataSeeder cho role/feature enum constraint chua apply migration hardening moi; test khong fail va khong lien quan Category workflow.
+- Con warning hien huu Java/Lombok/Mockito ve deprecated Unsafe/dynamic agent.
+- Backend phu test E2E tren port 18081 da duoc dung lai sau khi test.
+
+### Ghi chu ky thuat/rui ro
+- Single API va batch API deu giu workflow rule o backend.
+- Batch endpoint da test voi item hop le, item sai status va id khong ton tai.
+- Public API da test chi tra approved + displayed.
+- Cac category test E2E co slug tien to e2e-category-* duoc tao trong DB local de xac minh workflow that.
+
+## Cap nhat 2026-06-09 13:25:00 +07:00 - Category Workflow RBAC buoc 11
+
+### File da sua
+- src/main/java/com/voyageviet/backend/common/config/SecurityConfig.java
+- BACKEND_API_REPORT.md
+
+### Role matrix da ap dung
+- STAFF: duoc xem danh muc, tao danh muc, cap nhat danh muc, submit workflow va cap nhat anh category qua endpoint category image.
+- ADMIN: co quyen STAFF, them approve, reject, cancel approve, display show/hide va batch workflow actions.
+- SUPER_ADMIN: co quyen ADMIN va duoc delete category.
+- Batch workflow endpoints duoc gioi han cho ADMIN/SUPER_ADMIN, bao gom ca batch submit de tranh STAFF thuc hien batch tren nhieu dong.
+
+### Backend endpoint da enforce quyen
+- GET /api/admin/categories: STAFF/ADMIN/SUPER_ADMIN.
+- POST /api/admin/categories: STAFF/ADMIN/SUPER_ADMIN.
+- PUT/PATCH /api/admin/categories/{id}: STAFF/ADMIN/SUPER_ADMIN.
+- PATCH /api/admin/categories/{id}/submit: STAFF/ADMIN/SUPER_ADMIN.
+- PATCH /api/admin/categories/{id}/image: STAFF/ADMIN/SUPER_ADMIN.
+- PATCH /api/admin/categories/{id}/approve: ADMIN/SUPER_ADMIN.
+- PATCH /api/admin/categories/{id}/reject: ADMIN/SUPER_ADMIN.
+- PATCH /api/admin/categories/{id}/cancel-approve: ADMIN/SUPER_ADMIN.
+- PATCH /api/admin/categories/{id}/display: ADMIN/SUPER_ADMIN.
+- DELETE /api/admin/categories/{id}: SUPER_ADMIN.
+- PATCH /api/admin/categories/batch/submit: ADMIN/SUPER_ADMIN.
+- PATCH /api/admin/categories/batch/approve: ADMIN/SUPER_ADMIN.
+- PATCH /api/admin/categories/batch/reject: ADMIN/SUPER_ADMIN.
+- PATCH /api/admin/categories/batch/cancel-approve: ADMIN/SUPER_ADMIN.
+- PATCH /api/admin/categories/batch/display: ADMIN/SUPER_ADMIN.
+- Public category API khong bi anh huong.
+
+### Ket qua test STAFF
+- Tao user test STAFF bang API admin local, dang nhap lay token STAFF.
+- GET /api/admin/categories: 200.
+- POST /api/admin/categories: 200.
+- PATCH /api/admin/categories/{id}: 200.
+- PATCH /api/admin/categories/{id}/submit: 200.
+- Approve/reject/cancel approve/display/delete/batch submit/batch approve/batch reject/batch display: deu tra 403.
+
+### Ket qua test ADMIN
+- ADMIN approve category PENDING: 200.
+- ADMIN display show/hide category APPROVED: 200.
+- ADMIN batch submit va batch reject: 200.
+- ADMIN delete category: 403 theo rule buoc 11 chi SUPER_ADMIN duoc xoa.
+
+### Ket qua test SUPER_ADMIN
+- SUPER_ADMIN delete category test: 200.
+- SUPER_ADMIN co toan quyen Category theo matcher hien tai.
+
+### Ket qua build/test backend
+- Da apply manual migration hardening V20260604_01_schema_hardening.sql tren Oracle local de schema role/feature chap nhan STAFF trong seed/test local.
+- ./mvnw.cmd clean test: BUILD SUCCESS, tests run 1, failures 0, errors 0.
+- ./mvnw.cmd clean package -DskipTests: BUILD SUCCESS.
+
+### Warning/loi con lai
+- Con warning hien huu OracleDialect/open-in-view/SpringDoc va Java/Lombok/Mockito deprecated Unsafe/dynamic agent.
+- Cac user/category test RBAC local co tien to staff-rbac-* va rbac-category-* duoc tao trong DB local de xac minh quyen that.
+
+### Ghi chu ky thuat/rui ro
+- Dang dung role-based security vi framework permission code chi tiet chua duoc ap dung cho Category trong buoc nay.
+- Backend la lop chan quyen chinh, frontend chi an action de cai thien UX.
+- Neu sau nay bo sung permission code CATEGORY_* thi co the thay matcher role-based bang permission-based ma khong doi workflow.
+- Khong dung /status cho display, single API va batch API Category van giu nguyen.
+
+## Cap nhat 2026-06-09 17:13:27 +07:00 - Category Media limited access cho STAFF buoc 12
+
+### File da sua
+- src/main/java/com/voyageviet/backend/common/config/SecurityConfig.java
+- src/main/java/com/voyageviet/backend/media/controller/AdminMediaController.java
+- src/main/java/com/voyageviet/backend/media/service/MediaService.java
+- src/main/java/com/voyageviet/backend/media/repository/MediaRepository.java
+- BACKEND_API_REPORT.md
+
+### Rule quyen Media cho STAFF
+- STAFF chi duoc GET /api/admin/media khi query module=categories.
+- STAFF chi duoc POST /api/admin/media/upload khi multipart field module=categories.
+- STAFF khong duoc list all media, khong duoc list module tours/banners/avatars/destinations/general.
+- STAFF khong duoc DELETE /api/admin/media/{id}.
+- ADMIN/SUPER_ADMIN giu quyen Media admin hien co: list all/list module, upload cac module va delete theo matcher admin.
+
+### Backend da enforce quyen
+- SecurityConfig mo rieng GET /api/admin/media va POST /api/admin/media/upload cho STAFF/ADMIN/SUPER_ADMIN truoc matcher /api/admin/**.
+- AdminMediaController kiem tra role hien tai; neu la STAFF-only thi bat buoc module categories.
+- MediaService them getMediaListByModule de list dung folder module categories theo exact folder, tranh filter contains qua rong.
+- MediaRepository them findByFolderIgnoreCase.
+- Backend van la lop chan quyen chinh; frontend an nut chi phuc vu UX.
+
+### Ket qua test STAFF
+- GET /api/admin/media?module=categories: 200.
+- GET /api/admin/media khong truyen module: 403.
+- GET /api/admin/media?module=tours: 403.
+- GET /api/admin/media?module=banners: 403.
+- DELETE /api/admin/media/999999999: 403.
+- POST /api/admin/media/upload module=categories bang PNG 1x1: 200.
+- POST /api/admin/media/upload module=tours bang PNG 1x1: 403.
+- POST /api/admin/categories voi imageUrl: 200, category moi status DRAFT.
+- PATCH /api/admin/categories/{id}/image voi token STAFF: 200.
+
+### Ket qua test ADMIN
+- GET /api/admin/media khong truyen module: 200.
+- POST /api/admin/media/upload module=general bang PNG 1x1: 200.
+- ADMIN van duoc dung Admin Media day du theo matcher hien co.
+
+### Ket qua test SUPER_ADMIN
+- GET /api/admin/media khong truyen module: 200.
+- SUPER_ADMIN giu quyen admin media day du theo role hierarchy/matcher hien tai.
+
+### Ket qua build/test backend
+- ./mvnw.cmd clean test: BUILD SUCCESS, tests run 1, failures 0, errors 0.
+- ./mvnw.cmd clean package -DskipTests: BUILD SUCCESS.
+
+### Warning/loi con lai
+- Con warning hien huu OracleDialect/open-in-view/SpringDoc va Java/Lombok/Mockito deprecated Unsafe/dynamic agent.
+- Cac user/category/media test local co tien to staff-media-* va staff-media-category-* duoc tao trong DB/Cloudinary de xac minh quyen that.
+
+### Ghi chu ky thuat/rui ro
+- STAFF chi duoc dung Media trong pham vi category.
+- Admin Media full page van chi danh cho ADMIN/SUPER_ADMIN tren frontend guard/sidebar.
+- Khong mo trang Admin Media cho STAFF va khong cho STAFF delete media.
+- Khong doi Category workflow, IS_DISPLAY, payload Category, public API, single API hay batch API.
+
+## Cap nhat 2026-06-09 21:50:30 +07:00 - Encoding tieng Viet buoc 13
+
+### File da sua
+- .editorconfig
+- src/main/java/com/voyageviet/backend/tour/service/TourStatsService.java
+- BACKEND_API_REPORT.md
+- voyage-frontend/VOYAGE_ADMIN_AUDIT_REPORT.md
+- voyage-frontend/VOYAGE_FRONTEND_AUDIT_REPORT.md
+- voyage-frontend/src/app/pages/admin/categories/categories.ts
+- voyage-frontend/src/app/pages/admin/categories/categories.html
+- voyage-frontend/src/app/pages/public/profile/profile.ts
+
+### Pham vi da scan
+- Toan repo, bo qua .git/node_modules/dist/target/.angular/.idea.
+- Backend src/main Java/resources, SQL/manual migration va report markdown.
+- Frontend src/app, admin/public pages, layouts, shared/core va audit reports.
+
+### Nhom loi encoding da sua
+- Chuoi tieng Viet bi sai ma trong UI frontend, audit/report va mot message backend.
+- Backend TourStatsService: sua chuoi so sanh ten quoc gia Viet Nam bi sai encoding.
+- Report backend: khong con liet ke ky tu loi truc tiep gay scan false positive; doi sang mo ta code point.
+
+### Nguyen nhan nghi ngo
+- Noi dung cu co kha nang bi copy/ghi tu terminal Windows hoac editor khong thong nhat encoding.
+- Da bo sung .editorconfig de khoa UTF-8/LF.
+- pom.xml va application.properties da co cau hinh UTF-8 cho backend response/source encoding.
+
+### Ket qua build/test
+- ./mvnw.cmd clean test: BUILD SUCCESS, tests run 1, failures 0, errors 0.
+- ./mvnw.cmd clean package -DskipTests: BUILD SUCCESS.
+- Frontend build development va production: pass.
+
+### Warning/loi con lai
+- Con warning hien huu OracleDialect/open-in-view/SpringDoc va Java/Lombok/Mockito deprecated Unsafe/dynamic agent.
+- Broad scan con false positive do tieng Viet dung co dau nhu Chau Au hoac chu hoa co dau; exact mojibake scan tra ve 0 hit.
+
+### Ghi chu ky thuat/rui ro
+- Tat ca file sua trong buoc nay da ghi UTF-8 khong BOM, co newline cuoi file.
+- Khong doi API, workflow, payload, database schema hay role permission.
+- Neu DB co du lieu mojibake that, can tao script kiem tra/sua rieng theo bang/field sau.
+
+## Cập nhật: Destination Workflow Admin
+
+Thời gian cập nhật: 2026-06-09 22:33 +07:00
+
+### File đã sửa/tạo mới
+- src/main/java/com/voyageviet/backend/destination/entity/Destination.java
+- src/main/java/com/voyageviet/backend/destination/entity/DestinationStatus.java
+- src/main/java/com/voyageviet/backend/destination/repository/DestinationRepository.java
+- src/main/java/com/voyageviet/backend/destination/service/DestinationService.java
+- src/main/java/com/voyageviet/backend/destination/controller/AdminDestinationController.java
+- src/main/java/com/voyageviet/backend/destination/dto/*Destination*workflow/batch/review DTO
+- src/main/java/com/voyageviet/backend/common/config/SecurityConfig.java
+- src/main/java/com/voyageviet/backend/media/controller/AdminMediaController.java
+- src/main/java/com/voyageviet/backend/admin/service/AdminDashboardService.java
+- src/main/java/com/voyageviet/backend/common/config/DataSeeder.java
+- src/main/resources/db/manual/oracle/V20260609_02_destination_workflow_status_is_display.sql
+
+### Nội dung đã làm
+- Chuyển DestinationStatus từ ACTIVE/INACTIVE sang workflow: DRAFT, PENDING, APPROVED, REJECTED, CANCEL_APPROVE.
+- Thêm IS_DISPLAY, NEW_DATA, REJECT_REASON cho Destination entity và migration Oracle.
+- Public destinations chỉ trả APPROVED + IS_DISPLAY = 1.
+- Create destination tạo DRAFT + IS_DISPLAY = 0.
+- Update/patch/image update lưu thay đổi vào NEW_DATA và chuyển PENDING, không apply dữ liệu thật cho đến khi approve.
+- Approve apply NEW_DATA nếu có, clear NEW_DATA/rejectReason, chuyển APPROVED.
+- Reject giữ NEW_DATA, lưu rejectReason, chuyển REJECTED.
+- Cancel approve clear NEW_DATA, chuyển CANCEL_APPROVE, không apply dữ liệu thật.
+- Display endpoint chỉ bật/tắt IS_DISPLAY cho destination APPROVED.
+- Thêm single workflow API: submit/approve/reject/cancel-approve/display.
+- Thêm batch workflow API xử lý từng item độc lập và trả success/failed items.
+- RBAC: STAFF được list/create/update/submit/image; ADMIN được approve/reject/cancel/display/batch; SUPER_ADMIN được delete.
+- Media STAFF được giới hạn đúng module categories hoặc destinations, không mở toàn bộ Media.
+- Admin dashboard count destination public-visible đổi sang APPROVED + IS_DISPLAY = 1.
+
+### Kết quả test
+- ./mvnw.cmd clean package -DskipTests: PASS.
+- ./mvnw.cmd clean test: FAIL do Oracle local chưa chạy migration mới, Hibernate validate báo thiếu cột DESTINATIONS.IS_DISPLAY.
+
+### Ghi chú kỹ thuật/rủi ro
+- Cần chạy migration V20260609_02_destination_workflow_status_is_display.sql trên Oracle trước khi chạy app/test với enum mới.
+- Không đổi public route destination, chỉ đổi logic filter.
+- Không đổi payload Tour.
+
+## Cap nhat 2026-06-10 09:05:00 +07:00 - Buoc 15: Destination Workflow Backend E2E
+
+### Thoi gian cap nhat
+- 2026-06-10 09:05:00 +07.
+
+### File backend da kiem tra/sua
+- `src/main/java/com/voyageviet/backend/destination/entity/Destination.java`
+- `src/main/java/com/voyageviet/backend/destination/entity/DestinationStatus.java`
+- `src/main/java/com/voyageviet/backend/destination/repository/DestinationRepository.java`
+- `src/main/java/com/voyageviet/backend/destination/service/DestinationService.java`
+- `src/main/java/com/voyageviet/backend/destination/controller/AdminDestinationController.java`
+- `src/main/java/com/voyageviet/backend/destination/controller/DestinationController.java`
+- `src/main/java/com/voyageviet/backend/destination/dto/*Workflow/Batch*`
+- `src/main/java/com/voyageviet/backend/common/config/SecurityConfig.java`
+- `src/main/java/com/voyageviet/backend/media/controller/AdminMediaController.java`
+- `src/main/java/com/voyageviet/backend/media/service/MediaService.java`
+- `src/main/java/com/voyageviet/backend/media/repository/MediaRepository.java`
+- `src/main/resources/db/manual/oracle/V20260609_02_destination_workflow_status_is_display.sql`
+- `BACKEND_API_REPORT.md`
+
+### Migration Oracle
+- Da tao/kiem tra migration `V20260609_02_destination_workflow_status_is_display.sql`.
+- Migration idempotent them `IS_DISPLAY`, `NEW_DATA`, `REJECT_REASON` neu chua co.
+- Legacy mapping: `ACTIVE -> APPROVED + IS_DISPLAY=1`, `INACTIVE -> APPROVED + IS_DISPLAY=0`.
+- Recreate constraint `CK_DESTINATIONS_STATUS` voi `DRAFT/PENDING/APPROVED/REJECTED/CANCEL_APPROVE`.
+- Recreate constraint `CK_DESTINATIONS_IS_DISPLAY` voi `IS_DISPLAY IN (0, 1)`.
+- Dieu chinh file migration va Oracle local de `IS_DISPLAY DEFAULT 1 NOT NULL` dung yeu cau migration; backend create van set ro `isDisplay=0` nen khong phu thuoc default DB.
+
+### Entity/DTO/API da xac nhan
+- `DestinationStatus` dung workflow: `DRAFT`, `PENDING`, `APPROVED`, `REJECTED`, `CANCEL_APPROVE`.
+- `Destination` co `isDisplay`, `newData`, `rejectReason` va domain methods workflow/display/public visibility.
+- `DestinationResponse` co `JsonInclude.NON_NULL` cho `newData/rejectReason`.
+- Co DTO `DestinationNewData`, reject/display request va batch request/response.
+- Single workflow API co: submit, approve, reject, cancel-approve, display.
+- Batch workflow API co: batch submit, approve, reject, cancel-approve, display.
+
+### Service workflow da hoan thien
+- Create luu data that voi `DRAFT`, `isDisplay=0`, `newData=null`, `rejectReason=null`.
+- Update/patch/image update luu payload vao `NEW_DATA`, set `PENDING`, khong apply data that.
+- Submit chi cho `DRAFT`, `REJECTED`, `CANCEL_APPROVE`.
+- Approve chi cho `PENDING`, apply `NEW_DATA` neu co, clear `NEW_DATA/rejectReason`, set `APPROVED`.
+- Reject chi cho `PENDING`, giu `NEW_DATA`, luu `rejectReason`, set `REJECTED`.
+- Cancel approve chi cho `PENDING`, clear `NEW_DATA`, set `CANCEL_APPROVE`, khong apply data that.
+- Display chi cho `APPROVED`, set `isDisplay=0|1`, khong dung status de an/hien public.
+- Parse legacy `NEW_DATA` status `ACTIVE/INACTIVE` an toan thanh `APPROVED`.
+
+### Public destination filtering
+- `GET /api/public/destinations` chi tra `APPROVED + isDisplay=1`.
+- Public response khong serialize `newData/rejectReason` khi null.
+- Dashboard count destination public da dung `APPROVED + isDisplay=1`.
+
+### RBAC va Media
+- STAFF: GET list, POST create, PUT/PATCH update, PATCH submit, PATCH image destination.
+- ADMIN: them approve/reject/cancel-approve/display va batch workflow; delete bi 403.
+- SUPER_ADMIN: toan quyen va delete destination.
+- STAFF Media chi duoc list/upload module `categories` hoac `destinations`; khong duoc list all, module khac hoac delete media.
+
+### Test DB migration
+- Da apply lai migration tren Oracle local schema `VOYAGE` luc 2026-06-10.
+- Bang `DESTINATIONS` co `STATUS`, `IS_DISPLAY`, `NEW_DATA`, `REJECT_REASON`.
+- `IS_DISPLAY` la `NUMBER`, `DEFAULT 1`, `NOT NULL`.
+- `NEW_DATA` la `CLOB`; `REJECT_REASON` la `VARCHAR2`.
+- Constraint `CK_DESTINATIONS_STATUS`: `DRAFT/PENDING/APPROVED/REJECTED/CANCEL_APPROVE`.
+- Constraint `CK_DESTINATIONS_IS_DISPLAY`: `IS_DISPLAY IN (0, 1)`.
+- Query `STATUS IN ('ACTIVE','INACTIVE')` tra ve 0.
+
+### Test backend HTTP E2E
+- Chay backend that tu source tren `http://localhost:18081/api`.
+- Single flow pass: create DRAFT/isDisplay 0, submit PENDING, reject co reason, submit lai, approve, display show/hide, patch approved tao `newData` va khong apply data that, cancel approve clear `newData` va giu data that.
+- Display tren destination `CANCEL_APPROVE` tra 400 dung rule chi APPROVED moi display.
+- Batch flow pass voi item hop le/khong hop le/id khong ton tai/id trung:
+  - submit: `3/1` vi `CANCEL_APPROVE` la trang thai hop le de submit.
+  - approve: `2/1`.
+  - reject: `2/1`.
+  - cancel approve: `2/1`.
+  - display show: `2/2`.
+  - display hide: `2/1`.
+- Mot item fail khong lam fail toan bo batch; response co `total`, `successCount`, `failedCount`, `successItems`, `failedItems`.
+- Public API E2E pass: chi tra `APPROVED + isDisplay=1`, khong co `newData/rejectReason` null trong item public.
+- RBAC E2E pass:
+  - STAFF list/create/submit pass.
+  - STAFF approve/reject/cancel/display/delete/batch tra 403.
+  - ADMIN workflow/display/batch pass, delete tra 403.
+  - SUPER_ADMIN delete destination test pass.
+
+### Ket qua build/test backend
+- `./mvnw.cmd clean package -DskipTests`: BUILD SUCCESS.
+- `./mvnw.cmd clean test`: BUILD SUCCESS, tests run 1, failures 0, errors 0.
+
+### Warning/loi con lai
+- Con warning hien huu: OracleDialect explicit, open-in-view, SpringDoc default endpoint, Java/Lombok Unsafe deprecated, Mockito dynamic agent.
+- Backend E2E tao du lieu test local voi tien to `e2e-destination-*` va user `staff-destination-*` trong Oracle local.
+
+### Ghi chu ky thuat/rui ro
+- Endpoint `/api/admin/destinations/{id}/status` van ton tai de tuong thich legacy/workflow status noi bo, khong dung de bat/tat public display.
+- Backend la lop enforce workflow/RBAC chinh; frontend chi an/hien action de cai thien UX.
+- Khong sua workflow Categories, khong doi API/payload Tour, khong doi public route.
+## Cap nhat 2026-06-10 09:26:50 +07:00 - Buoc 16: Browser QA RBAC integration
+
+### Thoi gian cap nhat
+- 2026-06-10 09:26:50 +07.
+
+### Pham vi backend test/fix
+- Kiem tra backend that `http://localhost:8081/api` trong browser QA admin workflow.
+- Fix nho RBAC cho du lieu tham chieu Destination Form.
+
+### File backend da sua
+- `src/main/java/com/voyageviet/backend/common/config/SecurityConfig.java`
+- `BACKEND_API_REPORT.md`
+
+### Noi dung sua
+- Them matcher read-only: `GET /api/admin/locations/provinces` cho `STAFF`, `ADMIN`, `SUPER_ADMIN`.
+- Ly do: STAFF duoc quan ly Destination theo workflow buoc 15, nhung Destination Form can load danh sach tinh/thanh qua endpoint admin locations; neu khong mo endpoint nay, browser QA cua STAFF bi 403 va console error.
+
+### Ket qua HTTP RBAC
+- STAFF `GET /api/admin/locations/provinces`: 200.
+- STAFF `GET /api/admin/media`: 403.
+- STAFF `GET /api/admin/media?module=categories`: 200.
+- STAFF `GET /api/admin/media?module=destinations`: 200.
+- Khong mo rong Media all/module khac cho STAFF.
+
+### Ket qua build/test backend
+- `./mvnw.cmd clean package -DskipTests`: BUILD SUCCESS.
+- `./mvnw.cmd clean test`: BUILD SUCCESS, tests run 1, failures 0, errors 0.
+
+### Warning/loi con lai
+- Warning hien huu: OracleDialect explicit, open-in-view, SpringDoc endpoint enabled, Lombok Unsafe deprecated, Mockito dynamic agent.
+
+### Ghi chu ky thuat/rui ro
+- Khong doi workflow Category/Destination, khong doi API Tour, khong doi DB schema.
+- Backend van la lop chan quyen chinh; frontend chi an/hien action de cai thien UX.

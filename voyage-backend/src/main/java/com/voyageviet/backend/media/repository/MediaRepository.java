@@ -12,4 +12,6 @@ public interface MediaRepository extends JpaRepository<Media, Long> {
     Optional<Media> findByPublicId(String publicId);
 
     Page<Media> findByFolderContainingIgnoreCase(String folder, Pageable pageable);
+
+    Page<Media> findByFolderIgnoreCase(String folder, Pageable pageable);
 }

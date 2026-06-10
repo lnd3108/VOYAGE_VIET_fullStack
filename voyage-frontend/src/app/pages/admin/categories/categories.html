@@ -10,6 +10,7 @@
       <a
         routerLink="/admin/media"
         class="admin-categories__button admin-categories__button--secondary"
+        *ngIf="canDisplayCategory()"
       >
         Mở Media
       </a>
@@ -17,6 +18,7 @@
       <button
         type="button"
         class="admin-categories__button admin-categories__button--primary"
+        *ngIf="canCreateCategory()"
         (click)="openCreateForm()"
       >
         Thêm danh mục
@@ -115,6 +117,7 @@
                 type="button"
                 class="admin-categories__button admin-categories__button--secondary"
                 [disabled]="uploadingImage || saving"
+                *ngIf="canUpdateCategoryImage(selectedCategory || undefined)"
                 (click)="openUploadPicker()"
               >
                 {{ uploadingImage ? 'Đang tải ảnh...' : 'Tải ảnh từ máy' }}
@@ -124,6 +127,7 @@
                 type="button"
                 class="admin-categories__button admin-categories__button--secondary admin-categories__secondary-button"
                 [disabled]="mediaLoading"
+                *ngIf="canUpdateCategoryImage(selectedCategory || undefined) && canPickCategoryMedia()"
                 (click)="openMediaPicker()"
               >
                 Chọn từ Media
@@ -181,6 +185,13 @@
             {{ imageErrorMessage }}
           </p>
 
+          <p
+            class="admin-categories__image-message admin-categories__image-message--info"
+            *ngIf="isCategoryMediaLimited()"
+          >
+            Tài khoản STAFF chỉ được tải lên và chọn ảnh trong module Categories.
+          </p>
+
           <details class="admin-categories__advanced-url">
             <summary>Tùy chọn nâng cao: URL ảnh</summary>
             <input
@@ -196,7 +207,8 @@
               <div class="admin-categories__media-head">
                 <div>
                   <strong>Chọn ảnh từ Media</strong>
-                  <span>Ưu tiên ảnh module Categories hoặc General.</span>
+                  <span *ngIf="!isCategoryMediaLimited()">Ưu tiên ảnh module Categories hoặc General.</span>
+                  <span *ngIf="isCategoryMediaLimited()">Chỉ hiển thị ảnh module Categories.</span>
                 </div>
 
                 <button
@@ -212,7 +224,7 @@
                 <button
                   type="button"
                   class="admin-categories__chip-button"
-                  *ngFor="let option of mediaModuleOptions"
+                  *ngFor="let option of visibleMediaModuleOptions"
                   [class.admin-categories__chip-button--active]="
                     selectedMediaModule === option.value
                   "
@@ -273,57 +285,13 @@
           </div>
         </section>
 
-        <label class="admin-categories__field" *ngIf="isEditMode">
-          Trạng thái
-          <div
-            class="admin-categories__control-wrap admin-categories__control-wrap--select"
-            [class.admin-categories__control-wrap--open]="focusedSelect === 'status'"
-          >
-            <button
-              type="button"
-              class="admin-categories__select-trigger"
-              (click)="toggleSelect('status')"
-            >
-              {{ statusLabel(form.controls.status.value) }}
-            </button>
-
-            <tui-icon
-              class="admin-categories__chevron-icon admin-categories__chevron-icon--select"
-              icon="@tui.chevron-down"
-            />
-
-            <div class="admin-categories__select-menu" *ngIf="focusedSelect === 'status'">
-              <button
-                type="button"
-                class="admin-categories__select-option"
-                [class.admin-categories__select-option--selected]="
-                  form.controls.status.value === 'ACTIVE'
-                "
-                (click)="selectFormStatus('ACTIVE')"
-              >
-                Đang hiển thị
-              </button>
-
-              <button
-                type="button"
-                class="admin-categories__select-option"
-                [class.admin-categories__select-option--selected]="
-                  form.controls.status.value === 'INACTIVE'
-                "
-                (click)="selectFormStatus('INACTIVE')"
-              >
-                Tạm ẩn
-              </button>
-            </div>
-          </div>
-        </label>
       </div>
 
       <div class="admin-categories__form-actions">
         <button
           type="button"
           class="admin-categories__form-button admin-categories__form-button--secondary"
-          *ngIf="isEditMode"
+          *ngIf="isEditMode && canUpdateCategoryImage(selectedCategory || undefined)"
           [disabled]="updatingImage || saving"
           (click)="updateImageOnly()"
         >
@@ -354,7 +322,7 @@
       </label>
 
       <label>
-        Trạng thái
+        Workflow
         <div
           class="admin-categories__control-wrap admin-categories__control-wrap--select"
           [class.admin-categories__control-wrap--open]="focusedSelect === 'statusFilter'"
@@ -401,6 +369,121 @@
     </div>
 
     <section class="admin-categories__grid-card">
+      <div class="admin-categories__batch-toolbar" *ngIf="selectedBatchCount > 0 && canBatchCategoryWorkflow('submit')">
+        <div class="admin-categories__batch-summary">
+          <strong>Đã chọn {{ selectedBatchCount }} danh mục</strong>
+          <span>Thao tác hàng loạt chỉ xử lý các danh mục hợp lệ theo workflow hiện tại.</span>
+        </div>
+
+        <div class="admin-categories__batch-actions">
+          <button
+            type="button"
+            class="admin-categories__button admin-categories__button--secondary admin-categories__button--sm"
+            *ngIf="canBatchCategoryWorkflow('submit')"
+            [disabled]="batchProcessing"
+            (click)="runBatchSubmit()"
+          >
+            Gửi duyệt
+          </button>
+
+          <button
+            type="button"
+            class="admin-categories__button admin-categories__button--secondary admin-categories__button--sm"
+            *ngIf="canBatchCategoryWorkflow('approve')"
+            [disabled]="batchProcessing"
+            (click)="runBatchApprove()"
+          >
+            Duyệt
+          </button>
+
+          <button
+            type="button"
+            class="admin-categories__button admin-categories__button--danger-soft admin-categories__button--sm"
+            *ngIf="canBatchCategoryWorkflow('reject')"
+            [disabled]="batchProcessing"
+            (click)="startBatchReject()"
+          >
+            Từ chối
+          </button>
+
+          <button
+            type="button"
+            class="admin-categories__button admin-categories__button--secondary admin-categories__button--sm"
+            *ngIf="canBatchCategoryWorkflow('cancelApprove')"
+            [disabled]="batchProcessing"
+            (click)="runBatchCancelApprove()"
+          >
+            Hủy trình duyệt
+          </button>
+
+          <button
+            type="button"
+            class="admin-categories__button admin-categories__button--secondary admin-categories__button--sm"
+            *ngIf="canBatchCategoryWorkflow('show')"
+            [disabled]="batchProcessing"
+            (click)="runBatchShowPublic()"
+          >
+            Hiển thị public
+          </button>
+
+          <button
+            type="button"
+            class="admin-categories__button admin-categories__button--secondary admin-categories__button--sm"
+            *ngIf="canBatchCategoryWorkflow('hide')"
+            [disabled]="batchProcessing"
+            (click)="runBatchHidePublic()"
+          >
+            Ẩn public
+          </button>
+
+          <button
+            type="button"
+            class="admin-categories__button admin-categories__button--secondary admin-categories__button--sm"
+            [disabled]="batchProcessing"
+            (click)="clearBatchSelection()"
+          >
+            Bỏ chọn
+          </button>
+        </div>
+
+        <section class="admin-categories__batch-reject" *ngIf="batchRejectMode">
+          <label>
+            Lý do từ chối
+            <textarea
+              rows="3"
+              [value]="batchRejectReason"
+              [disabled]="batchProcessing"
+              placeholder="Nhập lý do từ chối để người chỉnh sửa biết cần sửa gì"
+              (input)="updateBatchRejectReason($event)"
+            ></textarea>
+          </label>
+
+          <div class="admin-categories__batch-reject-actions">
+            <button
+              type="button"
+              class="admin-categories__button admin-categories__button--secondary admin-categories__button--sm"
+              [disabled]="batchProcessing"
+              (click)="cancelBatchReject()"
+            >
+              Bỏ từ chối
+            </button>
+
+            <button
+              type="button"
+              class="admin-categories__button admin-categories__button--danger-soft admin-categories__button--sm"
+              [disabled]="batchProcessing"
+              (click)="confirmBatchReject()"
+            >
+              {{ batchProcessing ? 'Đang từ chối...' : 'Xác nhận từ chối' }}
+            </button>
+          </div>
+        </section>
+
+        <p class="admin-categories__batch-error" *ngIf="batchErrorMessage">
+          {{ batchErrorMessage }}
+        </p>
+      </div>
+
       <ag-grid-angular
         class="admin-categories__grid"
         [theme]="gridTheme"
@@ -408,6 +491,8 @@
         [rowData]="gridRows"
         [columnDefs]="columnDefs"
         [defaultColDef]="defaultColDef"
+        [rowSelection]="rowSelection"
+        [getRowId]="getRowId"
         [context]="gridContext"
         [rowHeight]="76"
         [domLayout]="'autoHeight'"
@@ -416,7 +501,234 @@
         [overlayNoRowsTemplate]="gridNoRowsOverlay"
         (gridReady)="onGridReady($event)"
         (sortChanged)="handleGridSortChanged()"
+        (selectionChanged)="handleGridSelectionChanged()"
       ></ag-grid-angular>
     </section>
   </ng-container>
+
+  <div
+    class="admin-categories__pending-backdrop"
+    *ngIf="pendingReview"
+    (click)="closePendingChangesPanel()"
+  ></div>
+
+  <aside
+    class="admin-categories__pending-panel"
+    *ngIf="pendingReview as review"
+    role="dialog"
+    aria-modal="true"
+    aria-label="Dữ liệu thay đổi chờ duyệt"
+  >
+    <header class="admin-categories__pending-head">
+      <div>
+        <p>Dữ liệu thay đổi chờ duyệt</p>
+        <h2>{{ review.title }}</h2>
+
+        <div class="admin-categories__pending-badges">
+          <span class="admin-categories__workflow {{ review.workflowClassName }}">
+            {{ review.workflowLabel }}
+          </span>
+          <span class="admin-categories__display {{ review.displayClassName }}">
+            {{ review.displayLabel }}
+          </span>
+          <span
+            class="admin-categories__approval"
+            [class.admin-categories__approval--pending]="review.hasPendingData"
+            [class.admin-categories__approval--empty]="!review.hasPendingData"
+          >
+            {{ review.hasPendingData ? 'Có dữ liệu chờ duyệt' : 'Không có dữ liệu chờ duyệt' }}
+          </span>
+        </div>
+      </div>
+
+      <button
+        type="button"
+        class="admin-categories__pending-close"
+        [disabled]="pendingReviewSubmitting"
+        (click)="closePendingChangesPanel()"
+      >
+        Đóng
+      </button>
+    </header>
+
+    <section class="admin-categories__pending-summary">
+      <article>
+        <span>Tên hiện tại</span>
+        <strong>{{ review.title }}</strong>
+      </article>
+      <article>
+        <span>Slug</span>
+        <code>{{ review.slug }}</code>
+      </article>
+      <article>
+        <span>Workflow</span>
+        <strong>{{ review.workflowLabel }}</strong>
+      </article>
+      <article>
+        <span>Public</span>
+        <strong>{{ review.displayLabel }}</strong>
+      </article>
+    </section>
+
+    <div class="admin-categories__pending-error" *ngIf="review.parseError">
+      {{ review.parseError }}
+    </div>
+
+    <div
+      class="admin-categories__pending-empty"
+      *ngIf="!review.parseError && !review.rows.length"
+    >
+      Không có dữ liệu thay đổi để so sánh.
+    </div>
+
+    <section class="admin-categories__pending-table" *ngIf="review.rows.length">
+      <div class="admin-categories__pending-table-head">
+        <span>Trường dữ liệu</span>
+        <span>Hiện tại</span>
+        <span>Dữ liệu chờ duyệt</span>
+        <span>Trạng thái</span>
+      </div>
+
+      <article
+        class="admin-categories__pending-row"
+        *ngFor="let row of review.rows"
+        [class.admin-categories__pending-row--changed]="row.changed"
+      >
+        <div class="admin-categories__pending-cell admin-categories__pending-cell--field">
+          {{ row.label }}
+        </div>
+
+        <div class="admin-categories__pending-cell">
+          <ng-container *ngIf="row.type === 'image'; else currentTextValue">
+            <img
+              class="admin-categories__pending-thumb"
+              *ngIf="row.currentImageUrl; else currentEmptyImage"
+              [src]="row.currentImageUrl"
+              alt="Ảnh hiện tại"
+              (error)="handleImageError($event)"
+            />
+            <ng-template #currentEmptyImage>
+              <span class="admin-categories__pending-image-empty">Chưa có ảnh</span>
+            </ng-template>
+            <code *ngIf="row.currentImageUrl" [title]="row.currentImageUrl">
+              {{ row.currentValue }}
+            </code>
+          </ng-container>
+          <ng-template #currentTextValue>{{ row.currentValue }}</ng-template>
+        </div>
+
+        <div class="admin-categories__pending-cell">
+          <ng-container *ngIf="row.type === 'image'; else pendingTextValue">
+            <img
+              class="admin-categories__pending-thumb"
+              *ngIf="row.pendingImageUrl; else pendingEmptyImage"
+              [src]="row.pendingImageUrl"
+              alt="Ảnh chờ duyệt"
+              (error)="handleImageError($event)"
+            />
+            <ng-template #pendingEmptyImage>
+              <span class="admin-categories__pending-image-empty">Chưa có ảnh</span>
+            </ng-template>
+            <code *ngIf="row.pendingImageUrl" [title]="row.pendingImageUrl">
+              {{ row.pendingValue }}
+            </code>
+          </ng-container>
+          <ng-template #pendingTextValue>{{ row.pendingValue }}</ng-template>
+        </div>
+
+        <div class="admin-categories__pending-cell admin-categories__pending-cell--state">
+          <span
+            [class.admin-categories__pending-state--changed]="row.changed"
+            [class.admin-categories__pending-state--same]="!row.changed"
+          >
+            {{ row.changed ? 'Đã thay đổi' : 'Không đổi' }}
+          </span>
+        </div>
+      </article>
+    </section>
+
+    <div class="admin-categories__pending-error" *ngIf="pendingReviewErrorMessage">
+      {{ pendingReviewErrorMessage }}
+    </div>
+
+    <section class="admin-categories__pending-reject" *ngIf="pendingRejectMode">
+      <label>
+        Lý do từ chối
+        <textarea
+          rows="4"
+          [value]="pendingRejectReason"
+          [disabled]="pendingReviewSubmitting"
+          placeholder="Nhập lý do từ chối để người chỉnh sửa biết cần sửa gì"
+          (input)="updatePendingRejectReason($event)"
+        ></textarea>
+      </label>
+    </section>
+
+    <footer class="admin-categories__pending-footer">
+      <p *ngIf="review.parseError && review.canCancelApprove">
+        Dữ liệu thay đổi không đọc được. Có thể hủy trình duyệt để backend xóa dữ liệu lỗi.
+      </p>
+
+      <div class="admin-categories__pending-actions">
+        <button
+          type="button"
+          class="admin-categories__button admin-categories__button--secondary"
+          [disabled]="pendingReviewSubmitting"
+          (click)="closePendingChangesPanel()"
+        >
+          Đóng
+        </button>
+
+        <button
+          type="button"
+          class="admin-categories__button admin-categories__button--danger-soft"
+          *ngIf="review.canCancelApprove"
+          [disabled]="pendingReviewSubmitting"
+          (click)="cancelApprovePendingReview()"
+        >
+          {{ pendingReviewSubmitting ? 'Đang xử lý...' : 'Hủy trình duyệt' }}
+        </button>
+
+        <button
+          type="button"
+          class="admin-categories__button admin-categories__button--danger-soft"
+          *ngIf="review.canApproveReject && !pendingRejectMode"
+          [disabled]="pendingReviewSubmitting"
+          (click)="startPendingReject()"
+        >
+          Từ chối
+        </button>
+
+        <button
+          type="button"
+          class="admin-categories__button admin-categories__button--secondary"
+          *ngIf="pendingRejectMode"
+          [disabled]="pendingReviewSubmitting"
+          (click)="cancelPendingReject()"
+        >
+          Bỏ từ chối
+        </button>
+
+        <button
+          type="button"
+          class="admin-categories__button admin-categories__button--danger-soft"
+          *ngIf="pendingRejectMode"
+          [disabled]="pendingReviewSubmitting"
+          (click)="rejectPendingReview()"
+        >
+          {{ pendingReviewSubmitting ? 'Đang từ chối...' : 'Xác nhận từ chối' }}
+        </button>
+
+        <button
+          type="button"
+          class="admin-categories__button admin-categories__button--primary"
+          *ngIf="review.canApproveReject && !pendingRejectMode"
+          [disabled]="pendingReviewSubmitting"
+          (click)="approvePendingReview()"
+        >
+          {{ pendingReviewSubmitting ? 'Đang duyệt...' : 'Duyệt' }}
+        </button>
+      </div>
+    </footer>
+  </aside>
 </section>

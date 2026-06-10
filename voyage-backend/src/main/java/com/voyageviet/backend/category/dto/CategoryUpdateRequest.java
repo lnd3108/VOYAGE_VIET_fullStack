@@ -1,6 +1,7 @@
 package com.voyageviet.backend.category.dto;
 
 import com.voyageviet.backend.category.entity.CategoryStatus;
+import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
@@ -23,6 +24,10 @@ public record CategoryUpdateRequest(
         CategoryStatus status,
 
         @Min(value = 0, message = "Display order must be greater than or equal to 0")
-        Integer displayOrder
+        Integer displayOrder,
+
+        @Min(value = 0, message = "Display flag must be 0 or 1")
+        @Max(value = 1, message = "Display flag must be 0 or 1")
+        Integer isDisplay
 ) {
 }
