@@ -1,0 +1,234 @@
+﻿<ng-container *ngIf="review as detail">
+  <div class="admin-category-detail__backdrop" (click)="close()"></div>
+
+  <aside
+    class="admin-category-detail"
+    role="dialog"
+    aria-modal="true"
+    aria-label="Dá»¯ liá»‡u thay Ä‘á»•i chá» duyá»‡t"
+  >
+    <header class="admin-category-detail__head">
+      <div>
+        <p>Dá»¯ liá»‡u thay Ä‘á»•i chá» duyá»‡t</p>
+        <h2>{{ detail.title }}</h2>
+
+        <div class="admin-category-detail__badges">
+          <span class="admin-category-detail__workflow {{ detail.workflowClassName }}">
+            {{ detail.workflowLabel }}
+          </span>
+
+          <span class="admin-category-detail__display {{ detail.displayClassName }}">
+            {{ detail.displayLabel }}
+          </span>
+
+          <span
+            class="admin-category-detail__approval"
+            [class.admin-category-detail__approval--pending]="detail.hasPendingData"
+            [class.admin-category-detail__approval--empty]="!detail.hasPendingData"
+          >
+            {{ detail.hasPendingData ? 'CÃ³ dá»¯ liá»‡u chá» duyá»‡t' : 'KhÃ´ng cÃ³ dá»¯ liá»‡u chá» duyá»‡t' }}
+          </span>
+        </div>
+      </div>
+
+      <button
+        type="button"
+        class="admin-category-detail__close"
+        [disabled]="submitting"
+        (click)="close()"
+      >
+        ÄÃ³ng
+      </button>
+    </header>
+
+    <section class="admin-category-detail__summary">
+      <article>
+        <span>TÃªn hiá»‡n táº¡i</span>
+        <strong>{{ detail.title }}</strong>
+      </article>
+
+      <article>
+        <span>Slug</span>
+        <code>{{ detail.slug }}</code>
+      </article>
+
+      <article>
+        <span>Workflow</span>
+        <strong>{{ detail.workflowLabel }}</strong>
+      </article>
+
+      <article>
+        <span>Public</span>
+        <strong>{{ detail.displayLabel }}</strong>
+      </article>
+    </section>
+
+    <div class="admin-category-detail__error" *ngIf="detail.parseError">
+      {{ detail.parseError }}
+    </div>
+
+    <div class="admin-category-detail__empty" *ngIf="!detail.parseError && !detail.rows.length">
+      KhÃ´ng cÃ³ dá»¯ liá»‡u thay Ä‘á»•i Ä‘á»ƒ so sÃ¡nh.
+    </div>
+
+    <section class="admin-category-detail__table" *ngIf="detail.rows.length">
+      <div class="admin-category-detail__table-head">
+        <span>TrÆ°á»ng dá»¯ liá»‡u</span>
+        <span>Hiá»‡n táº¡i</span>
+        <span>Dá»¯ liá»‡u chá» duyá»‡t</span>
+        <span>Tráº¡ng thÃ¡i</span>
+      </div>
+
+      <article
+        class="admin-category-detail__row"
+        *ngFor="let row of detail.rows"
+        [class.admin-category-detail__row--changed]="row.changed"
+      >
+        <div class="admin-category-detail__cell admin-category-detail__cell--field">
+          {{ row.label }}
+        </div>
+
+        <div class="admin-category-detail__cell">
+          <ng-container *ngIf="row.type === 'image'; else currentTextValue">
+            <img
+              class="admin-category-detail__thumb"
+              *ngIf="row.currentImageUrl; else currentEmptyImage"
+              [src]="row.currentImageUrl"
+              alt="áº¢nh hiá»‡n táº¡i"
+              (error)="handleImageError($event)"
+            />
+
+            <ng-template #currentEmptyImage>
+              <span class="admin-category-detail__image-empty">ChÆ°a cÃ³ áº£nh</span>
+            </ng-template>
+
+            <code *ngIf="row.currentImageUrl" [title]="row.currentImageUrl">
+              {{ row.currentValue }}
+            </code>
+          </ng-container>
+
+          <ng-template #currentTextValue>
+            {{ row.currentValue }}
+          </ng-template>
+        </div>
+
+        <div class="admin-category-detail__cell">
+          <ng-container *ngIf="row.type === 'image'; else pendingTextValue">
+            <img
+              class="admin-category-detail__thumb"
+              *ngIf="row.pendingImageUrl; else pendingEmptyImage"
+              [src]="row.pendingImageUrl"
+              alt="áº¢nh chá» duyá»‡t"
+              (error)="handleImageError($event)"
+            />
+
+            <ng-template #pendingEmptyImage>
+              <span class="admin-category-detail__image-empty">ChÆ°a cÃ³ áº£nh</span>
+            </ng-template>
+
+            <code *ngIf="row.pendingImageUrl" [title]="row.pendingImageUrl">
+              {{ row.pendingValue }}
+            </code>
+          </ng-container>
+
+          <ng-template #pendingTextValue>
+            {{ row.pendingValue }}
+          </ng-template>
+        </div>
+
+        <div class="admin-category-detail__cell admin-category-detail__cell--state">
+          <span
+            [class.admin-category-detail__state--changed]="row.changed"
+            [class.admin-category-detail__state--same]="!row.changed"
+          >
+            {{ row.changed ? 'ÄÃ£ thay Ä‘á»•i' : 'KhÃ´ng Ä‘á»•i' }}
+          </span>
+        </div>
+      </article>
+    </section>
+
+    <div class="admin-category-detail__error" *ngIf="errorMessage">
+      {{ errorMessage }}
+    </div>
+
+    <section class="admin-category-detail__reject" *ngIf="rejectMode">
+      <label>
+        LÃ½ do tá»« chá»‘i
+        <textarea
+          rows="4"
+          [value]="rejectReason"
+          [disabled]="submitting"
+          placeholder="Nháº­p lÃ½ do tá»« chá»‘i Ä‘á»ƒ ngÆ°á»i chá»‰nh sá»­a biáº¿t cáº§n sá»­a gÃ¬"
+          (input)="updateRejectReason($event)"
+        ></textarea>
+      </label>
+    </section>
+
+    <footer class="admin-category-detail__footer">
+      <p *ngIf="detail.parseError && detail.canCancelApprove">
+        Dá»¯ liá»‡u thay Ä‘á»•i khÃ´ng Ä‘á»c Ä‘Æ°á»£c. CÃ³ thá»ƒ há»§y trÃ¬nh duyá»‡t Ä‘á»ƒ backend xÃ³a dá»¯ liá»‡u lá»—i.
+      </p>
+
+      <div class="admin-category-detail__actions">
+        <button
+          type="button"
+          class="admin-category-detail__button admin-category-detail__button--secondary"
+          [disabled]="submitting"
+          (click)="close()"
+        >
+          ÄÃ³ng
+        </button>
+
+        <button
+          type="button"
+          class="admin-category-detail__button admin-category-detail__button--danger-soft"
+          *ngIf="detail.canApproveReject && !rejectMode"
+          [disabled]="submitting"
+          (click)="startReject()"
+        >
+          Tá»« chá»‘i
+        </button>
+
+        <button
+          type="button"
+          class="admin-category-detail__button admin-category-detail__button--secondary"
+          *ngIf="rejectMode"
+          [disabled]="submitting"
+          (click)="cancelReject()"
+        >
+          Há»§y tá»« chá»‘i
+        </button>
+
+        <button
+          type="button"
+          class="admin-category-detail__button admin-category-detail__button--danger-soft"
+          *ngIf="detail.canApproveReject && rejectMode"
+          [disabled]="submitting"
+          (click)="rejectPendingReview()"
+        >
+          {{ submitting ? 'Äang tá»« chá»‘i...' : 'XÃ¡c nháº­n tá»« chá»‘i' }}
+        </button>
+
+        <button
+          type="button"
+          class="admin-category-detail__button admin-category-detail__button--secondary"
+          *ngIf="detail.canCancelApprove"
+          [disabled]="submitting"
+          (click)="cancelApprovePendingReview()"
+        >
+          {{ submitting ? 'Äang há»§y...' : 'Há»§y trÃ¬nh duyá»‡t' }}
+        </button>
+
+        <button
+          type="button"
+          class="admin-category-detail__button admin-category-detail__button--primary"
+          *ngIf="detail.canApproveReject && !rejectMode"
+          [disabled]="submitting"
+          (click)="approvePendingReview()"
+        >
+          {{ submitting ? 'Äang duyá»‡t...' : 'Duyá»‡t' }}
+        </button>
+      </div>
+    </footer>
+  </aside>
+</ng-container>

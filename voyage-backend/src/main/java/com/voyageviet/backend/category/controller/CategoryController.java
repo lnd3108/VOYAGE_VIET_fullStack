@@ -1,6 +1,6 @@
 package com.voyageviet.backend.category.controller;
 
-import com.voyageviet.backend.category.dto.CategoryResponse;
+import com.voyageviet.backend.category.dto.response.CategoryResponse;
 import com.voyageviet.backend.category.service.CategoryService;
 import com.voyageviet.backend.common.response.ApiResponse;
 import lombok.RequiredArgsConstructor;

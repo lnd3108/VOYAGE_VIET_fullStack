@@ -499,7 +499,7 @@ File audit này đã được viết lại theo hướng rút gọn, chỉ giữ
   - TP. Hồ Chí Minh
 - Nếu edit/draft có departure khác 3 option, thêm option tạm `Khác: ...`.
 - Multi-select điểm đến ở UI:
-  - hiển thị nhiều điểm đến bằng dấu ` - `
+  - hiển thị nhiều điểm đến bằng dấu `-`
   - điểm đầu tiên dùng làm `destinationId` chính
   - chưa gửi `destinationIds` vì backend chưa hỗ trợ
 - Media picker trong Tour Form:
@@ -759,7 +759,6 @@ Các warning này là warning budget hiện hữu của dự án:
 - Các build log trung gian bị lỗi tạm thời nhưng đã fix.
 - Các prompt/ghi chú không còn phản ánh trạng thái cuối.
 
-
 ## Cập Nhật: Tối Ưu Code Admin Categories Sau Khi Dùng AG Grid
 
 Thời gian cập nhật: 2026-06-08
@@ -816,7 +815,6 @@ Thời gian cập nhật: 2026-06-08
 - Cần chạy lại:
   - `npx ng build --configuration development`
   - `npm run build`
-
 
 ## Cập Nhật: Admin Categories Theo Workflow Payment Hub
 
@@ -907,7 +905,6 @@ Thời gian cập nhật: 2026-06-08 18:45:36 +07:00
 - `newData` chỉ là dữ liệu thay đổi chờ duyệt; frontend public không cần biết `newData`.
 - Nếu DB/backend chưa chạy migration cho `IS_DISPLAY`, `REJECT_REASON`, workflow status hoặc `NEW_DATA`, API có thể lỗi schema/runtime.
 
-
 ## Cập Nhật: Bước 5 Admin Categories - Badge Dữ Liệu Thay Đổi Chờ Duyệt
 
 Thời gian cập nhật: 2026-06-08 16:18:04 +07:00
@@ -997,7 +994,6 @@ Thời gian cập nhật: 2026-06-08 16:18:04 +07:00
 - Tối ưu chỉ dọn code lặp và code dư, không đổi payload/backend contract.
 - Không thay đổi cách AG Grid nhận `rowData`, `columnDefs` và `context`.
 - Không đổi logic reorder hiện có; frontend vẫn swap/update hai danh mục liền kề.
-
 
 ## Cập Nhật: Tối Ưu Render Form Và Danh Sách Admin Categories
 
@@ -1164,6 +1160,7 @@ Thời gian cập nhật: 2026-06-09 09:51:53 +07:00
 ## 2026-06-09 10:48:07 +07:00 - Bước 7: Admin Categories pending newData review
 
 ### File đã sửa
+
 - `src/app/core/models/category.model.ts`
 - `src/app/pages/admin/categories/categories.ts`
 - `src/app/pages/admin/categories/categories.html`
@@ -1173,6 +1170,7 @@ Thời gian cập nhật: 2026-06-09 09:51:53 +07:00
 - `VOYAGE_ADMIN_AUDIT_REPORT.md`
 
 ### Đầu việc đã làm
+
 - Thêm kiểu `CategoryNewData` để mô tả dữ liệu thay đổi đang nằm trong `newData`.
 - Thêm view model nội bộ cho panel xem dữ liệu chờ duyệt, không parse JSON trực tiếp trong template.
 - Parse `newData` an toàn: null/rỗng trả về trạng thái không có dữ liệu; JSON lỗi hiển thị error state `Không thể đọc dữ liệu thay đổi.` thay vì crash UI.
@@ -1185,22 +1183,26 @@ Thời gian cập nhật: 2026-06-09 09:51:53 +07:00
 - Giữ nguyên logic upload ảnh, chọn ảnh Media, CRUD, reorder, search/filter và các action workflow/display hiện có.
 
 ### Chức năng đã thêm/sửa
+
 - Admin có thể xem chi tiết dữ liệu thay đổi chờ duyệt trước khi duyệt/từ chối/hủy trình duyệt.
 - Category `REJECTED` còn `newData` vẫn xem được dữ liệu thay đổi.
 - Category `PENDING` có lỗi parse `newData` vẫn mở panel được và có thể hủy trình duyệt để backend clear dữ liệu lỗi.
 - Action menu được nhóm thêm `Xem thay đổi` ở đầu, không làm mất các action cũ: gửi duyệt, duyệt, từ chối, hủy trình duyệt, hiển thị public, ẩn public, sửa, xóa, chuyển lên, chuyển xuống.
 
 ### API đã dùng
+
 - `PATCH /api/admin/categories/{id}/approve`
 - `PATCH /api/admin/categories/{id}/reject`
 - `PATCH /api/admin/categories/{id}/cancel-approve`
 - Không thêm API mới, không đổi payload backend hiện có.
 
 ### Kết quả build/test
+
 - `npx ng build --configuration development`: pass.
 - `npm run build`: pass.
 
 ### Warning/lỗi còn lại
+
 - Production build còn warning budget cũ:
   - initial bundle vượt budget 500 kB, tổng 861.01 kB.
   - `src/app/layouts/public-layout/public-layout.scss` 9.99 kB.
@@ -1214,6 +1216,7 @@ Thời gian cập nhật: 2026-06-09 09:51:53 +07:00
 - Style panel mới đặt trong `categories-grid.scss`; file này không phát sinh warning budget trong build.
 
 ### Ghi chú kỹ thuật/rủi ro
+
 - Backend đang lưu `newData` dạng JSON string; frontend chỉ parse khi admin mở panel xem thay đổi.
 - Nếu `newData` lỗi parse, UI hiển thị error state thay vì throw lỗi Angular.
 - Reject giữ `newData` để admin vẫn xem/sửa tiếp theo workflow backend.
@@ -1223,6 +1226,7 @@ Thời gian cập nhật: 2026-06-09 09:51:53 +07:00
 ## 2026-06-09 12:15:11 +07:00 - Bước 8: Admin Categories batch workflow actions
 
 ### File đã sửa
+
 - `src/app/pages/admin/categories/categories.ts`
 - `src/app/pages/admin/categories/categories.html`
 - `src/app/pages/admin/categories/categories.scss`
@@ -1230,6 +1234,7 @@ Thời gian cập nhật: 2026-06-09 09:51:53 +07:00
 - `VOYAGE_ADMIN_AUDIT_REPORT.md`
 
 ### Đầu việc đã làm
+
 - Đọc lại `VOYAGE_ADMIN_AUDIT_REPORT.md` và `VOYAGE_FRONTEND_AUDIT_REPORT.md` trước khi sửa code.
 - Kiểm tra lại Admin Categories đang dùng AG Grid và có action menu từng dòng.
 - Xác nhận workflow status hiện có: `DRAFT`, `PENDING`, `APPROVED`, `REJECTED`, `CANCEL_APPROVE`.
@@ -1240,6 +1245,7 @@ Thời gian cập nhật: 2026-06-09 09:51:53 +07:00
 - Dùng `forkJoin` để gọi nhiều request single action vì backend chưa có batch endpoint riêng.
 
 ### Chức năng đã thêm/sửa
+
 - Sửa lỗi encoding tiếng Việt trong phần Bước 7 của `VOYAGE_ADMIN_AUDIT_REPORT.md`.
 - Admin Categories có checkbox chọn dòng và checkbox chọn tất cả của AG Grid.
 - Toolbar batch hiển thị số lượng đang chọn: `Đã chọn X danh mục`.
@@ -1257,6 +1263,7 @@ Thời gian cập nhật: 2026-06-09 09:51:53 +07:00
 - Giữ nguyên single-row action menu, panel `Xem thay đổi`, create/edit, upload/chọn ảnh Media, search/filter và reorder.
 
 ### API đã dùng
+
 - `PATCH /api/admin/categories/{id}/submit`
 - `PATCH /api/admin/categories/{id}/approve`
 - `PATCH /api/admin/categories/{id}/reject`
@@ -1266,11 +1273,13 @@ Thời gian cập nhật: 2026-06-09 09:51:53 +07:00
 - Không dùng `/status` cho display.
 
 ### Kết quả build/test
+
 - `npx ng build --configuration development`: pass.
 - `npm run build`: pass.
 - Chưa test thủ công trên browser trong phiên này.
 
 ### Warning/lỗi còn lại
+
 - Production build còn warning budget mềm hiện hữu:
   - initial bundle vượt budget 500 kB, tổng 861.01 kB.
   - `src/app/pages/admin/categories/categories-media.scss`: 9.38 kB.
@@ -1284,6 +1293,7 @@ Thời gian cập nhật: 2026-06-09 09:51:53 +07:00
 - Không có lỗi compile.
 
 ### Ghi chú kỹ thuật/rủi ro
+
 - Hiện dùng nhiều request single action vì backend chưa có batch endpoint riêng.
 - Nếu cần tối ưu hiệu năng/số request, backend có thể bổ sung batch endpoint sau.
 - Batch action chỉ xử lý các dòng hợp lệ theo workflow hiện tại; dòng không hợp lệ bị bỏ qua sau confirm.
@@ -1293,6 +1303,7 @@ Thời gian cập nhật: 2026-06-09 09:51:53 +07:00
 ## 2026-06-09 12:24:52 +07:00 - Bước 9: Admin Categories batch workflow API thật
 
 ### File đã sửa/tạo mới
+
 - `voyage-backend/src/main/java/com/voyageviet/backend/category/controller/AdminCategoryController.java`
 - `voyage-backend/src/main/java/com/voyageviet/backend/category/service/CategoryService.java`
 - `voyage-backend/src/main/java/com/voyageviet/backend/category/dto/CategoryBatchRequest.java`
@@ -1307,6 +1318,7 @@ Thời gian cập nhật: 2026-06-09 09:51:53 +07:00
 - `voyage-frontend/VOYAGE_ADMIN_AUDIT_REPORT.md`
 
 ### DTO đã thêm
+
 - `CategoryBatchRequest`: danh sách `ids`.
 - `CategoryBatchRejectRequest`: danh sách `ids` và `reason` optional.
 - `CategoryBatchDisplayRequest`: danh sách `ids` và `isDisplay`.
@@ -1315,6 +1327,7 @@ Thời gian cập nhật: 2026-06-09 09:51:53 +07:00
 - Frontend thêm type `CategoryBatchActionResponse` và `CategoryBatchActionItemResponse` tương ứng.
 
 ### API batch đã thêm
+
 - `PATCH /api/admin/categories/batch/submit`
 - `PATCH /api/admin/categories/batch/approve`
 - `PATCH /api/admin/categories/batch/reject`
@@ -1322,6 +1335,7 @@ Thời gian cập nhật: 2026-06-09 09:51:53 +07:00
 - `PATCH /api/admin/categories/batch/display`
 
 ### Frontend đã sửa
+
 - `AdminCategoryApiService` thêm methods:
   - `submitCategories(ids)`
   - `approveCategories(ids)`
@@ -1335,14 +1349,17 @@ Thời gian cập nhật: 2026-06-09 09:51:53 +07:00
 - Single action từng dòng vẫn giữ nguyên API single hiện tại.
 
 ### Kết quả build/test backend
+
 - `./mvnw.cmd clean test`: pass, tests run 1, failures 0, errors 0.
 - `./mvnw.cmd clean package -DskipTests`: pass.
 
 ### Kết quả build/test frontend
+
 - `npx ng build --configuration development`: pass.
 - `npm run build`: pass.
 
 ### Warning/lỗi còn lại
+
 - Backend test local còn warning ORA-02290 từ `DataSeeder` do constraint role/feature enum hardening chưa apply đầy đủ; test vẫn pass.
 - Backend còn warning Java/Lombok/Mockito hiện hữu về deprecated Unsafe/dynamic agent.
 - Frontend production build còn warning budget mềm hiện hữu:
@@ -1357,20 +1374,24 @@ Thời gian cập nhật: 2026-06-09 09:51:53 +07:00
 - Chưa test API batch thủ công bằng browser/HTTP trong phiên này.
 
 ### Ghi chú kỹ thuật/rủi ro
+
 - Single API vẫn giữ để không ảnh hưởng action từng dòng.
 - Batch API xử lý từng item độc lập và trả `successItems`/`failedItems`.
 - Backend vẫn validate workflow rule, không tin hoàn toàn vào frontend.
 - Nếu một item fail, toàn bộ batch không fail theo item đó.
 - Batch display dùng `/batch/display` với `isDisplay = 0|1`, không dùng `/status`.
 - Nếu cần tối ưu transaction tách biệt tuyệt đối từng item, có thể bổ sung item-level service propagation riêng ở bước sau.
+
 ## 2026-06-09 12:39:35 +07:00 - Bước 10: E2E Category workflow với backend thật
 
 ### File đã sửa trong bước 10
+
 - voyage-backend/src/main/java/com/voyageviet/backend/category/dto/CategoryResponse.java
 - voyage-backend/BACKEND_API_REPORT.md
 - voyage-frontend/VOYAGE_ADMIN_AUDIT_REPORT.md
 
 ### Test DB migration
+
 - Đã kiểm tra Oracle local schema VOYAGE.
 - Bảng CATEGORIES có đủ STATUS, IS_DISPLAY, NEW_DATA, REJECT_REASON, DISPLAY_ORDER.
 - Constraint status đúng workflow DRAFT/PENDING/APPROVED/REJECTED/CANCEL_APPROVE.
@@ -1378,47 +1399,56 @@ Thời gian cập nhật: 2026-06-09 09:51:53 +07:00
 - Không còn dữ liệu category ACTIVE/INACTIVE.
 
 ### Test backend single API
+
 - Test HTTP trên backend thật chạy từ source hiện tại ở http://localhost:18081/api.
 - Đã test create, submit, reject, submit lại, approve, display show/hide, patch tạo newData, cancel approve.
 - Kết quả đúng workflow: create DRAFT, approve chỉ từ PENDING, patch không apply dữ liệu thật, cancel clear newData và giữ dữ liệu thật.
 
 ### Test backend batch API
+
 - Đã test batch submit, approve, reject, cancel approve, display show/hide.
 - Đã test danh sách có item hợp lệ, item sai status, id không tồn tại và id trùng.
 - Response batch có total, successCount, failedCount, successItems, failedItems.
 - Một item fail không làm fail toàn bộ batch.
 
 ### Test public category API
+
 - GET /api/public/categories chỉ trả category APPROVED + isDisplay = 1.
 - Không trả category draft/pending/rejected/cancel approve/approved hidden.
 - Phát hiện và sửa lỗi public response vẫn có field newData/rejectReason null; sau fix hai field này không còn xuất hiện khi null.
 
 ### Test frontend Admin Categories
+
 - Frontend dev server local http://localhost:4200/admin/categories trả HTTP 200.
 - Không có Playwright/e2e dependency trong repo, nên không thể thao tác AG Grid trên browser bằng automation trong phiên này.
 - Đã xác nhận bằng build và HTTP E2E backend rằng các endpoint batch/single/frontend service đang dùng tồn tại và trả response đúng shape.
 - Các luồng cần kiểm tra thủ công còn lại trên browser: action menu từng dòng, panel xem thay đổi, batch toolbar UI, upload/chọn ảnh Media, search/filter/reorder.
 
 ### Lỗi phát hiện và cách sửa
+
 - Lỗi: public category response vẫn serialize newData và rejectReason với giá trị null.
 - Sửa: thêm JsonInclude NON_NULL cho newData và rejectReason trong CategoryResponse.
 - Không đổi payload admin, không đổi endpoint, không đổi workflow status.
 
 ### Kết quả build/test backend
+
 - ./mvnw.cmd clean test: pass.
 - ./mvnw.cmd clean package -DskipTests: pass.
 
 ### Kết quả build/test frontend
+
 - npx ng build --configuration development: pass.
 - npm run build: pass.
 
 ### Warning/lỗi còn lại
+
 - Backend còn warning DataSeeder ORA-02290 cho role/feature enum constraint cũ, không liên quan Category workflow.
 - Backend còn warning Java/Lombok/Mockito hiện hữu về deprecated Unsafe/dynamic agent.
 - Production build frontend còn warning budget mềm hiện hữu: initial bundle 861.01 kB; public-layout.scss, tours.scss, categories-media.scss, destinations.scss, tour-form.scss, home-hero.scss, categories.scss đều vượt warning budget 8 kB nhưng dưới hard budget.
 - Browser manual test chưa thực hiện được do không có công cụ automation trong phiên này.
 
 ### Ghi chú kỹ thuật/rủi ro
+
 - Batch endpoint đã được test với dữ liệu hợp lệ/không hợp lệ.
 - Public API chỉ trả approved + displayed.
 - Frontend Admin Categories đã được kiểm tra compile/build; browser interaction cần QA thủ công trên môi trường đang chạy.
@@ -1427,6 +1457,7 @@ Thời gian cập nhật: 2026-06-09 09:51:53 +07:00
 ## 2026-06-09 13:25:00 +07:00 - Bước 11: Phân quyền Category Workflow theo STAFF / ADMIN / SUPER_ADMIN
 
 ### File đã sửa
+
 - voyage-backend/src/main/java/com/voyageviet/backend/common/config/SecurityConfig.java
 - voyage-backend/BACKEND_API_REPORT.md
 - voyage-frontend/src/app/core/models/user.model.ts
@@ -1441,18 +1472,21 @@ Thời gian cập nhật: 2026-06-09 09:51:53 +07:00
 - voyage-frontend/VOYAGE_ADMIN_AUDIT_REPORT.md
 
 ### Role matrix đã áp dụng
+
 - STAFF: xem, tạo, sửa danh mục, gửi duyệt; không duyệt, không từ chối, không hủy trình duyệt, không bật/tắt public, không xóa, không batch workflow.
 - ADMIN: có quyền STAFF, thêm duyệt, từ chối, hủy trình duyệt, bật/tắt public và batch workflow; không xóa category theo rule hiện tại.
 - SUPER_ADMIN: toàn quyền, bao gồm xóa category.
 
 ### Backend endpoint đã enforce quyền
-- Đã cấu hình matcher riêng cho Admin Categories trong SecurityConfig trước matcher chung /api/admin/**.
+
+- Đã cấu hình matcher riêng cho Admin Categories trong SecurityConfig trước matcher chung /api/admin/\*\*.
 - STAFF/ADMIN/SUPER_ADMIN được GET/POST/PATCH/PUT category, submit và endpoint image của category.
 - ADMIN/SUPER_ADMIN được approve, reject, cancel approve, display và các batch workflow endpoints.
 - SUPER_ADMIN được delete category.
 - API trái quyền trả 403 từ backend, không phụ thuộc vào việc frontend có ẩn nút hay không.
 
 ### Frontend action menu/batch toolbar
+
 - Thêm RoleCode STAFF và AuthService.isStaff().
 - Admin guard cho STAFF chỉ vào được /admin/categories; các route admin khác bị chặn trên frontend.
 - Admin layout ẩn các menu admin khác với STAFF, giữ Categories.
@@ -1463,40 +1497,48 @@ Thời gian cập nhật: 2026-06-09 09:51:53 +07:00
 - API 401/403 hiển thị thông báo thân thiện, 403 dùng thông điệp: Bạn không có quyền thực hiện thao tác này.
 
 ### Kết quả test STAFF
+
 - GET list, create, patch update, submit đều pass với token STAFF.
 - Approve, reject, cancel approve, display, delete và các batch actions trái quyền đều trả 403.
 - Frontend build xác nhận các helper quyền compile đúng.
 
 ### Kết quả test ADMIN
+
 - Approve, display show/hide, batch submit và batch reject pass với token ADMIN.
 - Delete trả 403 theo rule chỉ SUPER_ADMIN được xóa.
 
 ### Kết quả test SUPER_ADMIN
+
 - Delete category test pass với token SUPER_ADMIN.
 - SUPER_ADMIN có đầy đủ action theo rule hiện tại.
 
 ### Kết quả build/test backend
+
 - ./mvnw.cmd clean test: pass.
 - ./mvnw.cmd clean package -DskipTests: pass.
 
 ### Kết quả build/test frontend
+
 - npx ng build --configuration development: pass.
 - npm run build: pass.
 
 ### Warning/lỗi còn lại
+
 - Production build còn warning budget mềm hiện hữu: initial bundle 863.73 kB vượt 500 kB; một số SCSS admin/public gần 10 kB nhưng dưới hard budget.
 - Backend còn warning hiện hữu OracleDialect/open-in-view/SpringDoc và Java/Lombok/Mockito deprecated Unsafe/dynamic agent.
 - Chưa chạy browser automation do repo không có Playwright/e2e dependency; đã test RBAC bằng HTTP với backend thật và build frontend.
 
 ### Ghi chú kỹ thuật/rủi ro
+
 - Backend là lớp chặn quyền chính; frontend chỉ hỗ trợ UX bằng cách ẩn action không hợp lệ.
-- Bước này dùng role-based security. Nếu sau này có permission code chi tiết CATEGORY_* thì có thể thay bằng permission-based.
+- Bước này dùng role-based security. Nếu sau này có permission code chi tiết CATEGORY\_\* thì có thể thay bằng permission-based.
 - Không mở quyền Admin Media cho STAFF trong bước này, nên UI upload/chọn Media vẫn được giữ theo quyền admin để tránh mở rộng phạm vi module Media.
 - Không đổi workflow status, IS_DISPLAY, payload API, single API, batch API hoặc public filtering.
 
 ## 2026-06-09 17:13:27 +07:00 - Bước 12: Quyền Media giới hạn cho STAFF trong Admin Categories
 
 ### File đã sửa
+
 - voyage-backend/src/main/java/com/voyageviet/backend/common/config/SecurityConfig.java
 - voyage-backend/src/main/java/com/voyageviet/backend/media/controller/AdminMediaController.java
 - voyage-backend/src/main/java/com/voyageviet/backend/media/service/MediaService.java
@@ -1508,6 +1550,7 @@ Thời gian cập nhật: 2026-06-09 09:51:53 +07:00
 - voyage-frontend/VOYAGE_ADMIN_AUDIT_REPORT.md
 
 ### Rule quyền Media cho STAFF
+
 - STAFF được upload ảnh Media với module categories khi đang tạo/sửa danh mục.
 - STAFF được list/chọn ảnh Media chỉ trong module categories.
 - STAFF không được list all Media, không được xem module tours/banners/avatars/destinations/general.
@@ -1515,12 +1558,14 @@ Thời gian cập nhật: 2026-06-09 09:51:53 +07:00
 - ADMIN/SUPER_ADMIN giữ quyền Media hiện tại.
 
 ### Backend đã enforce quyền
+
 - Mở matcher GET /api/admin/media và POST /api/admin/media/upload cho STAFF nhưng controller bắt buộc STAFF-only dùng module categories.
 - DELETE /api/admin/media/{id} vẫn không cho STAFF.
 - List Media cho STAFF dùng exact folder module categories, không dùng contains rộng.
 - API trái phạm vi trả 403.
 
 ### Frontend đã ẩn/hiện theo role
+
 - Form Admin Categories cho STAFF thấy nút Tải ảnh từ máy, Chọn từ Media và Cập nhật ảnh.
 - Media picker với STAFF chỉ hiển thị chip Categories qua visibleMediaModuleOptions, không tạo list trực tiếp trong template.
 - Khi STAFF mở picker, component ép selectedMediaModule về categories trước khi gọi API.
@@ -1528,6 +1573,7 @@ Thời gian cập nhật: 2026-06-09 09:51:53 +07:00
 - Sidebar Admin Media và route /admin/media vẫn chỉ dành cho ADMIN/SUPER_ADMIN theo guard/layout đã có từ bước 11.
 
 ### Kết quả test STAFF
+
 - GET /api/admin/media?module=categories: 200.
 - GET /api/admin/media không truyền module: 403.
 - GET /api/admin/media?module=tours: 403.
@@ -1539,28 +1585,34 @@ Thời gian cập nhật: 2026-06-09 09:51:53 +07:00
 - Patch category image endpoint: 200.
 
 ### Kết quả test ADMIN
+
 - GET /api/admin/media all: 200.
 - Upload module general bằng PNG 1x1: 200.
 - Admin Media full page không bị mở cho STAFF và không bị đổi logic cho ADMIN.
 
 ### Kết quả test SUPER_ADMIN
+
 - GET /api/admin/media all: 200.
 - SUPER_ADMIN giữ quyền Media đầy đủ theo role hiện tại.
 
 ### Kết quả build/test backend
+
 - ./mvnw.cmd clean test: pass.
 - ./mvnw.cmd clean package -DskipTests: pass.
 
 ### Kết quả build/test frontend
+
 - npx ng build --configuration development: pass.
 - npm run build: pass.
 
 ### Warning/lỗi còn lại
+
 - Production build còn warning budget mềm hiện hữu: initial bundle 863.73 kB; public-layout.scss, categories.scss, categories-media.scss, destinations.scss, tour-form.scss, tours.scss, home-hero.scss vượt warning budget 8 kB nhưng dưới hard budget.
 - Backend còn warning hiện hữu OracleDialect/open-in-view/SpringDoc và Java/Lombok/Mockito deprecated Unsafe/dynamic agent.
 - Không chạy browser automation do repo không có Playwright/e2e dependency; đã test quyền bằng HTTP với backend thật và build frontend.
 
 ### Ghi chú kỹ thuật/rủi ro
+
 - STAFF chỉ được dùng Media trong phạm vi category.
 - Admin Media full page vẫn chỉ dành cho ADMIN/SUPER_ADMIN.
 - Backend là lớp chặn quyền chính; frontend chỉ hỗ trợ UX.
@@ -1569,6 +1621,7 @@ Thời gian cập nhật: 2026-06-09 09:51:53 +07:00
 ## 2026-06-09 21:50:30 +07:00 - B??c 13: S?a encoding ti?ng Vi?t to?n repo
 
 ### File ?? s?a
+
 - .editorconfig
 - voyage-frontend/src/app/pages/admin/categories/categories.ts
 - voyage-frontend/src/app/pages/admin/categories/categories.html
@@ -1579,12 +1632,14 @@ Thời gian cập nhật: 2026-06-09 09:51:53 +07:00
 - voyage-backend/BACKEND_API_REPORT.md
 
 ### Ph?m vi ?? scan
+
 - To?n repo, b? qua .git/node_modules/dist/target/.angular/.idea.
 - Frontend src/app, layouts, admin pages, public pages, shared/core.
 - Backend src/main Java/resources, SQL/manual migration, report markdown.
 - B? pattern exact mojibake ph? bi?n v? broad scan ?? ki?m false positive.
 
 ### Nh?m l?i encoding ?? s?a
+
 - C?c label/action workflow Category: B??c, ??, ch? duy?t, Duy?t, T? ch?i, H?y tr?nh duy?t, hi?n th?, danh m?c.
 - C?c message UI Admin Categories: tr?ng th?i t?i d? li?u, l?i thao t?c, confirm dialog, batch toolbar, Media picker.
 - C?c message public profile: t?i h? s?, c?p nh?t h? s?, ?nh ??i di?n, vai tr? Kh?ch h?ng/Nh?n vi?n.
@@ -1592,23 +1647,27 @@ Thời gian cập nhật: 2026-06-09 09:51:53 +07:00
 - Backend TourStatsService: chu?i so s?nh t?n qu?c gia Vi?t Nam b? sai encoding.
 
 ### Nguy?n nh?n nghi ng?
+
 - M?t s? n?i dung ?? b? copy/ghi t? terminal ho?c editor Windows v?i encoding kh?ng ??ng nh?t.
 - Repo ?? c? c?u h?nh backend UTF-8; b? sung .editorconfig ? root ?? kh?a UTF-8/LF cho editor.
 - index.html ?? c? meta charset utf-8.
 - Kh?ng c? b?ng ch?ng c?n s?a d? li?u DB h?ng lo?t trong b??c n?y.
 
 ### K?t qu? build/test
+
 - npx ng build --configuration development: pass.
 - npm run build: pass.
 - ./mvnw.cmd clean test: pass.
 - ./mvnw.cmd clean package -DskipTests: pass.
 
 ### Warning/loi con lai
+
 - Production build c?n warning budget m?m hi?n h?u: initial bundle 863.30 kB; m?t s? SCSS g?n 10 kB nh?ng d??i hard budget.
 - Backend c?n warning hi?n h?u OracleDialect/open-in-view/SpringDoc v? Java/Lombok/Mockito deprecated Unsafe/dynamic agent.
 - Broad scan c?n false positive ti?ng Vi?t h?p l? nh? Ch?u ?u, B?c ?u, H? S? C? NH?N, S?N PH?M B?N ?? XEM.
 
 ### Ghi ch? k? thu?t/r?i ro
+
 - C?c file ?? ???c ghi l?i UTF-8 kh?ng BOM, m?t newline cu?i file.
 - Exact mojibake scan to?n repo tr? v? 0 hit sau khi s?a.
 - Kh?ng ??i nghi?p v?, API, workflow, quy?n STAFF/ADMIN/SUPER_ADMIN ho?c payload.
@@ -1619,6 +1678,7 @@ Thời gian cập nhật: 2026-06-09 09:51:53 +07:00
 Thời gian cập nhật: 2026-06-09 22:33 +07:00
 
 ### File đã sửa/tạo mới
+
 - src/app/core/models/destination.model.ts
 - src/app/core/api/admin-destination-api.service.ts
 - src/app/pages/admin/destinations/destinations.ts
@@ -1628,6 +1688,7 @@ Thời gian cập nhật: 2026-06-09 22:33 +07:00
 - src/app/pages/admin/tours/tour-form/tour-form.html
 
 ### Nội dung đã làm
+
 - Admin Destinations chuyển sang workflow DRAFT/PENDING/APPROVED/REJECTED/CANCEL_APPROVE.
 - Thêm model/API cho isDisplay, newData, rejectReason, single workflow action và batch workflow action.
 - UI list thêm workflow badge, display badge, pending data badge, checkbox chọn nhiều và batch toolbar.
@@ -1638,18 +1699,19 @@ Thời gian cập nhật: 2026-06-09 22:33 +07:00
 - Edit tour cũ giữ destination hiện tại nếu chưa duyệt/không còn hiển thị, thêm nhãn cảnh báo để tránh mất dữ liệu.
 
 ### Kết quả test
--
-px ng build --configuration development: PASS.
--
-pm run build: PASS, còn các warning budget sẵn có; destinations.scss còn warning nhưng dưới error threshold.
+
+- px ng build --configuration development: PASS.
+- pm run build: PASS, còn các warning budget sẵn có; destinations.scss còn warning nhưng dưới error threshold.
 
 ### Ghi chú kỹ thuật/rủi ro
+
 - Review panel giữ styling tối giản để không vượt Angular component style budget.
 - Public frontend không được sửa trong bước này; không ghi thay đổi admin vào VOYAGE_FRONTEND_AUDIT_REPORT.md.
 
 ## 2026-06-10 09:05:00 +07:00 - Bước 15: Đồng bộ Admin Destinations với backend workflow thật
 
 ### File admin/frontend đã kiểm tra/sửa
+
 - `src/app/core/models/destination.model.ts`
 - `src/app/core/api/admin-destination-api.service.ts`
 - `src/app/pages/admin/destinations/destinations.ts`
@@ -1658,6 +1720,7 @@ pm run build: PASS, còn các warning budget sẵn có; destinations.scss còn w
 - `VOYAGE_ADMIN_AUDIT_REPORT.md`
 
 ### Nội dung xác nhận
+
 - Admin Destination API service đang gọi đúng backend thật: `/submit`, `/approve`, `/reject`, `/cancel-approve`, `/display`, `/batch/...`.
 - Request body reject/display/batch khớp DTO backend: `reason`, `isDisplay`, `ids`.
 - Batch response parse đúng `total`, `successCount`, `failedCount`, `successItems`, `failedItems`.
@@ -1667,42 +1730,49 @@ pm run build: PASS, còn các warning budget sẵn có; destinations.scss còn w
 - Edit tour cũ vẫn giữ destination hiện tại không hợp lệ và hiển thị cảnh báo, không đổi payload tour.
 
 ### Sửa audit bước 14
+
 - Sửa lỗi text xuống dòng sai `isDisplay, newData, rejectReason` trong audit Step 14.
 - Sửa đoạn `parse newData` trong audit Step 14.
 - Không xóa lịch sử audit.
 
 ### Test frontend
+
 - `npx ng build --configuration development`: pass.
 - `npm run build`: pass.
 
 ### Warning/lỗi còn lại
+
 - Production build còn warning budget hiện hữu:
   - initial bundle 863.30 kB vượt warning budget 500 kB.
   - `public-layout.scss`, `destinations.scss`, `categories-media.scss`, `tour-form.scss`, `tours.scss`, `categories.scss`, `home-hero.scss` vượt style warning budget 8 kB nhưng build vẫn pass.
 - Không chạy browser manual automation vì repo không có Playwright/e2e dependency trong phiên này.
 
 ### Ghi chú kỹ thuật/rủi ro
+
 - Backend HTTP E2E đã xác nhận endpoint frontend đang gọi tồn tại và trả response shape đúng.
 - Không ghi thay đổi admin vào `VOYAGE_FRONTEND_AUDIT_REPORT.md`.
-
 
 ## Cap nhat 2026-06-10 09:26:50 +07:00 - Buoc 16: Browser QA Category/Destination/Tour Form
 
 ### Thoi gian cap nhat
+
 - 2026-06-10 09:26:50 +07.
 
 ### Pham vi browser QA
+
 - Chay browser that bang Google Chrome headless tren frontend dev server `http://localhost:4200` va backend that `http://localhost:8081/api`.
 - Kiem tra cac man: `/admin/categories`, `/admin/destinations`, `/admin/tours/new`, route chan `/admin/media` cho STAFF.
 - Kiem tra role: STAFF, ADMIN, SUPER_ADMIN.
 - Kiem tra console error, HTTP response >= 400, link sidebar/media, action visibility va exact mojibake pattern tren DOM.
 
 ### Tai khoan/role da test
+
 - ADMIN seed: `admin@voyageviet.local`.
 - SUPER_ADMIN seed: `superadmin@voyageviet.local`.
 - STAFF test tao qua API local voi tien to `staff-step16-*`, duoc set role STAFF bang SUPER_ADMIN.
 
 ### Ket qua test Admin Categories
+
 - ADMIN/SUPER_ADMIN load `/admin/categories` thanh cong, co Angular root, khong co console error, khong co API 4xx bat thuong.
 - STAFF load `/admin/categories` thanh cong.
 - STAFF khong thay link full Admin Media trong header Categories.
@@ -1710,6 +1780,7 @@ pm run build: PASS, còn các warning budget sẵn có; destinations.scss còn w
 - Batch toolbar Categories duoc an hoan toan voi STAFF khi khong co quyen batch.
 
 ### Ket qua test Admin Destinations
+
 - ADMIN/SUPER_ADMIN load `/admin/destinations` thanh cong, khong co console error, text workflow/filter hien dung: `Tat ca`, `Tat ca khu vuc` tren DOM.
 - STAFF load `/admin/destinations` thanh cong theo rule backend buoc 15.
 - STAFF thay list/create/edit/submit phu hop, khong thay approve/reject/cancel/display/delete/batch workflow.
@@ -1717,11 +1788,13 @@ pm run build: PASS, còn các warning budget sẵn có; destinations.scss còn w
 - Phat hien va fix loi tich hop: STAFF Destination page bi 403 khi goi `GET /api/admin/locations/provinces` de load tinh/thanh. Da mo read-only endpoint nay cho STAFF/ADMIN/SUPER_ADMIN o backend.
 
 ### Ket qua test Tour Form
+
 - ADMIN load `/admin/tours/new` thanh cong, khong co console error va khong co API 4xx bat thuong.
 - Tour Form van dung payload hien co, khong sua Tour API/payload.
 - Browser text scan khong phat hien exact mojibake tren Tour Form.
 
 ### Ket qua test Media permission
+
 - STAFF direct `/admin/media` bi guard chuyen ve `/`, sidebar/link Media khong hien trong admin layout.
 - HTTP RBAC that voi STAFF:
   - `GET /api/admin/media`: 403.
@@ -1731,11 +1804,13 @@ pm run build: PASS, còn các warning budget sẵn có; destinations.scss còn w
 - ADMIN/SUPER_ADMIN van thay link full Media theo role admin.
 
 ### Ket qua test encoding
+
 - Browser DOM scan tren admin Categories, Destinations, Tour Form khong con exact mojibake pattern lien quan: `cA-ring`, `BAE-deg`, `A-diaeresis-dstroke`, `cha-quote`, `hia-quote`, `danh-ma-quote`, `Ka-masc`, `replacement`, `T?t`, `Ch?`, `H?`.
 - Code scan cac file lien quan tra `NO_RELEVANT_MOJIBAKE_HITS`.
 - Da sua cac literal mojibake that con lai trong `destinations.ts`: status/region labels, fallback province/country strings, warning/error messages, regex normalize `Thanh pho/Tinh`.
 
 ### Loi phat hien va file da sua
+
 - `src/app/core/guards/admin.guard.ts`: cho STAFF vao `/admin/destinations` va redirect `/admin` ve Categories.
 - `src/app/layouts/admin-layout/admin-layout.html`: cho STAFF thay menu Destinations, van an Dashboard/Tours/Bookings/Users/Reviews/Media/Features/Audit Logs.
 - `src/app/pages/admin/destinations/destinations.html`: an link full Media va batch toolbar voi STAFF.
@@ -1744,16 +1819,278 @@ pm run build: PASS, còn các warning budget sẵn có; destinations.scss còn w
 - Backend fix lien quan duoc ghi trong `BACKEND_API_REPORT.md`: SecurityConfig mo `GET /api/admin/locations/provinces` cho STAFF.
 
 ### Ket qua build frontend
+
 - `npx ng build --configuration development`: PASS.
 - `npm run build`: PASS.
 
 ### Warning/loi con lai
+
 - Production build con warning budget hien huu:
   - initial bundle vuot 500 kB.
   - mot so SCSS vuot budget 8 kB: home hero, admin categories, admin destinations, categories media, public layout, tour form, tours.
 - Khi STAFF bi redirect ve public `/` tu `/admin/media`, public home co mot request wishlist tra 400 voi STAFF role; khong thuoc pham vi admin workflow buoc 16 va khong anh huong route admin da test.
 
 ### Ghi chu ky thuat/rui ro
+
 - Da test browser that bang Chrome headless/CDP tren backend/frontend dang chay that.
 - Khong doi workflow Category/Destination, khong doi Tour payload, khong doi DB schema, khong doi public route.
 - Upload anh tu file local khong thuc hien trong headless browser; quyen media duoc xac minh bang HTTP endpoint that va UI link/module visibility.
+
+---
+
+## Admin Categories - Tách component filter
+
+Thời gian cập nhật: 2026-06-10
+
+### File đã sửa/tạo mới
+
+- `src/app/pages/admin/categories/categories.ts`
+- `src/app/pages/admin/categories/categories.html`
+- `src/app/pages/admin/categories/components/category-filter/category-filter.ts`
+- `src/app/pages/admin/categories/components/category-filter/category-filter.html`
+- `src/app/pages/admin/categories/components/category-filter/category-filter.scss`
+
+### Đầu việc đã làm
+
+- Tách phần filter của màn Admin Categories thành component riêng.
+- Di chuyển UI tìm kiếm, dropdown Workflow và thống kê số lượng danh mục sang `AdminCategoryFilterComponent`.
+- Giữ logic filter chính ở parent `AdminCategories`.
+- Chuyển logic mở/đóng dropdown Workflow vào component filter.
+- Style khung filter theo hướng card trắng, border xám nhạt, bo góc và theme teal/green.
+
+### Chức năng đã thêm/sửa
+
+- Component filter nhận dữ liệu qua `@Input`.
+- Component filter bắn thay đổi lên parent qua `@Output`.
+- Search theo tên/slug giữ nguyên hành vi hiện tại.
+- Lọc Workflow giữ nguyên hành vi hiện tại.
+- Count danh mục giữ nguyên dữ liệu từ parent.
+
+### API
+
+- Không thay đổi API.
+- Không thay đổi payload.
+- Không thay đổi backend.
+
+### Build/Test
+
+- Cần chạy lại `npm run build`.
+- Nếu có test liên quan, chạy thêm `npm test -- --watch=false`.
+
+### Ghi chú kỹ thuật/rủi ro
+
+- Bước này chỉ tách filter, chưa chỉnh bảng AG Grid, action menu, bulk action, form, media picker hoặc pending review.
+- Style filter cũ trong `categories.scss` có thể dọn sau khi xác nhận không còn class nào dùng lại.
+
+---
+
+## Admin Categories - Dọn CSS theo component sau khi tách filter/table
+
+Thời gian cập nhật: 2026-06-10
+
+### File đã sửa/tạo mới
+
+- `src/app/pages/admin/categories/categories.ts`
+- `src/app/pages/admin/categories/categories.html`
+- `src/app/pages/admin/categories/categories.scss`
+- `src/app/pages/admin/categories/categories-media.scss`
+- `src/app/pages/admin/categories/components/category-table/category-table.ts`
+- `src/app/pages/admin/categories/components/category-table/category-table.html`
+- `src/app/pages/admin/categories/components/category-table/category-table.scss`
+- Xóa hoặc bỏ dùng `src/app/pages/admin/categories/categories-grid.scss`
+
+### Đầu việc đã làm
+
+- Chuyển CSS của filter về component `category-filter`.
+- Chuyển CSS của AG Grid/table, cell renderer, status pill và action menu về component `category-table`.
+- Chuyển reorder note vào `category-table`.
+- Dọn CSS filter cũ khỏi `categories.scss`.
+- Dọn CSS action/table cũ khỏi `categories-media.scss`.
+- Bỏ file style trung gian `categories-grid.scss` sau khi di chuyển các phần còn dùng.
+
+### Chức năng đã thêm/sửa
+
+- Không thay đổi logic filter.
+- Không thay đổi logic table.
+- Không thay đổi logic selection/sort.
+- Không thay đổi workflow/action menu.
+- Không thay đổi API.
+
+### API
+
+- Không thay đổi API.
+- Không thay đổi payload.
+- Không thay đổi backend.
+
+### Build/Test
+
+- Cần chạy `npm run build`.
+- Nếu có test liên quan, chạy thêm `npm test -- --watch=false`.
+
+### Ghi chú kỹ thuật/rủi ro
+
+- AG Grid và cell renderer có HTML được render động nên CSS trong `category-table.scss` dùng `:host ::ng-deep` để style được các class bên trong grid.
+- Pending review panel chưa tách component nên CSS của pending review tạm thời vẫn nằm trong `categories.scss`.
+
+---
+
+## Admin Categories - Tách component thao tác hàng loạt
+
+Thời gian cập nhật: 2026-06-10
+
+### File đã sửa/tạo mới
+
+- `src/app/pages/admin/categories/categories.html`
+- `src/app/pages/admin/categories/categories.ts`
+- `src/app/pages/admin/categories/categories.scss`
+- `src/app/pages/admin/categories/components/category-bulk-actions/category-bulk-actions.ts`
+- `src/app/pages/admin/categories/components/category-bulk-actions/category-bulk-actions.html`
+- `src/app/pages/admin/categories/components/category-bulk-actions/category-bulk-actions.scss`
+
+### Đầu việc đã làm
+
+- Tách phần thao tác hàng loạt của Admin Categories thành component riêng.
+- Di chuyển UI selected count, các nút batch workflow và form nhập lý do từ chối hàng loạt sang `AdminCategoryBulkActionsComponent`.
+- Parent `AdminCategories` vẫn giữ logic xử lý batch action, quyền, API và state.
+- Component bulk actions chỉ nhận dữ liệu qua `@Input` và emit thao tác qua `@Output`.
+
+### Chức năng đã thêm/sửa
+
+- Giữ nguyên thao tác Gửi duyệt, Duyệt, Từ chối, Hủy trình duyệt, Hiển thị public, Ẩn public và Bỏ chọn.
+- Giữ nguyên nhập lý do từ chối hàng loạt.
+- Không thay đổi logic workflow, selection hoặc API.
+
+### API
+
+- Không thay đổi API.
+- Không thay đổi payload.
+- Không thay đổi backend.
+
+### Build/Test
+
+- Cần chạy `npm run build`.
+- Nếu có test liên quan, chạy thêm `npm test -- --watch=false`.
+
+### Ghi chú kỹ thuật/rủi ro
+
+- CSS batch action đã chuyển khỏi `categories.scss` sang `category-bulk-actions.scss`.
+- `categories.ts` vẫn là container quản lý nghiệp vụ batch action.
+
+---
+
+## Admin Categories - Di chuyển action cell renderer vào component riêng
+
+Thời gian cập nhật: 2026-06-10
+
+### File đã sửa/tạo mới
+
+- `src/app/pages/admin/categories/categories.ts`
+- `src/app/pages/admin/categories/components/category-table/category-table.scss`
+- `src/app/pages/admin/categories/components/category-action-cell/category-action-cell-renderer.component.ts`
+- `src/app/pages/admin/categories/components/category-action-cell/category-action-cell-renderer.component.html`
+- `src/app/pages/admin/categories/components/category-action-cell/category-action-cell-renderer.component.scss`
+- Xóa hoặc bỏ dùng `src/app/pages/admin/categories/category-action-cell-renderer.component.ts`
+
+### Đầu việc đã làm
+
+- Di chuyển `CategoryActionCellRendererComponent` vào thư mục `components/category-action-cell`.
+- Tách inline template của action cell ra file HTML riêng.
+- Tách CSS action menu/action item ra file SCSS riêng của component.
+- Cập nhật lại import trong `categories.ts`.
+
+### Chức năng đã thêm/sửa
+
+- Giữ nguyên menu hành động từng dòng.
+- Giữ nguyên các thao tác Xem thay đổi, Lên, Xuống, Sửa, Gửi duyệt, Duyệt, Từ chối, Hủy trình duyệt, Hiển thị/Ẩn public và Xóa.
+- Không thay đổi logic workflow, quyền, API hoặc AG Grid column config.
+
+### API
+
+- Không thay đổi API.
+- Không thay đổi payload.
+- Không thay đổi backend.
+
+### Build/Test
+
+- Cần chạy `npm run build`.
+- Nếu có test liên quan, chạy thêm `npm test -- --watch=false`.
+
+### Ghi chú kỹ thuật/rủi ro
+
+- `category-table.scss` vẫn cần giữ phần overflow/z-index của AG Grid để dropdown action không bị cắt.
+- CSS giao diện của action cell đã chuyển sang `category-action-cell-renderer.component.scss`.
+
+
+
+## 2026-06-10 11:21:42 +07:00 - Admin Categories component ownership refactor
+
+### Files changed/created
+- Updated `src/app/pages/admin/categories/categories.ts`
+- Updated `src/app/pages/admin/categories/categories.html`
+- Created `src/app/pages/admin/categories/category-utils.ts`
+- Updated `src/app/pages/admin/categories/components/category-form/category-form.ts`
+- Updated `src/app/pages/admin/categories/components/category-form/category-form.html`
+- Updated `src/app/pages/admin/categories/components/category-bulk-actions/category-bulk-actions.ts`
+- Updated `src/app/pages/admin/categories/components/category-bulk-actions/category-bulk-actions.html`
+- Updated `src/app/pages/admin/categories/components/category-detail-panel/category-detail-panel.ts`
+- Updated `src/app/pages/admin/categories/components/category-detail-panel/category-detail-panel.html`
+- Updated `src/app/pages/admin/categories/components/category-action-cell/category-action-cell.ts`
+- Updated `src/app/pages/admin/categories/components/category-table/category-table.ts`
+- Updated `src/app/pages/admin/categories/components/category-table/category-table.html`
+- Created `src/app/pages/admin/categories/components/category-table/category-table-columns.ts`
+
+### Work completed
+- Reduced `categories.ts` to a container for list load/reload, basic filter state, form/detail open-close, child completion handling, selected rows and reorder.
+- Moved reusable category parsing/normalization/label/error/image helpers into `category-utils.ts`.
+- Moved AG Grid theme/defaultColDef/rowSelection/getRowId/overlays/columnDefs/gridApi/selection/sort state into `category-table`.
+- Moved row action workflow/delete/display permissions and service calls into `category-action-cell`.
+- Moved bulk submit/approve/reject/cancel-approve/show/hide eligibility, confirmation, API calls and UI state into `category-bulk-actions`.
+- Moved pending review view-model parsing from `newData`, reject state and approve/reject/cancel-approve API calls into `category-detail-panel`.
+- Moved Reactive Form creation/editing, slug generation, snapshot comparison, upload, media picker, clear image and image-only update into `category-form`.
+
+### Functions moved from parent to child components
+- `category-form`: create/update category, patch edit payload, update image only, upload Media image, select Media image, clear image, load Media, media module filtering, image error fallback.
+- `category-bulk-actions`: batch submit, approve, reject, cancel approve, public show/hide, batch eligibility checks, reject reason mode.
+- `category-detail-panel`: build pending review comparison rows from `category.newData`, approve/reject/cancel approve pending review, reject reason mode.
+- `category-action-cell`: per-row submit, approve, reject, cancel approve, public display toggle, delete and permission checks.
+- `category-table`: AG Grid config/state, row view-model build, columnDefs, selected category emission and sort-block detection.
+
+### APIs used
+- `GET /admin/categories`
+- `POST /admin/categories`
+- `PATCH /admin/categories/{id}`
+- `PUT /admin/categories/{id}` through reorder swap helper
+- `PATCH /admin/categories/{id}/image`
+- `PATCH /admin/categories/{id}/submit`
+- `PATCH /admin/categories/{id}/approve`
+- `PATCH /admin/categories/{id}/reject`
+- `PATCH /admin/categories/{id}/cancel-approve`
+- `PATCH /admin/categories/{id}/display`
+- `DELETE /admin/categories/{id}`
+- `PATCH /admin/categories/batch/submit`
+- `PATCH /admin/categories/batch/approve`
+- `PATCH /admin/categories/batch/reject`
+- `PATCH /admin/categories/batch/cancel-approve`
+- `PATCH /admin/categories/batch/display`
+- `GET /admin/media`
+- `POST /admin/media/upload`
+
+### Build/test result
+- `npm run build`: passed.
+- No Angular NG8113 or unused-import build errors after refactor.
+
+### Remaining warnings/errors
+- Existing Angular budget warnings remain:
+  - Initial bundle exceeds 500 kB budget by 363.34 kB.
+  - `public-layout.scss` exceeds 8 kB budget by 1.99 kB.
+  - `tour-form.scss` exceeds 8 kB budget by 1.99 kB.
+  - `category-form.scss` exceeds 8 kB budget by 400 bytes.
+  - `home-hero.scss` exceeds 8 kB budget by 1.88 kB.
+  - `tours.scss` exceeds 8 kB budget by 1.98 kB.
+  - `destinations.scss` exceeds 8 kB budget by 1.93 kB.
+
+### Technical notes / risks
+- Row action menu state is now owned by each action-cell instance; outside click closes open menus.
+- Parent still owns reorder because it depends on the currently filtered/sorted list and swaps two category orders.
+- Form emits `saved` and parent reloads the list to preserve backend workflow/newData behavior after create, edit and image-only update.
+- Manual runtime verification in browser is still recommended for permission-sensitive flows: STAFF create/edit/upload/submit/reorder and ADMIN/SUPER_ADMIN approve/reject/display/delete paths.

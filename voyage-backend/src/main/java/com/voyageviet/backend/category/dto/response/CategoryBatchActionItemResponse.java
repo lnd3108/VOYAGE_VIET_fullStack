@@ -1,4 +1,4 @@
-package com.voyageviet.backend.category.dto;
+package com.voyageviet.backend.category.dto.response;
 
 public record CategoryBatchActionItemResponse(
         Long id,

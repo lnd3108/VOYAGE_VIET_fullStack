@@ -1,0 +1,25 @@
+﻿<section class="admin-category-table">
+  <div class="admin-category-table__reorder-note" *ngIf="showReorderNote">
+    {{ reorderNoteText }}
+  </div>
+
+  <ag-grid-angular
+    class="admin-category-table__grid admin-categories__grid"
+    [theme]="theme"
+    [loadThemeGoogleFonts]="loadThemeGoogleFonts"
+    [rowData]="rowData"
+    [columnDefs]="columnDefs"
+    [defaultColDef]="defaultColDef"
+    [rowSelection]="rowSelection"
+    [getRowId]="getRowId"
+    [context]="context"
+    [rowHeight]="rowHeight"
+    [domLayout]="domLayout"
+    [suppressCellFocus]="suppressCellFocus"
+    [overlayLoadingTemplate]="overlayLoadingTemplate"
+    [overlayNoRowsTemplate]="overlayNoRowsTemplate"
+    (gridReady)="handleGridReady($event)"
+    (sortChanged)="handleSortChanged($event)"
+    (selectionChanged)="handleSelectionChanged($event)"
+  ></ag-grid-angular>
+</section>

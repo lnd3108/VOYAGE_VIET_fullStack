@@ -1,4 +1,4 @@
-package com.voyageviet.backend.category.dto;
+package com.voyageviet.backend.category.dto.request;
 
 import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.NotNull;

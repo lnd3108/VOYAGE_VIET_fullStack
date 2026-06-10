@@ -1,4 +1,4 @@
-package com.voyageviet.backend.category.dto;
+package com.voyageviet.backend.category.dto.response;
 
 import com.voyageviet.backend.category.entity.CategoryStatus;
 

@@ -1,6 +1,8 @@
 package com.voyageviet.backend.category.controller;
 
-import com.voyageviet.backend.category.dto.*;
+import com.voyageviet.backend.category.dto.request.*;
+import com.voyageviet.backend.category.dto.response.CategoryBatchActionResponse;
+import com.voyageviet.backend.category.dto.response.CategoryResponse;
 import com.voyageviet.backend.category.service.CategoryService;
 import com.voyageviet.backend.common.response.ApiResponse;
 import com.voyageviet.backend.media.dto.ImageUrlUpdateRequest;

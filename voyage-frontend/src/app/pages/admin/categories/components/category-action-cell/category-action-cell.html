@@ -1,0 +1,144 @@
+<div class="admin-categories__action-cell" *ngIf="row">
+  <div
+    class="admin-categories__action-wrap"
+    (mousedown)="stopGridEvent($event)"
+    (click)="stopGridEvent($event)"
+  >
+    <button
+      type="button"
+      class="admin-categories__action-trigger"
+      aria-label="Mở menu thao tác danh mục"
+      [attr.aria-expanded]="isOpen"
+      [disabled]="!row.category.id"
+      (mousedown)="stopGridEvent($event)"
+      (click)="toggleMenu($event)"
+    >
+      <tui-icon icon="@tui.more-vertical" />
+    </button>
+
+    <div
+      class="admin-categories__action-menu"
+      *ngIf="isOpen"
+      [class.admin-categories__action-menu--top]="isMenuTop"
+      (mousedown)="stopGridEvent($event)"
+      (click)="stopGridEvent($event)"
+    >
+      <button
+        type="button"
+        class="admin-categories__action-item admin-categories__action-item--pending"
+        *ngIf="canViewChanges"
+        [disabled]="workflowBusy"
+        (click)="runAction($event, viewChanges)"
+      >
+        <tui-icon class="admin-categories__action-item-icon" icon="@tui.eye" />
+        <span>Xem thay đổi</span>
+      </button>
+
+      <div class="admin-categories__action-separator" *ngIf="canViewChanges"></div>
+
+      <button
+        type="button"
+        class="admin-categories__action-item admin-categories__action-item--order"
+        *ngIf="canMoveUp"
+        [disabled]="isReorderBusy"
+        (click)="runAction($event, moveUp)"
+      >
+        <tui-icon class="admin-categories__action-item-icon" icon="@tui.arrow-up" />
+        <span>Lên</span>
+      </button>
+
+      <button
+        type="button"
+        class="admin-categories__action-item admin-categories__action-item--order"
+        *ngIf="canMoveDown"
+        [disabled]="isReorderBusy"
+        (click)="runAction($event, moveDown)"
+      >
+        <tui-icon class="admin-categories__action-item-icon" icon="@tui.arrow-down" />
+        <span>Xuống</span>
+      </button>
+
+      <div class="admin-categories__action-separator" *ngIf="canMoveUp || canMoveDown"></div>
+
+      <button
+        type="button"
+        class="admin-categories__action-item admin-categories__action-item--edit"
+        *ngIf="canEdit"
+        (click)="runAction($event, edit)"
+      >
+        <tui-icon class="admin-categories__action-item-icon" icon="@tui.pencil" />
+        <span>Sửa</span>
+      </button>
+
+      <div class="admin-categories__action-separator"></div>
+
+      <button
+        type="button"
+        class="admin-categories__action-item admin-categories__action-item--edit"
+        *ngIf="canSubmit"
+        [disabled]="workflowBusy"
+        (click)="runAction($event, submit)"
+      >
+        <tui-icon class="admin-categories__action-item-icon" icon="@tui.arrow-up" />
+        <span>{{ workflowBusy ? 'Đang gửi...' : 'Gửi duyệt' }}</span>
+      </button>
+
+      <button
+        type="button"
+        class="admin-categories__action-item admin-categories__action-item--edit"
+        *ngIf="canApprove"
+        [disabled]="workflowBusy"
+        (click)="runAction($event, approve)"
+      >
+        <tui-icon class="admin-categories__action-item-icon" icon="@tui.eye" />
+        <span>{{ workflowBusy ? 'Đang duyệt...' : 'Duyệt' }}</span>
+      </button>
+
+      <button
+        type="button"
+        class="admin-categories__action-item admin-categories__action-item--status"
+        *ngIf="canReject"
+        [disabled]="workflowBusy"
+        (click)="runAction($event, reject)"
+      >
+        <tui-icon class="admin-categories__action-item-icon" icon="@tui.eye-off" />
+        <span>{{ workflowBusy ? 'Đang từ chối...' : 'Từ chối' }}</span>
+      </button>
+
+      <button
+        type="button"
+        class="admin-categories__action-item admin-categories__action-item--status"
+        *ngIf="canCancelApprove"
+        [disabled]="workflowBusy"
+        (click)="runAction($event, cancelApprove)"
+      >
+        <tui-icon class="admin-categories__action-item-icon" icon="@tui.arrow-down" />
+        <span>{{ workflowBusy ? 'Đang hủy...' : 'Hủy trình duyệt' }}</span>
+      </button>
+
+      <button
+        type="button"
+        class="admin-categories__action-item admin-categories__action-item--edit"
+        *ngIf="canToggleDisplay"
+        [disabled]="displayBusy"
+        (click)="runAction($event, toggleDisplay)"
+      >
+        <tui-icon class="admin-categories__action-item-icon" [icon]="displayIcon" />
+        <span>{{ displayBusy ? 'Đang cập nhật...' : displayLabel }}</span>
+      </button>
+
+      <div class="admin-categories__action-separator" *ngIf="hasWorkflowActions"></div>
+
+      <button
+        type="button"
+        class="admin-categories__action-item admin-categories__action-item--danger"
+        *ngIf="canDelete"
+        [disabled]="deleteBusy"
+        (click)="runAction($event, remove)"
+      >
+        <tui-icon class="admin-categories__action-item-icon" icon="@tui.trash-2" />
+        <span>{{ deleteBusy ? 'Đang xóa...' : 'Xóa' }}</span>
+      </button>
+    </div>
+  </div>
+</div>

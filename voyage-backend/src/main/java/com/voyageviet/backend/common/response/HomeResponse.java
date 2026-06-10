@@ -1,6 +1,6 @@
 package com.voyageviet.backend.common.response;
 
-import com.voyageviet.backend.category.dto.CategoryResponse;
+import com.voyageviet.backend.category.dto.response.CategoryResponse;
 import com.voyageviet.backend.destination.dto.DestinationResponse;
 import com.voyageviet.backend.tour.dto.TourCardResponse;
 

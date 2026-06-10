@@ -1,0 +1,51 @@
+<section class="admin-category-filter">
+  <label class="admin-category-filter__field">
+    <span class="admin-category-filter__label">Tìm kiếm</span>
+
+    <input
+      type="search"
+      class="admin-category-filter__input"
+      [value]="keyword"
+      [disabled]="disabled"
+      placeholder="Tìm theo tên hoặc slug"
+      (input)="updateKeyword($event)"
+    />
+  </label>
+
+  <label class="admin-category-filter__field">
+    <span class="admin-category-filter__label">Trạng Thái</span>
+
+    <div
+      class="admin-category-filter__select"
+      [class.admin-category-filter__select--open]="isStatusOpen"
+    >
+      <button
+        type="button"
+        class="admin-category-filter__select-trigger"
+        [disabled]="disabled"
+        (click)="toggleStatusSelect($event)"
+      >
+        <span>{{ selectedStatusLabel }}</span>
+
+        <tui-icon class="admin-category-filter__select-icon" icon="@tui.chevron-down" />
+      </button>
+
+      <div class="admin-category-filter__select-menu" *ngIf="isStatusOpen">
+        <button
+          type="button"
+          class="admin-category-filter__select-option"
+          *ngFor="let option of statusFilters"
+          [class.admin-category-filter__select-option--selected]="statusFilter === option.value"
+          (click)="selectStatus(option.value)"
+        >
+          {{ option.label }}
+        </button>
+      </div>
+    </div>
+  </label>
+
+  <div class="admin-category-filter__summary">
+    <strong>{{ filteredCount }}</strong>
+    <span>/ {{ totalCount }} danh mục</span>
+  </div>
+</section>

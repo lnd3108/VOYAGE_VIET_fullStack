@@ -1,4 +1,4 @@
-package com.voyageviet.backend.category.dto;
+package com.voyageviet.backend.category.dto.request;
 
 import com.voyageviet.backend.category.entity.CategoryStatus;
 import jakarta.validation.constraints.Max;

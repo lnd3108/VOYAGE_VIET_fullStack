@@ -1,0 +1,114 @@
+﻿<section class="admin-category-bulk-actions">
+  <div class="admin-category-bulk-actions__summary">
+    <strong>Đã chọn {{ selectedCount }} danh mục</strong>
+    <span>Thao tác hàng loạt chỉ xử lý các danh mục hợp lệ theo workflow hiện tại.</span>
+  </div>
+
+  <div class="admin-category-bulk-actions__actions">
+    <button
+      type="button"
+      class="admin-category-bulk-actions__button admin-category-bulk-actions__button--secondary"
+      *ngIf="canSubmit"
+      [disabled]="processing"
+      (click)="runBatchSubmit()"
+    >
+      Gửi duyệt
+    </button>
+
+    <button
+      type="button"
+      class="admin-category-bulk-actions__button admin-category-bulk-actions__button--secondary"
+      *ngIf="canApprove"
+      [disabled]="processing"
+      (click)="runBatchApprove()"
+    >
+      Duyệt
+    </button>
+
+    <button
+      type="button"
+      class="admin-category-bulk-actions__button admin-category-bulk-actions__button--danger-soft"
+      *ngIf="canReject"
+      [disabled]="processing"
+      (click)="startBatchReject()"
+    >
+      Từ chối
+    </button>
+
+    <button
+      type="button"
+      class="admin-category-bulk-actions__button admin-category-bulk-actions__button--secondary"
+      *ngIf="canCancelApprove"
+      [disabled]="processing"
+      (click)="runBatchCancelApprove()"
+    >
+      Hủy trình duyệt
+    </button>
+
+    <button
+      type="button"
+      class="admin-category-bulk-actions__button admin-category-bulk-actions__button--secondary"
+      *ngIf="canShow"
+      [disabled]="processing"
+      (click)="runBatchShowPublic()"
+    >
+      Hiển thị public
+    </button>
+
+    <button
+      type="button"
+      class="admin-category-bulk-actions__button admin-category-bulk-actions__button--secondary"
+      *ngIf="canHide"
+      [disabled]="processing"
+      (click)="runBatchHidePublic()"
+    >
+      Ẩn public
+    </button>
+
+    <button
+      type="button"
+      class="admin-category-bulk-actions__button admin-category-bulk-actions__button--secondary"
+      [disabled]="processing"
+      (click)="clearSelection()"
+    >
+      Bỏ chọn
+    </button>
+  </div>
+
+  <section class="admin-category-bulk-actions__reject" *ngIf="rejectMode">
+    <label>
+      Lý do từ chối
+      <textarea
+        rows="3"
+        [value]="rejectReason"
+        [disabled]="processing"
+        placeholder="Nhập lý do từ chối để người chỉnh sửa biết cần sửa gì"
+        (input)="updateRejectReason($event)"
+      ></textarea>
+    </label>
+
+    <div class="admin-category-bulk-actions__reject-actions">
+      <button
+        type="button"
+        class="admin-category-bulk-actions__button admin-category-bulk-actions__button--secondary"
+        [disabled]="processing"
+        (click)="cancelBatchReject()"
+      >
+        Bỏ từ chối
+      </button>
+
+      <button
+        type="button"
+        class="admin-category-bulk-actions__button admin-category-bulk-actions__button--danger-soft"
+        [disabled]="processing"
+        (click)="confirmBatchReject()"
+      >
+        {{ processing ? 'Đang từ chối...' : 'Xác nhận từ chối' }}
+      </button>
+    </div>
+  </section>
+
+  <p class="admin-category-bulk-actions__error" *ngIf="errorMessage">
+    {{ errorMessage }}
+  </p>
+</section>
