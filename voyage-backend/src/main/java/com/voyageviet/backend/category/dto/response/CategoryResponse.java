@@ -13,6 +13,7 @@ public record CategoryResponse(
         String imageUrl,
         CategoryStatus status,
         Integer isDisplay,
+        Integer isActive,
         Integer displayOrder,
         @JsonInclude(JsonInclude.Include.NON_NULL)
         String newData,

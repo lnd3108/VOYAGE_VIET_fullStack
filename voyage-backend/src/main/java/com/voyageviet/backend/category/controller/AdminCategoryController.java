@@ -37,6 +37,16 @@ public class AdminCategoryController {
         );
     }
 
+    @PostMapping("/submit-create")
+    public ApiResponse<CategoryResponse> submitCreateCategory(
+            @Valid @RequestBody CategoryCreateRequest request
+    ) {
+        return ApiResponse.success(
+                "Create and submit category successfully",
+                categoryService.submitCreateCategory(request)
+        );
+    }
+
     @PutMapping("/{id}")
     public ApiResponse<CategoryResponse> updateCategory(
             @PathVariable Long id,
@@ -170,6 +180,14 @@ public class AdminCategoryController {
     public ApiResponse<Void> deleteCategory(@PathVariable Long id) {
         categoryService.deleteCategory(id);
         return ApiResponse.success("Delete category successfully", null);
+    }
+
+    @PostMapping("/{id}/copy")
+    public ApiResponse<CategoryResponse> copyCategory(@PathVariable Long id) {
+        return ApiResponse.success(
+                "Copy category successfully",
+                categoryService.copyCategory(id)
+        );
     }
 
     @PatchMapping("/{id}/image")

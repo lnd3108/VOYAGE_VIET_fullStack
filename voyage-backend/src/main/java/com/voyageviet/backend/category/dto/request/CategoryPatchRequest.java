@@ -1,6 +1,5 @@
 package com.voyageviet.backend.category.dto.request;
 
-import com.voyageviet.backend.category.entity.CategoryStatus;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
@@ -21,13 +20,15 @@ public record CategoryPatchRequest(
         @Size(max = 500, message = "Image URL must not exceed 500 characters")
         String imageUrl,
 
-        CategoryStatus status,
-
         @Min(value = 0, message = "Display order must be greater than or equal to 0")
         Integer displayOrder,
 
         @Min(value = 0, message = "Display flag must be 0 or 1")
         @Max(value = 1, message = "Display flag must be 0 or 1")
-        Integer isDisplay
+        Integer isDisplay,
+
+        @Min(value = 0, message = "Active flag must be 0 or 1")
+        @Max(value = 1, message = "Active flag must be 0 or 1")
+        Integer isActive
 ) {
 }

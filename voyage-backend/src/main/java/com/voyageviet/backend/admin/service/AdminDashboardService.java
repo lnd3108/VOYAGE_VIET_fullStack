@@ -69,7 +69,7 @@ public class AdminDashboardService {
                 tourRepository.countByStatus(TourStatus.SOLD_OUT),
 
                 categoryRepository.count(),
-                categoryRepository.countByStatusAndIsDisplay(CategoryStatus.APPROVED, 1),
+                categoryRepository.countByStatusAndIsActiveAndIsDisplay(CategoryStatus.APPROVED, 1, 1),
 
                 destinationRepository.count(),
                 destinationRepository.countByStatusAndIsDisplay(DestinationStatus.APPROVED, 1),

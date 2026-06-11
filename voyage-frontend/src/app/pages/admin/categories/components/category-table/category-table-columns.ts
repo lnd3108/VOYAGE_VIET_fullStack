@@ -2,7 +2,10 @@ import { ColDef, ICellRendererParams } from 'ag-grid-community';
 
 import { CategoryActionCellRendererComponent } from '../category-action-cell/category-action-cell';
 import { AdminCategory } from '../../../../../core/models/category.model';
+import { CategoryOrderCellRenderer } from './category-order-cell/category-order-cell';
 import {
+  activeClass,
+  activeLabel,
   currentCategoryImage,
   displayClass,
   displayLabel,
@@ -29,6 +32,8 @@ export interface CategoryGridRow {
   slug: string;
   workflowLabel: string;
   workflowClassName: string;
+  activeLabel: string;
+  activeClassName: string;
   displayLabel: string;
   displayClassName: string;
   hasPendingChange: boolean;
@@ -45,7 +50,10 @@ export interface CategoryGridRow {
 
 export interface CategoryTableContext {
   openEdit(category: AdminCategory): void;
+  openCopy(category: AdminCategory): void;
+  openDetail?: (category: AdminCategory) => void;
   openPending(category: AdminCategory): void;
+  openDelete?: (category: AdminCategory) => void;
   reload(): void;
   move(category: AdminCategory, index: number, direction: 'up' | 'down'): void;
 }
@@ -63,7 +71,9 @@ export function buildCategoryGridRows(
       ? updatedDate?.getTime() || 0
       : 0;
     const hasPendingChange = hasPendingCategoryChange(category);
-    const reorderBlockedNow = reorderBlocked || sortBlocked || reorderBusyIds.size > 0;
+    const reorderSupportedByBackend = false;
+    const reorderBlockedNow =
+      !reorderSupportedByBackend || reorderBlocked || sortBlocked || reorderBusyIds.size > 0;
 
     return {
       category,
@@ -75,6 +85,8 @@ export function buildCategoryGridRows(
       slug: category.slug || 'dang-cap-nhat',
       workflowLabel: workflowLabel(category.status),
       workflowClassName: workflowClass(category.status),
+      activeLabel: activeLabel(category),
+      activeClassName: activeClass(category),
       displayLabel: displayLabel(category),
       displayClassName: displayClass(category),
       hasPendingChange,
@@ -138,6 +150,14 @@ export function buildCategoryColumnDefs(): ColDef<CategoryGridRow>[] {
         renderWorkflowCell(params.data),
     },
     {
+      headerName: 'Hoạt động',
+      field: 'activeLabel',
+      width: 146,
+      minWidth: 136,
+      cellRenderer: (params: ICellRendererParams<CategoryGridRow, string>) =>
+        renderActiveCell(params.data),
+    },
+    {
       headerName: 'Hiển thị',
       field: 'displayLabel',
       width: 154,
@@ -162,6 +182,7 @@ export function buildCategoryColumnDefs(): ColDef<CategoryGridRow>[] {
       sort: 'asc',
       headerClass: 'admin-categories__grid-header--center',
       cellClass: 'admin-categories__grid-cell--center',
+      cellRenderer: CategoryOrderCellRenderer,
       comparator: (valueA, valueB) => Number(valueA || 0) - Number(valueB || 0),
     },
     {
@@ -229,6 +250,14 @@ function renderWorkflowCell(row?: CategoryGridRow): string {
   }
 
   return `<span class="admin-categories__workflow ${escapeHtml(row.workflowClassName)}">${escapeHtml(row.workflowLabel)}</span>`;
+}
+
+function renderActiveCell(row?: CategoryGridRow): string {
+  if (!row) {
+    return '';
+  }
+
+  return `<span class="admin-categories__active ${escapeHtml(row.activeClassName)}">${escapeHtml(row.activeLabel)}</span>`;
 }
 
 function renderDisplayCell(row?: CategoryGridRow): string {

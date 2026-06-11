@@ -9,6 +9,7 @@ import {
   GridApi,
   GridReadyEvent,
   ModuleRegistry,
+  RowClickedEvent,
   RowSelectionOptions,
   SelectionChangedEvent,
   SortChangedEvent,
@@ -125,6 +126,16 @@ export class AdminCategoryTableComponent implements OnChanges {
     this.selectionChanged.emit(event.api.getSelectedRows().map((row) => row.category));
   }
 
+  handleRowClicked(event: RowClickedEvent<CategoryGridRow>): void {
+    const target = event.event?.target as HTMLElement | null;
+
+    if (!event.data || this.isInteractiveGridTarget(target)) {
+      return;
+    }
+
+    this.context?.openDetail?.(event.data.category);
+  }
+
   private rebuildRows(): void {
     this.rowData = buildCategoryGridRows(
       this.categories,
@@ -166,5 +177,24 @@ export class AdminCategoryTableComponent implements OnChanges {
       this.gridSortBlocksReorder = nextValue;
       this.sortBlockedChange.emit(nextValue);
     }
+  }
+
+  private isInteractiveGridTarget(target: HTMLElement | null): boolean {
+    return !!target?.closest(
+      [
+        '.ag-selection-checkbox',
+        '.ag-checkbox',
+        '.ag-checkbox-input-wrapper',
+        '.admin-categories__action-cell',
+        '.admin-categories__action-wrap',
+        '.admin-categories__action-trigger',
+        '.admin-categories__action-menu',
+        'button',
+        'input',
+        'select',
+        'textarea',
+        'a',
+      ].join(','),
+    );
   }
 }

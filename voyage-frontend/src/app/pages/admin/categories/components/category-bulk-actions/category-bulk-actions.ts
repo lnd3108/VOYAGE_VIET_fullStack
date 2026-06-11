@@ -10,7 +10,14 @@ import {
   CategoryBatchActionResponse,
 } from '../../../../../core/models/category.model';
 import { AdminUiFeedbackService } from '../../../../../core/services/admin-ui-feedback.service';
-import { errorText, isCategoryDisplayEnabled, isRecord, parseCategoryStatus, parseNumber } from '../../category-utils';
+import {
+  errorText,
+  isCategoryActive,
+  isCategoryDisplayEnabled,
+  isRecord,
+  parseCategoryStatus,
+  parseNumber,
+} from '../../category-utils';
 
 type CategoryBatchAction = 'submit' | 'approve' | 'reject' | 'cancelApprove' | 'show' | 'hide';
 
@@ -105,7 +112,15 @@ export class AdminCategoryBulkActionsComponent {
   }
 
   confirmBatchReject(): void {
-    this.confirmAndRunBatchAction('reject', this.rejectReason.trim() || null);
+    const reason = this.rejectReason.trim();
+
+    if (!reason) {
+      this.errorMessage = 'Vui lòng nhập lý do từ chối.';
+      this.feedback.warning(this.errorMessage);
+      return;
+    }
+
+    this.confirmAndRunBatchAction('reject', reason);
   }
 
   runBatchCancelApprove(): void {
@@ -224,7 +239,7 @@ export class AdminCategoryBulkActionsComponent {
       case 'approve':
         return this.api.approveCategories(ids);
       case 'reject':
-        return this.api.rejectCategories(ids, reason);
+        return this.api.rejectCategories(ids, reason || '');
       case 'cancelApprove':
         return this.api.cancelApproveCategories(ids);
       case 'show':
@@ -253,12 +268,13 @@ export class AdminCategoryBulkActionsComponent {
         return status === 'DRAFT' || status === 'REJECTED' || status === 'CANCEL_APPROVE';
       case 'approve':
       case 'reject':
-      case 'cancelApprove':
         return status === 'PENDING';
+      case 'cancelApprove':
+        return status === 'APPROVED';
       case 'show':
-        return status === 'APPROVED' && !isDisplay;
+        return status === 'APPROVED' && isCategoryActive(category.isActive) && !isDisplay;
       case 'hide':
-        return status === 'APPROVED' && isDisplay;
+        return status === 'APPROVED' && isCategoryActive(category.isActive) && isDisplay;
     }
   }
 
@@ -272,9 +288,9 @@ export class AdminCategoryBulkActionsComponent {
         return { label: 'Từ chối', confirmLabel: 'từ chối', successVerb: 'Từ chối hàng loạt' };
       case 'cancelApprove':
         return {
-          label: 'Hủy trình duyệt',
-          confirmLabel: 'hủy trình duyệt',
-          successVerb: 'Hủy trình duyệt hàng loạt',
+          label: 'Hủy duyệt',
+          confirmLabel: 'hủy duyệt',
+          successVerb: 'Hủy duyệt hàng loạt',
         };
       case 'show':
         return {

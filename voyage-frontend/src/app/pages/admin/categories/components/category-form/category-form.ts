@@ -14,6 +14,7 @@ import {
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { TuiIcon } from '@taiga-ui/core';
+import { Observable, switchMap } from 'rxjs';
 
 import {
   AdminCategoryApiService,
@@ -36,6 +37,8 @@ import {
   generateCategorySlug,
   getCategoryOrder,
   handleCategoryImageError,
+  canEditCategory,
+  isCategoryActive,
   isRecord,
   mediaErrorText,
   normalizeDisplayOrder,
@@ -44,6 +47,8 @@ import {
   parseNumber,
   parseCategoryStatus,
 } from '../../category-utils';
+
+export type AdminCategoryFormMode = 'create' | 'edit' | 'copy';
 
 export interface AdminCategoryFormMediaModuleOption {
   label: string;
@@ -64,6 +69,7 @@ interface CategoryEditSnapshot {
   description: string;
   imageUrl: string;
   displayOrder: number;
+  isActive?: boolean;
 }
 
 @Component({
@@ -85,6 +91,7 @@ export class AdminCategoryFormComponent implements OnChanges {
 
   @Input() selectedCategory: AdminCategory | null = null;
   @Input() nextDisplayOrder = 1;
+  @Input() mode: AdminCategoryFormMode = 'create';
 
   @Output() saved = new EventEmitter<void>();
   @Output() closed = new EventEmitter<void>();
@@ -106,6 +113,7 @@ export class AdminCategoryFormComponent implements OnChanges {
     slug: ['', [Validators.required]],
     description: [''],
     imageUrl: [''],
+    isActive: [1],
   });
 
   selectedImageUrl = '';
@@ -132,10 +140,26 @@ export class AdminCategoryFormComponent implements OnChanges {
     if (changes['selectedCategory']) {
       this.resetForCategory();
     }
+
+    if (changes['mode'] && !changes['selectedCategory']) {
+      this.resetForCategory();
+    }
   }
 
   get isEditMode(): boolean {
-    return !!this.selectedCategory;
+    return this.mode === 'edit';
+  }
+
+  get isCopyMode(): boolean {
+    return this.mode === 'copy';
+  }
+
+  get isReadonly(): boolean {
+    return this.isEditMode && !!this.selectedCategory && !canEditCategory(this.selectedCategory, this.auth.currentRole());
+  }
+
+  get showActiveField(): boolean {
+    return this.isEditMode && parseCategoryStatus(this.selectedCategory?.status) === 'APPROVED';
   }
 
   get canUpdateImage(): boolean {
@@ -151,10 +175,18 @@ export class AdminCategoryFormComponent implements OnChanges {
   }
 
   get headerEyebrow(): string {
+    if (this.isCopyMode) {
+      return 'Sao chép danh mục';
+    }
+
     return this.isEditMode ? 'Cập nhật danh mục' : 'Tạo danh mục mới';
   }
 
   get headerTitle(): string {
+    if (this.isCopyMode) {
+      return 'Nhập tên và slug cho bản sao';
+    }
+
     return this.isEditMode ? this.selectedCategory?.name || 'Danh mục' : 'Thông tin danh mục';
   }
 
@@ -163,7 +195,11 @@ export class AdminCategoryFormComponent implements OnChanges {
       return 'Đang lưu...';
     }
 
-    return this.isEditMode ? 'Lưu thay đổi' : 'Tạo danh mục';
+    if (this.isReadonly) {
+      return 'Chỉ xem';
+    }
+
+    return 'Lưu';
   }
 
   get imageStatusText(): string {
@@ -180,9 +216,14 @@ export class AdminCategoryFormComponent implements OnChanges {
     this.closed.emit();
   }
 
-  submitForm(): void {
+  submitForm(saveAndSubmit = false): void {
     if (!this.canUpdateImage) {
       this.denyCategoryAction();
+      return;
+    }
+
+    if (this.isReadonly) {
+      this.feedback.warning('Danh mục ở trạng thái này không thể chỉnh sửa.');
       return;
     }
 
@@ -198,22 +239,19 @@ export class AdminCategoryFormComponent implements OnChanges {
 
     const payload = this.buildPayload();
 
-    if (this.isEditMode && !this.hasEditChanges(payload as AdminCategoryUpdateRequest)) {
+    if (this.isEditMode && !saveAndSubmit && !this.hasEditChanges(payload as AdminCategoryUpdateRequest)) {
       this.feedback.info('Chưa có dữ liệu thay đổi.');
       return;
     }
 
     this.saving = true;
 
-    const request$ =
-      this.isEditMode && this.selectedCategory?.id
-        ? this.categoryApi.patchCategory(this.selectedCategory.id, payload as AdminCategoryPatchRequest)
-        : this.categoryApi.createCategory(payload);
+    const request$ = this.buildSaveRequest(payload, saveAndSubmit);
 
     request$.pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: () => {
         this.saving = false;
-        this.feedback.success(this.isEditMode ? 'Đã lưu dữ liệu thay đổi chờ duyệt.' : 'Đã tạo danh mục mới.');
+        this.feedback.success(saveAndSubmit ? 'Đã lưu và gửi duyệt danh mục.' : this.isEditMode ? 'Đã lưu dữ liệu thay đổi chờ duyệt.' : 'Đã tạo danh mục mới.');
         this.saved.emit();
         this.closed.emit();
       },
@@ -298,7 +336,7 @@ export class AdminCategoryFormComponent implements OnChanges {
   updateImageOnly(): void {
     const categoryId = this.selectedCategory?.id;
 
-    if (!this.isEditMode || !categoryId || this.updatingImage) {
+    if (!this.isEditMode || !categoryId || this.updatingImage || this.isReadonly) {
       return;
     }
 
@@ -421,13 +459,14 @@ export class AdminCategoryFormComponent implements OnChanges {
 
   private resetForCategory(): void {
     const category = this.selectedCategory;
-    this.slugManuallyEdited = !!category;
-    this.originalEditSnapshot = category ? this.buildSnapshotFromCategory(category) : null;
+    this.slugManuallyEdited = this.isEditMode && !!category;
+    this.originalEditSnapshot = this.isEditMode && category ? this.buildSnapshotFromCategory(category) : null;
     this.form.reset({
-      name: category?.name || '',
-      slug: category?.slug || '',
+      name: this.isCopyMode ? '' : category?.name || '',
+      slug: this.isCopyMode ? '' : category?.slug || '',
       description: category?.description || '',
       imageUrl: category?.imageUrl || '',
+      isActive: category && this.showActiveField && isCategoryActive(category.isActive) ? 1 : 0,
     });
     this.selectedImageUrl = category?.imageUrl || '';
     this.selectedUploadFileName = '';
@@ -437,12 +476,18 @@ export class AdminCategoryFormComponent implements OnChanges {
     this.imageErrorMessage = '';
     this.configureMediaAccess();
     this.closeMediaPicker();
+
+    if (this.isReadonly) {
+      this.form.disable({ emitEvent: false });
+    } else {
+      this.form.enable({ emitEvent: false });
+    }
   }
 
   private buildPayload(): AdminCategoryCreateRequest | AdminCategoryUpdateRequest {
     const rawValue = this.form.getRawValue();
 
-    return {
+    const payload: AdminCategoryCreateRequest | AdminCategoryUpdateRequest = {
       name: rawValue.name.trim(),
       slug: generateCategorySlug(rawValue.slug) || rawValue.slug.trim(),
       description: rawValue.description.trim() || undefined,
@@ -451,26 +496,71 @@ export class AdminCategoryFormComponent implements OnChanges {
         ? getCategoryOrder(this.selectedCategory)
         : this.nextDisplayOrder,
     };
+
+    if (this.showActiveField) {
+      payload.isActive = isCategoryActive(rawValue.isActive) ? 1 : 0;
+    }
+
+    return payload;
+  }
+
+  private buildSaveRequest(
+    payload: AdminCategoryCreateRequest | AdminCategoryUpdateRequest,
+    saveAndSubmit: boolean,
+  ): Observable<unknown> {
+    if (!this.isEditMode) {
+      return saveAndSubmit
+        ? this.categoryApi.createAndSubmitCategory(payload as AdminCategoryCreateRequest)
+        : this.categoryApi.createCategory(payload as AdminCategoryCreateRequest);
+    }
+
+    const categoryId = this.selectedCategory?.id;
+
+    if (!categoryId) {
+      throw new Error('Missing category id');
+    }
+
+    const hasChanges = this.hasEditChanges(payload as AdminCategoryUpdateRequest);
+
+    if (!hasChanges && saveAndSubmit) {
+      return this.categoryApi.submitCategory(categoryId);
+    }
+
+    const update$ = this.categoryApi.patchCategory(categoryId, payload as AdminCategoryPatchRequest);
+
+    return saveAndSubmit ? update$.pipe(switchMap(() => this.categoryApi.submitCategory(categoryId))) : update$;
   }
 
   private buildSnapshotFromCategory(category: AdminCategory): CategoryEditSnapshot {
-    return {
+    const snapshot: CategoryEditSnapshot = {
       name: normalizeText(category.name),
       slug: normalizeSlugValue(category.slug || category.name || ''),
       description: normalizeText(category.description),
       imageUrl: normalizeText(category.imageUrl),
       displayOrder: normalizeDisplayOrder(getCategoryOrder(category)),
     };
+
+    if (parseCategoryStatus(category.status) === 'APPROVED') {
+      snapshot.isActive = isCategoryActive(category.isActive);
+    }
+
+    return snapshot;
   }
 
   private buildSnapshotFromPayload(payload: AdminCategoryUpdateRequest): CategoryEditSnapshot {
-    return {
+    const snapshot: CategoryEditSnapshot = {
       name: normalizeText(payload.name),
       slug: normalizeSlugValue(payload.slug || payload.name || ''),
       description: normalizeText(payload.description),
       imageUrl: normalizeText(payload.imageUrl),
       displayOrder: normalizeDisplayOrder(payload.displayOrder),
     };
+
+    if (this.showActiveField) {
+      snapshot.isActive = isCategoryActive(payload.isActive);
+    }
+
+    return snapshot;
   }
 
   private hasEditChanges(payload: AdminCategoryUpdateRequest): boolean {

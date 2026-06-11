@@ -25,6 +25,10 @@ public record CategoryCreateRequest(
 
         @Min(value = 0, message = "Display flag must be 0 or 1")
         @Max(value = 1, message = "Display flag must be 0 or 1")
-        Integer isDisplay
+        Integer isDisplay,
+
+        @Min(value = 0, message = "Active flag must be 0 or 1")
+        @Max(value = 1, message = "Active flag must be 0 or 1")
+        Integer isActive
 ) {
 }

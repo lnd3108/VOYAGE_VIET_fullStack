@@ -14,7 +14,7 @@
     </button>
   </div>
 
-  <form [formGroup]="form" (ngSubmit)="submitForm()">
+  <form [formGroup]="form" (ngSubmit)="submitForm(false)">
     <div class="admin-category-form__grid">
       <label class="admin-category-form__field">
         Tên danh mục
@@ -49,6 +49,14 @@
           formControlName="description"
           placeholder="Mô tả ngắn về nhóm tour"
         ></textarea>
+      </label>
+
+      <label class="admin-category-form__field" *ngIf="showActiveField">
+        Trạng thái hoạt động
+        <select formControlName="isActive">
+          <option [value]="1">1 - Hoạt động</option>
+          <option [value]="0">0 - Không hoạt động</option>
+        </select>
       </label>
 
       <section class="admin-category-form__image-field admin-category-form__field--wide">
@@ -246,7 +254,7 @@
         type="button"
         class="admin-category-form__form-button admin-category-form__form-button--secondary"
         *ngIf="isEditMode && canUpdateImage"
-        [disabled]="updatingImage || saving"
+        [disabled]="updatingImage || saving || isReadonly"
         (click)="updateImageOnly()"
       >
         {{ updatingImage ? 'Đang cập nhật ảnh...' : 'Cập nhật ảnh' }}
@@ -254,10 +262,19 @@
 
       <button
         type="submit"
-        class="admin-category-form__form-button admin-category-form__form-button--primary"
-        [disabled]="saving"
+        class="admin-category-form__form-button admin-category-form__form-button--secondary"
+        [disabled]="saving || isReadonly"
       >
         {{ submitText }}
+      </button>
+
+      <button
+        type="button"
+        class="admin-category-form__form-button admin-category-form__form-button--primary"
+        [disabled]="saving || isReadonly"
+        (click)="submitForm(true)"
+      >
+        {{ saving ? 'Đang gửi...' : 'Lưu và gửi duyệt' }}
       </button>
     </div>
   </form>

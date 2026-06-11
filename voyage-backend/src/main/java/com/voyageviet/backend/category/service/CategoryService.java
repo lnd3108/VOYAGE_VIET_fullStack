@@ -3,18 +3,18 @@ package com.voyageviet.backend.category.service;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.voyageviet.backend.category.dto.response.CategoryBatchActionItemResponse;
-import com.voyageviet.backend.category.dto.response.CategoryBatchActionResponse;
 import com.voyageviet.backend.category.dto.request.CategoryBatchDisplayRequest;
 import com.voyageviet.backend.category.dto.request.CategoryBatchRejectRequest;
 import com.voyageviet.backend.category.dto.request.CategoryBatchRequest;
 import com.voyageviet.backend.category.dto.request.CategoryCreateRequest;
 import com.voyageviet.backend.category.dto.request.CategoryDisplayUpdateRequest;
-import com.voyageviet.backend.category.dto.response.CategoryNewData;
 import com.voyageviet.backend.category.dto.request.CategoryPatchRequest;
-import com.voyageviet.backend.category.dto.response.CategoryResponse;
 import com.voyageviet.backend.category.dto.request.CategoryStatusUpdateRequest;
 import com.voyageviet.backend.category.dto.request.CategoryUpdateRequest;
+import com.voyageviet.backend.category.dto.response.CategoryBatchActionItemResponse;
+import com.voyageviet.backend.category.dto.response.CategoryBatchActionResponse;
+import com.voyageviet.backend.category.dto.response.CategoryNewData;
+import com.voyageviet.backend.category.dto.response.CategoryResponse;
 import com.voyageviet.backend.category.entity.Category;
 import com.voyageviet.backend.category.entity.CategoryStatus;
 import com.voyageviet.backend.category.repository.CategoryRepository;
@@ -29,6 +29,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.io.IOException;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.EnumSet;
 import java.util.LinkedHashSet;
@@ -43,14 +45,17 @@ public class CategoryService {
 
     private static final Integer DISPLAY_VISIBLE = 1;
     private static final Integer DISPLAY_HIDDEN = 0;
+    private static final Integer ACTIVE = 1;
+    private static final Integer INACTIVE = 0;
 
     private final CategoryRepository categoryRepository;
     private final TourRepository tourRepository;
     private final ObjectMapper objectMapper;
 
     public List<CategoryResponse> getActiveCategories() {
-        return categoryRepository.findByStatusAndIsDisplayOrderByDisplayOrderAsc(
+        return categoryRepository.findByStatusAndIsActiveAndIsDisplayOrderByDisplayOrderAsc(
                         CategoryStatus.APPROVED,
+                        ACTIVE,
                         DISPLAY_VISIBLE
                 )
                 .stream()
@@ -67,82 +72,74 @@ public class CategoryService {
 
     @Transactional
     public CategoryResponse createCategory(CategoryCreateRequest request) {
-        String slug = buildSlug(request.name(), request.slug());
+        Category category = buildNewCategory(request, CategoryStatus.DRAFT);
+        return toResponse(categoryRepository.save(category), true);
+    }
 
-        if (categoryRepository.existsBySlug(slug)) {
-            throw new BusinessException(
-                    ErrorCode.CATEGORY_ALREADY_EXISTS,
-                    "Category slug already exists"
-            );
-        }
-
-        Category category = Category.builder()
-                .name(request.name().trim())
-                .slug(slug)
-                .description(trimToNull(request.description()))
-                .imageUrl(trimToNull(request.imageUrl()))
-                .displayOrder(normalizeDisplayOrder(request.displayOrder()))
-                .status(CategoryStatus.DRAFT)
-                .isDisplay(request.isDisplay() == null ? DISPLAY_HIDDEN : normalizeDisplayFlag(request.isDisplay()))
-                .build();
-        category.clearNewData();
-
+    @Transactional
+    public CategoryResponse submitCreateCategory(CategoryCreateRequest request) {
+        Category category = buildNewCategory(request, CategoryStatus.PENDING);
         return toResponse(categoryRepository.save(category), true);
     }
 
     @Transactional
     public CategoryResponse updateCategory(Long id, CategoryUpdateRequest request) {
-        Category category = findCategoryById(id);
-
-        String slug = buildSlug(request.name(), request.slug());
-
-        if (categoryRepository.existsBySlugAndIdNot(slug, id)) {
-            throw new BusinessException(
-                    ErrorCode.CATEGORY_ALREADY_EXISTS,
-                    "Category slug already exists"
-            );
-        }
-
-        category.setName(request.name().trim());
-        category.setSlug(slug);
-        category.setDescription(trimToNull(request.description()));
-        category.setImageUrl(trimToNull(request.imageUrl()));
-        category.setStatus(request.status() == null ? category.getStatus() : request.status());
-        category.setDisplayOrder(request.displayOrder() == null
-                ? normalizeDisplayOrder(category.getDisplayOrder())
-                : normalizeDisplayOrder(request.displayOrder()));
-        category.setIsDisplay(request.isDisplay() == null ? normalizeDisplayFlag(category.getIsDisplay()) : request.isDisplay());
-
-        return toResponse(categoryRepository.save(category), true);
+        return patchCategory(id, new CategoryPatchRequest(
+                request.name(),
+                request.slug(),
+                request.description(),
+                request.imageUrl(),
+                request.displayOrder(),
+                request.isDisplay(),
+                request.isActive()
+        ));
     }
 
     @Transactional
     public CategoryResponse updateCategoryStatus(Long id, CategoryStatusUpdateRequest request) {
-        Category category = findCategoryById(id);
-        category.setStatus(request.status());
-
-        return toResponse(categoryRepository.save(category), true);
+        throw new BusinessException(
+                ErrorCode.INVALID_REQUEST,
+                "Category workflow status must be changed through submit, approve, reject or cancel-approve endpoints"
+        );
     }
 
     @Transactional
     public CategoryResponse patchCategory(Long id, CategoryPatchRequest request) {
         Category category = findCategoryById(id);
 
-        CategoryNewData currentData = toComparableData(category);
-        CategoryNewData nextData = buildNewData(category, request);
-
-        if (Objects.equals(currentData, nextData)) {
-            throw new BusinessException(
-                    ErrorCode.NO_DATA_CHANGED,
-                    "No category data changed"
-            );
+        if (category.getStatus() == CategoryStatus.PENDING) {
+            throw new BusinessException(ErrorCode.INVALID_REQUEST, "PENDING categories cannot be updated");
         }
 
-        validateUniqueSlugChange(currentData.slug(), nextData.slug(), id);
+        if (category.getStatus() == CategoryStatus.APPROVED) {
+            throw new BusinessException(ErrorCode.INVALID_REQUEST, "APPROVED categories cannot be updated directly");
+        }
+
+        CategoryNewData nextData = buildNewData(category, request);
+        validateCategoryData(nextData);
+        validateUniqueSlugChange(category.getSlug(), nextData.slug(), id);
+
+        if (category.getStatus() == CategoryStatus.DRAFT) {
+            CategoryNewData currentData = toComparableData(category);
+            if (Objects.equals(currentData, nextData)) {
+                throw new BusinessException(ErrorCode.NO_DATA_CHANGED, "No category data changed");
+            }
+
+            applyNewData(category, nextData);
+            category.clearNewData();
+            category.setRejectReason(null);
+            return toResponse(categoryRepository.save(category), true);
+        }
+
+        if (!EnumSet.of(CategoryStatus.REJECTED, CategoryStatus.CANCEL_APPROVE).contains(category.getStatus())) {
+            throw new BusinessException(ErrorCode.INVALID_REQUEST, "Category status does not allow update");
+        }
+
+        if (isNoPendingDataChange(category, nextData)) {
+            throw new BusinessException(ErrorCode.NO_DATA_CHANGED, "No category data changed");
+        }
 
         category.replaceNewData(writeNewData(nextData));
-        category.markAsPending();
-
         return toResponse(categoryRepository.save(category), true);
     }
 
@@ -158,6 +155,11 @@ public class CategoryService {
             );
         }
 
+        CategoryNewData submitData = category.hasNewData()
+                ? readNewData(category.getNewData())
+                : toComparableData(category);
+        validateCategoryData(submitData);
+        validateUniqueSlugChange(category.getSlug(), submitData.slug(), id);
         category.markAsPending();
 
         return toResponse(categoryRepository.save(category), true);
@@ -170,12 +172,15 @@ public class CategoryService {
 
         if (category.hasNewData()) {
             CategoryNewData newData = readNewData(category.getNewData());
+            validateCategoryData(newData);
             validateUniqueSlugChange(category.getSlug(), newData.slug(), id);
             applyNewData(category, newData);
             category.clearNewData();
         }
 
         category.markAsApproved();
+        category.setRejectReason(null);
+        enforceInactiveHidden(category);
 
         return toResponse(categoryRepository.save(category), true);
     }
@@ -185,7 +190,13 @@ public class CategoryService {
         Category category = findCategoryById(id);
         requirePending(category, "Only PENDING categories can be rejected");
 
-        category.markAsRejected(trimToNull(reason));
+        String normalizedReason = trimToNull(reason);
+        if (normalizedReason == null) {
+            throw new BusinessException(ErrorCode.INVALID_REQUEST, "Reject reason is required");
+        }
+
+        category.markAsRejected(normalizedReason);
+        category.hide();
 
         return toResponse(categoryRepository.save(category), true);
     }
@@ -193,9 +204,14 @@ public class CategoryService {
     @Transactional
     public CategoryResponse cancelApproveCategory(Long id) {
         Category category = findCategoryById(id);
-        requirePending(category, "Only PENDING categories can be cancel-approved");
+
+        if (category.getStatus() != CategoryStatus.APPROVED) {
+            throw new BusinessException(ErrorCode.INVALID_REQUEST, "Only APPROVED categories can be cancel-approved");
+        }
 
         category.clearNewData();
+        category.setRejectReason(null);
+        category.hide();
         category.markAsCancelApproved();
 
         return toResponse(categoryRepository.save(category), true);
@@ -209,6 +225,15 @@ public class CategoryService {
             throw new BusinessException(
                     ErrorCode.INVALID_REQUEST,
                     "Only APPROVED categories can be shown publicly"
+            );
+        }
+
+        if (Objects.equals(normalizeActiveFlag(category.getIsActive()), INACTIVE)) {
+            category.hide();
+            categoryRepository.save(category);
+            throw new BusinessException(
+                    ErrorCode.INVALID_REQUEST,
+                    "Inactive categories cannot be shown publicly"
             );
         }
 
@@ -251,6 +276,22 @@ public class CategoryService {
     public void deleteCategory(Long id) {
         Category category = findCategoryById(id);
 
+        if (!EnumSet.of(CategoryStatus.DRAFT, CategoryStatus.REJECTED, CategoryStatus.CANCEL_APPROVE)
+                .contains(category.getStatus())) {
+            throw new BusinessException(
+                    ErrorCode.INVALID_REQUEST,
+                    "Only DRAFT, REJECTED or CANCEL_APPROVE categories can be deleted"
+            );
+        }
+
+        if (Objects.equals(normalizeDisplayFlag(category.getIsDisplay()), DISPLAY_VISIBLE)) {
+            throw new BusinessException(ErrorCode.INVALID_REQUEST, "Displayed categories cannot be deleted");
+        }
+
+        if (category.hasNewData()) {
+            throw new BusinessException(ErrorCode.INVALID_REQUEST, "Categories with pending data cannot be deleted");
+        }
+
         if (tourRepository.existsByCategoryId(id)) {
             throw new BusinessException(
                     ErrorCode.CATEGORY_IN_USE,
@@ -262,12 +303,69 @@ public class CategoryService {
     }
 
     @Transactional
+    public CategoryResponse copyCategory(Long id) {
+        Category source = findCategoryById(id);
+        String timestamp = DateTimeFormatter.ofPattern("yyyyMMddHHmmssSSS").format(LocalDateTime.now());
+        String slug = "copy-" + source.getId() + "-" + timestamp;
+
+        Category copy = Category.builder()
+                .name(" ")
+                .slug(slug)
+                .description(trimToNull(source.getDescription()))
+                .imageUrl(trimToNull(source.getImageUrl()))
+                .displayOrder(normalizeDisplayOrder(source.getDisplayOrder()))
+                .status(CategoryStatus.DRAFT)
+                .isActive(normalizeActiveFlag(source.getIsActive()))
+                .isDisplay(DISPLAY_HIDDEN)
+                .rejectReason(null)
+                .newData(null)
+                .build();
+        enforceInactiveHidden(copy);
+
+        return toResponse(categoryRepository.save(copy), true);
+    }
+
+    @Transactional
     public CategoryResponse updateCategoryImage(Long id, ImageUrlUpdateRequest request) {
         Category category = findCategoryById(id);
+        CategoryPatchRequest patchRequest = new CategoryPatchRequest(
+                category.getName(),
+                category.getSlug(),
+                category.getDescription(),
+                request.imageUrl().trim(),
+                category.getDisplayOrder(),
+                category.getIsDisplay(),
+                category.getIsActive()
+        );
 
-        category.setImageUrl(request.imageUrl().trim());
+        return patchCategory(id, patchRequest);
+    }
 
-        return toResponse(categoryRepository.save(category), true);
+    private Category buildNewCategory(CategoryCreateRequest request, CategoryStatus status) {
+        String slug = buildSlug(request.name(), request.slug());
+
+        if (categoryRepository.existsBySlug(slug)) {
+            throw new BusinessException(
+                    ErrorCode.CATEGORY_ALREADY_EXISTS,
+                    "Category slug already exists"
+            );
+        }
+
+        Integer isActive = normalizeActiveFlag(request.isActive());
+        Category category = Category.builder()
+                .name(request.name().trim())
+                .slug(slug)
+                .description(trimToNull(request.description()))
+                .imageUrl(trimToNull(request.imageUrl()))
+                .displayOrder(normalizeDisplayOrder(request.displayOrder()))
+                .status(status)
+                .isActive(isActive)
+                .isDisplay(DISPLAY_HIDDEN)
+                .rejectReason(null)
+                .newData(null)
+                .build();
+        enforceInactiveHidden(category);
+        return category;
     }
 
     private Category findCategoryById(Long id) {
@@ -346,6 +444,16 @@ public class CategoryService {
         }
     }
 
+    private void validateCategoryData(CategoryNewData data) {
+        if (data.name() == null || data.name().isBlank()) {
+            throw new BusinessException(ErrorCode.INVALID_REQUEST, "Category name is required");
+        }
+
+        if (data.slug() == null || data.slug().isBlank()) {
+            throw new BusinessException(ErrorCode.INVALID_REQUEST, "Category slug is required");
+        }
+    }
+
     private void validateUniqueSlugChange(String currentSlug, String nextSlug, Long id) {
         if (!Objects.equals(currentSlug, nextSlug)
                 && categoryRepository.existsBySlugAndIdNot(nextSlug, id)) {
@@ -356,15 +464,33 @@ public class CategoryService {
         }
     }
 
+    private boolean isNoPendingDataChange(Category category, CategoryNewData nextData) {
+        if (!category.hasNewData()) {
+            return Objects.equals(toComparableData(category), nextData);
+        }
+
+        return Objects.equals(readNewData(category.getNewData()), nextData);
+    }
+
     private void applyNewData(Category category, CategoryNewData newData) {
-        category.setName(newData.name());
+        category.setName(newData.name().trim());
         category.setSlug(newData.slug());
         category.setDescription(trimToNull(newData.description()));
         category.setImageUrl(trimToNull(newData.imageUrl()));
         category.setDisplayOrder(normalizeDisplayOrder(newData.displayOrder()));
+        category.setIsActive(normalizeActiveFlag(newData.isActive()));
         category.setIsDisplay(newData.isDisplay() == null
                 ? normalizeDisplayFlag(category.getIsDisplay())
                 : normalizeDisplayFlag(newData.isDisplay()));
+        enforceInactiveHidden(category);
+    }
+
+    private void enforceInactiveHidden(Category category) {
+        category.setIsActive(normalizeActiveFlag(category.getIsActive()));
+        category.setIsDisplay(normalizeDisplayFlag(category.getIsDisplay()));
+        if (Objects.equals(category.getIsActive(), INACTIVE)) {
+            category.hide();
+        }
     }
 
     private String buildSlug(String name, String customSlug) {
@@ -392,6 +518,7 @@ public class CategoryService {
                 category.getImageUrl(),
                 category.getStatus(),
                 normalizeDisplayFlag(category.getIsDisplay()),
+                normalizeActiveFlag(category.getIsActive()),
                 category.getDisplayOrder(),
                 includeNewData ? category.getNewData() : null,
                 includeNewData ? category.getRejectReason() : null,
@@ -408,26 +535,36 @@ public class CategoryService {
                 trimToNull(category.getImageUrl()),
                 category.getStatus(),
                 normalizeDisplayOrder(category.getDisplayOrder()),
-                normalizeDisplayFlag(category.getIsDisplay())
+                normalizeDisplayFlag(category.getIsDisplay()),
+                normalizeActiveFlag(category.getIsActive())
         );
     }
 
     private CategoryNewData buildNewData(Category category, CategoryPatchRequest request) {
         String name = normalizeRequiredText(request.name());
         String slug = buildSlug(name, request.slug());
+        Integer isActive = request.isActive() == null
+                ? normalizeActiveFlag(category.getIsActive())
+                : normalizeActiveFlag(request.isActive());
+        Integer isDisplay = request.isDisplay() == null
+                ? normalizeDisplayFlag(category.getIsDisplay())
+                : normalizeDisplayFlag(request.isDisplay());
+
+        if (Objects.equals(isActive, INACTIVE)) {
+            isDisplay = DISPLAY_HIDDEN;
+        }
 
         return new CategoryNewData(
                 name,
                 slug,
                 trimToNull(request.description()),
                 trimToNull(request.imageUrl()),
-                request.status() == null ? category.getStatus() : request.status(),
+                category.getStatus(),
                 request.displayOrder() == null
                         ? normalizeDisplayOrder(category.getDisplayOrder())
                         : normalizeDisplayOrder(request.displayOrder()),
-                request.isDisplay() == null
-                        ? normalizeDisplayFlag(category.getIsDisplay())
-                        : normalizeDisplayFlag(request.isDisplay())
+                isDisplay,
+                isActive
         );
     }
 
@@ -445,6 +582,14 @@ public class CategoryService {
     private CategoryNewData readNewData(String newData) {
         try {
             JsonNode root = objectMapper.readTree(newData);
+            Integer isActive = intValue(root, "isActive");
+            Integer isDisplay = intValue(root, "isDisplay");
+            isActive = normalizeActiveFlag(isActive);
+            isDisplay = normalizeDisplayFlag(isDisplay);
+            if (Objects.equals(isActive, INACTIVE)) {
+                isDisplay = DISPLAY_HIDDEN;
+            }
+
             return new CategoryNewData(
                     textValue(root, "name"),
                     textValue(root, "slug"),
@@ -452,7 +597,8 @@ public class CategoryService {
                     textValue(root, "imageUrl"),
                     parseWorkflowStatus(textValue(root, "status")),
                     intValue(root, "displayOrder"),
-                    intValue(root, "isDisplay")
+                    isDisplay,
+                    isActive
             );
         } catch (IOException exception) {
             throw new BusinessException(
@@ -517,5 +663,9 @@ public class CategoryService {
 
     private Integer normalizeDisplayFlag(Integer value) {
         return Objects.equals(value, DISPLAY_VISIBLE) ? DISPLAY_VISIBLE : DISPLAY_HIDDEN;
+    }
+
+    private Integer normalizeActiveFlag(Integer value) {
+        return Objects.equals(value, INACTIVE) ? INACTIVE : ACTIVE;
     }
 }

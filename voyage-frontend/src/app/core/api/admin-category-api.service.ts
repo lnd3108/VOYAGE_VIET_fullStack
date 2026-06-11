@@ -1,13 +1,11 @@
 import { HttpClient } from '@angular/common/http';
 import { inject, Injectable } from '@angular/core';
-import { forkJoin } from 'rxjs';
 
 import { environment } from '../../../environments/environment';
 import { ApiResponse } from '../models/api-response.model';
 import {
   AdminCategory,
   AdminCategoryCreateRequest,
-  AdminCategoryOrderSwapItem,
   AdminCategoryUpdateRequest,
   CategoryBatchActionResponse,
   CategoryStatus,
@@ -19,11 +17,12 @@ export interface AdminCategoryPatchRequest {
   slug?: string | null;
   description?: string | null;
   imageUrl?: string | null;
+  isActive?: number | boolean | null;
   displayOrder?: number | null;
 }
 
 export interface AdminCategoryRejectRequest {
-  reason?: string | null;
+  reason: string;
 }
 
 export type AdminCategoryListResponse =
@@ -49,6 +48,13 @@ export class AdminCategoryApiService {
     );
   }
 
+  createAndSubmitCategory(payload: AdminCategoryCreateRequest) {
+    return this.http.post<ApiResponse<AdminCategory> | AdminCategory>(
+      `${this.apiUrl}/admin/categories/submit-create`,
+      payload,
+    );
+  }
+
   updateCategory(id: number, payload: AdminCategoryUpdateRequest) {
     return this.http.put<ApiResponse<AdminCategory> | AdminCategory>(
       `${this.apiUrl}/admin/categories/${id}`,
@@ -63,15 +69,8 @@ export class AdminCategoryApiService {
     );
   }
 
-  swapCategoryOrder(first: AdminCategoryOrderSwapItem, second: AdminCategoryOrderSwapItem) {
-    return forkJoin([
-      this.updateCategory(first.id, first.payload),
-      this.updateCategory(second.id, second.payload),
-    ]);
-  }
-
   updateCategoryStatus(id: number, status: CategoryStatus) {
-    // Backend giữ endpoint này cho workflow status, không dùng để bật/tắt public display.
+    // Deprecated for PMH-style workflow UI. Keep for legacy compatibility only; do not call from action menu.
     return this.http.patch<ApiResponse<AdminCategory> | AdminCategory>(
       `${this.apiUrl}/admin/categories/${id}/status`,
       { status },
@@ -106,17 +105,17 @@ export class AdminCategoryApiService {
     );
   }
 
-  rejectCategory(id: number, payload: AdminCategoryRejectRequest = {}) {
+  rejectCategory(id: number, payload: AdminCategoryRejectRequest) {
     return this.http.patch<ApiResponse<AdminCategory> | AdminCategory>(
       `${this.apiUrl}/admin/categories/${id}/reject`,
       payload,
     );
   }
 
-  rejectCategories(ids: number[], reason?: string | null) {
+  rejectCategories(ids: number[], reason: string) {
     return this.http.patch<ApiResponse<CategoryBatchActionResponse> | CategoryBatchActionResponse>(
       `${this.apiUrl}/admin/categories/batch/reject`,
-      { ids, reason: reason || null },
+      { ids, reason },
     );
   }
 
@@ -158,6 +157,13 @@ export class AdminCategoryApiService {
   deleteCategory(id: number) {
     return this.http.delete<ApiResponse<unknown> | unknown>(
       `${this.apiUrl}/admin/categories/${id}`,
+    );
+  }
+
+  copyCategory(id: number) {
+    return this.http.post<ApiResponse<AdminCategory> | AdminCategory>(
+      `${this.apiUrl}/admin/categories/${id}/copy`,
+      {},
     );
   }
 }

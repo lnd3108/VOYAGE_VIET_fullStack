@@ -15,9 +15,15 @@ public interface CategoryRepository extends JpaRepository<Category, Long> {
 
     boolean existsBySlugAndIdNot(String slug, Long id);
 
-    List<Category> findByStatusAndIsDisplayOrderByDisplayOrderAsc(CategoryStatus status, Integer isDisplay);
+    List<Category> findByStatusAndIsActiveAndIsDisplayOrderByDisplayOrderAsc(
+            CategoryStatus status,
+            Integer isActive,
+            Integer isDisplay
+    );
 
     long countByStatus(CategoryStatus status);
 
     long countByStatusAndIsDisplay(CategoryStatus status, Integer isDisplay);
+
+    long countByStatusAndIsActiveAndIsDisplay(CategoryStatus status, Integer isActive, Integer isDisplay);
 }

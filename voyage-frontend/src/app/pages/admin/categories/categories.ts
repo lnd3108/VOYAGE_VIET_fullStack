@@ -1,24 +1,32 @@
 ﻿import { NgIf } from '@angular/common';
-import { Component, DestroyRef, HostListener, OnInit, ViewChild, ViewEncapsulation, inject } from '@angular/core';
+import {
+  Component,
+  DestroyRef,
+  HostListener,
+  OnInit,
+  ViewChild,
+  ViewEncapsulation,
+  inject,
+  isDevMode,
+} from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
-import { take } from 'rxjs';
 
 import { AdminCategoryApiService } from '../../../core/api/admin-category-api.service';
 import { AuthService } from '../../../core/auth/auth.service';
-import { AdminCategory, AdminCategoryUpdateRequest, CategoryStatus } from '../../../core/models/category.model';
+import { AdminCategory, CategoryStatus } from '../../../core/models/category.model';
 import { AdminUiFeedbackService } from '../../../core/services/admin-ui-feedback.service';
 import { AdminCategoryBulkActionsComponent } from './components/category-bulk-actions/category-bulk-actions';
 import { AdminCategoryDetailPanelComponent } from './components/category-detail-panel/category-detail-panel';
 import { AdminCategoryFilterComponent } from './components/category-filter/category-filter';
-import { AdminCategoryFormComponent } from './components/category-form/category-form';
+import { AdminCategoryFormComponent, AdminCategoryFormMode } from './components/category-form/category-form';
 import { AdminCategoryTableComponent } from './components/category-table/category-table';
 import { CategoryTableContext } from './components/category-table/category-table-columns';
 import {
   errorText,
   extractCategoryList,
-  generateCategorySlug,
   getCategoryOrder,
+  canEditCategory,
   normalizeCategoryOrders,
   parseCategoryStatus,
   sortCategory,
@@ -62,7 +70,7 @@ export class AdminCategories implements OnInit {
     { label: 'Chờ duyệt', value: 'PENDING' },
     { label: 'Đã duyệt', value: 'APPROVED' },
     { label: 'Từ chối', value: 'REJECTED' },
-    { label: 'Hủy trình duyệt', value: 'CANCEL_APPROVE' },
+    { label: 'Hủy duyệt', value: 'CANCEL_APPROVE' },
   ];
 
   loading = false;
@@ -73,7 +81,8 @@ export class AdminCategories implements OnInit {
   keyword = '';
   statusFilter: CategoryStatusFilter = 'ALL';
   selectedCategory: AdminCategory | null = null;
-  pendingCategory: AdminCategory | null = null;
+  reviewCategory: AdminCategory | null = null;
+  formMode: AdminCategoryFormMode = 'create';
   isFormOpen = false;
   selectedBatchCategories: AdminCategory[] = [];
   reorderingCategoryIds = new Set<number>();
@@ -82,7 +91,10 @@ export class AdminCategories implements OnInit {
 
   readonly tableContext: CategoryTableContext = {
     openEdit: (category) => this.openEditForm(category),
+    openCopy: (category) => this.openCopyForm(category),
+    openDetail: (category) => this.openDetail(category),
     openPending: (category) => this.openPendingChangesPanel(category),
+    openDelete: (category) => this.openDelete(category),
     reload: () => this.reloadCategories(),
     move: (category, index, direction) => this.moveCategory(category, index, direction),
   };
@@ -149,12 +161,35 @@ export class AdminCategories implements OnInit {
 
     this.setFormViewUrl();
     this.isFormOpen = true;
+    this.formMode = 'create';
     this.selectedCategory = null;
     this.errorMessage = '';
     this.successMessage = '';
   }
 
   openEditForm(category: AdminCategory): void {
+    if (isDevMode()) {
+      console.debug('[AdminCategories] openEditForm', category.id);
+    }
+
+    if (!canEditCategory(category, this.auth.currentRole())) {
+      this.denyCategoryAction();
+      return;
+    }
+
+    this.setFormViewUrl();
+    this.isFormOpen = true;
+    this.formMode = 'edit';
+    this.selectedCategory = category;
+    this.errorMessage = '';
+    this.successMessage = '';
+  }
+
+  openCopyForm(category: AdminCategory): void {
+    if (isDevMode()) {
+      console.debug('[AdminCategories] openCopyForm', category.id);
+    }
+
     if (!this.canCreateCategory()) {
       this.denyCategoryAction();
       return;
@@ -162,6 +197,7 @@ export class AdminCategories implements OnInit {
 
     this.setFormViewUrl();
     this.isFormOpen = true;
+    this.formMode = 'copy';
     this.selectedCategory = category;
     this.errorMessage = '';
     this.successMessage = '';
@@ -170,6 +206,7 @@ export class AdminCategories implements OnInit {
   closeForm(updateUrl = true): void {
     this.isFormOpen = false;
     this.selectedCategory = null;
+    this.formMode = 'create';
 
     if (updateUrl) {
       this.setListViewUrl();
@@ -208,11 +245,27 @@ export class AdminCategories implements OnInit {
   }
 
   openPendingChangesPanel(category: AdminCategory): void {
-    this.pendingCategory = category;
+    if (isDevMode()) {
+      console.debug('[AdminCategories] openPendingChangesPanel', category.id);
+    }
+
+    this.reviewCategory = category;
+  }
+
+  openDetail(category: AdminCategory): void {
+    this.reviewCategory = category;
+  }
+
+  openDelete(category: AdminCategory): void {
+    if (isDevMode()) {
+      console.debug('[AdminCategories] openDelete', category.id);
+    }
+
+    this.feedback.warning('Chức năng xóa sẽ được nối ở bước tiếp theo.');
   }
 
   closePendingChangesPanel(): void {
-    this.pendingCategory = null;
+    this.reviewCategory = null;
   }
 
   applyFilters(): void {
@@ -234,114 +287,17 @@ export class AdminCategories implements OnInit {
       .sort((a, b) => sortCategory(a, b));
   }
 
-  moveCategory(category: AdminCategory, currentIndex: number, direction: 'up' | 'down'): void {
-    if (
-      this.reorderBlockedByFilter ||
-      this.gridSortBlocksReorder ||
-      this.reorderingCategoryIds.size > 0 ||
-      this.isCategoryReordering(category)
-    ) {
-      return;
-    }
-
-    if (!this.canCreateCategory()) {
-      this.denyCategoryAction();
-      return;
-    }
-
-    const targetIndex = direction === 'up' ? currentIndex - 1 : currentIndex + 1;
-    const targetCategory = this.filteredCategories[targetIndex];
-
-    if (
-      !category.id ||
-      !targetCategory?.id ||
-      targetIndex < 0 ||
-      targetIndex >= this.filteredCategories.length
-    ) {
-      return;
-    }
-
-    const categoryName = category.name || 'danh mục này';
-    const directionText = direction === 'up' ? 'lên trên' : 'xuống dưới';
-
-    this.feedback
-      .confirmWarning(
-        `Bạn có chắc muốn chuyển danh mục "${categoryName}" ${directionText} không?`,
-        'Xác nhận đổi thứ tự',
-        'Xác nhận',
-      )
-      .pipe(take(1))
-      .subscribe((confirmed) => {
-        if (confirmed) {
-          this.swapCategoryOrder(category, targetCategory);
-        }
-      });
+  moveCategory(_category: AdminCategory, _currentIndex: number, _direction: 'up' | 'down'): void {
+    this.feedback.warning(
+      'Sắp xếp thứ tự cần endpoint backend riêng, không thể dùng API cập nhật category sau workflow mới.',
+    );
   }
 
   @HostListener('document:keydown.escape')
   closeOverlayByEscape(): void {
-    if (this.pendingCategory) {
+    if (this.reviewCategory) {
       this.closePendingChangesPanel();
     }
-  }
-
-  private isCategoryReordering(category: AdminCategory): boolean {
-    return !!category.id && this.reorderingCategoryIds.has(category.id);
-  }
-
-  private swapCategoryOrder(category: AdminCategory, targetCategory: AdminCategory): void {
-    if (!category.id || !targetCategory.id) {
-      return;
-    }
-
-    const categoryOrder = getCategoryOrder(category);
-    const targetOrder = getCategoryOrder(targetCategory);
-    const firstPayload = this.buildCategoryUpdatePayload(category, targetOrder);
-    const secondPayload = this.buildCategoryUpdatePayload(targetCategory, categoryOrder);
-
-    this.reorderingCategoryIds = new Set([category.id, targetCategory.id]);
-    this.errorMessage = '';
-    this.successMessage = '';
-
-    this.categoryApi
-      .swapCategoryOrder(
-        { id: category.id, payload: firstPayload },
-        { id: targetCategory.id, payload: secondPayload },
-      )
-      .pipe(takeUntilDestroyed(this.destroyRef))
-      .subscribe({
-        next: () => {
-          this.feedback.success('Đã cập nhật thứ tự danh mục.');
-          this.reorderingCategoryIds = new Set<number>();
-          this.loadCategories();
-        },
-        error: (error) => {
-          this.errorMessage = errorText(
-            error,
-            'Không thể cập nhật thứ tự danh mục. Danh sách sẽ được tải lại.',
-          );
-          this.feedback.error(this.errorMessage);
-          this.reorderingCategoryIds = new Set<number>();
-          this.loadCategories();
-        },
-      });
-  }
-
-  private buildCategoryUpdatePayload(
-    category: AdminCategory,
-    displayOrder: number,
-  ): AdminCategoryUpdateRequest {
-    const name = (category.name || '').trim();
-    const slugSource = (category.slug || name).trim();
-
-    return {
-      name,
-      slug: generateCategorySlug(slugSource) || slugSource,
-      description: category.description?.trim() || undefined,
-      imageUrl: category.imageUrl?.trim() || undefined,
-      displayOrder: Math.max(1, Math.trunc(displayOrder)),
-      status: parseCategoryStatus(category.status) || 'DRAFT',
-    };
   }
 
   private denyCategoryAction(): void {

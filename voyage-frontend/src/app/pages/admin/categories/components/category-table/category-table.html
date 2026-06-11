@@ -19,6 +19,7 @@
     [overlayLoadingTemplate]="overlayLoadingTemplate"
     [overlayNoRowsTemplate]="overlayNoRowsTemplate"
     (gridReady)="handleGridReady($event)"
+    (rowClicked)="handleRowClicked($event)"
     (sortChanged)="handleSortChanged($event)"
     (selectionChanged)="handleSelectionChanged($event)"
     [selectionColumnDef]="selectionColumnDef"

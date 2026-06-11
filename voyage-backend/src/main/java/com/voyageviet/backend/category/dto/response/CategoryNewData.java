@@ -9,6 +9,7 @@ public record CategoryNewData(
         String imageUrl,
         CategoryStatus status,
         Integer displayOrder,
-        Integer isDisplay
+        Integer isDisplay,
+        Integer isActive
 ) {
 }

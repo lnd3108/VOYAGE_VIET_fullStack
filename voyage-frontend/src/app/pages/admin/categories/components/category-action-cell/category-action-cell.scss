@@ -61,8 +61,12 @@ button.admin-categories__action-trigger tui-icon {
 }
 
 .admin-categories__action-menu {
-  position: fixed;
+  position: absolute;
+  top: calc(100% + 10px);
+  right: 0;
   z-index: 99999;
+  width: 220px;
+  max-height: 260px;
   padding: 12px 14px;
   display: flex;
   flex-direction: column;
@@ -76,22 +80,36 @@ button.admin-categories__action-trigger tui-icon {
   overflow-y: auto;
 }
 
+.admin-categories__action-menu--up {
+  top: auto;
+  bottom: calc(100% + 10px);
+}
+
+.admin-categories__action-menu--body {
+  position: fixed;
+  top: auto;
+  right: auto;
+  bottom: auto;
+  z-index: 100000;
+}
+
 button.admin-categories__action-item {
   width: 100%;
   min-width: 0;
-  min-height: 48px;
-  padding: 0 10px;
+  min-height: 38px;
+  padding: 0 8px;
   border: 0;
   border-radius: 10px;
   background: transparent;
   display: flex;
   align-items: center;
   justify-content: flex-start;
-  gap: 12px;
+  gap: 10px;
   color: var(--c, #1f6f6d);
-  font-size: 15px;
-  font-weight: 800;
-  line-height: 1;
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1.35;
   text-align: left;
   white-space: nowrap;
   cursor: pointer;
@@ -123,12 +141,13 @@ button.admin-categories__action-item span {
 }
 
 .admin-categories__action-item-icon {
-  width: 20px;
-  height: 20px;
-  flex: 0 0 20px;
+  width: 18px;
+  height: 18px;
+  flex: 0 0 18px;
   color: currentColor;
 }
 
+button.admin-categories__action-item--primary,
 .admin-categories__action-item--order,
 .admin-categories__action-item--edit {
   --c: #1f6f6d;
@@ -168,7 +187,7 @@ button.admin-categories__action-item span {
   }
 
   button.admin-categories__action-item {
-    min-height: 44px;
+    min-height: 38px;
     font-size: 14px;
   }
 }

@@ -7,6 +7,7 @@ export interface CategoryResponse {
   description?: string;
   imageUrl?: string;
   status: CategoryStatus;
+  isActive?: number | boolean | string | null;
   isDisplay?: number | boolean | null;
   rejectReason?: string | null;
   displayOrder?: number;
@@ -28,6 +29,7 @@ export interface AdminCategory {
   description?: string;
   imageUrl?: string;
   status?: CategoryStatus | string;
+  isActive?: number | boolean | string | null;
   isDisplay?: number | boolean | null;
   rejectReason?: string | null;
   displayOrder?: number;
@@ -51,16 +53,11 @@ export interface AdminCategoryCreateRequest {
   slug: string;
   description?: string;
   imageUrl?: string;
+  isActive?: number | boolean | null;
   displayOrder?: number;
 }
 
 export interface AdminCategoryUpdateRequest extends AdminCategoryCreateRequest {
-  status?: CategoryStatus;
-}
-
-export interface AdminCategoryOrderSwapItem {
-  id: number;
-  payload: AdminCategoryUpdateRequest;
 }
 
 export interface CategoryBatchActionItemResponse {
@@ -79,6 +76,7 @@ export interface CategoryBatchActionResponse {
 }
 
 export type CategoryDisplayValue = number | boolean | string | null | undefined;
+export type CategoryActiveValue = number | boolean | string | null | undefined;
 
 export interface CategoryNewData {
   name?: string | null;
@@ -86,6 +84,7 @@ export interface CategoryNewData {
   description?: string | null;
   imageUrl?: string | null;
   status?: CategoryStatus | string | null;
+  isActive?: CategoryActiveValue;
   isDisplay?: CategoryDisplayValue;
   displayOrder?: number | string | null;
   sortOrder?: number | string | null;
@@ -98,6 +97,10 @@ export function isCategoryDisplayEnabled(value: CategoryDisplayValue): boolean {
   return value === 1 || value === true || value === '1' || value === 'true';
 }
 
-export function isCategorySelectableForTour(category: Pick<AdminCategory, 'status' | 'isDisplay'>): boolean {
-  return category.status === 'APPROVED' && isCategoryDisplayEnabled(category.isDisplay);
+export function isCategoryActive(value: CategoryActiveValue): boolean {
+  return value === undefined || value === null || value === 1 || value === true || value === '1' || value === 'true';
+}
+
+export function isCategorySelectableForTour(category: Pick<AdminCategory, 'status' | 'isActive' | 'isDisplay'>): boolean {
+  return category.status === 'APPROVED' && isCategoryActive(category.isActive) && isCategoryDisplayEnabled(category.isDisplay);
 }

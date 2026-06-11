@@ -2157,3 +2157,537 @@ Thời gian cập nhật: 2026-06-10
 
 ### Technical notes / risks
 - The singleton is scoped to the action-cell component class and does not affect API, workflow, route, permissions or data model.
+
+## Cập Nhật: Admin Categories Đồng Bộ Backend Category Workflow PMH-style + isActive/isDisplay
+
+1. Thời gian cập nhật: 2026-06-10 16:22:30 +07:00.
+2. File đã sửa:
+   - `src/app/core/models/category.model.ts`
+   - `src/app/core/api/admin-category-api.service.ts`
+   - `src/app/pages/admin/categories/category-utils.ts`
+   - `src/app/pages/admin/categories/categories.ts`
+   - `src/app/pages/admin/categories/categories.html`
+   - `src/app/pages/admin/categories/components/category-table/category-table-columns.ts`
+   - `src/app/pages/admin/categories/components/category-table/category-table.scss`
+   - `src/app/pages/admin/categories/components/category-action-cell/category-action-cell.ts`
+   - `src/app/pages/admin/categories/components/category-action-cell/category-action-cell.html`
+   - `src/app/pages/admin/categories/components/category-detail-panel/category-detail-panel.ts`
+   - `src/app/pages/admin/categories/components/category-detail-panel/category-detail-panel.html`
+   - `src/app/pages/admin/categories/components/category-form/category-form.ts`
+   - `src/app/pages/admin/categories/components/category-form/category-form.html`
+   - `src/app/pages/admin/categories/components/category-form/category-form.scss`
+   - `src/app/pages/admin/categories/components/category-bulk-actions/category-bulk-actions.ts`
+   - `src/app/pages/admin/categories/components/category-bulk-actions/category-bulk-actions.html`
+3. File đã thêm: không có.
+4. File đã xóa: không có.
+5. API mới đã nối:
+   - `POST /api/admin/categories/submit-create` qua `createAndSubmitCategory(payload)`.
+   - `POST /api/admin/categories/{id}/copy` đã thêm service method `copyCategory(id)` cho copy nhanh sau này; UX hiện tại mở form copy để user nhập lại `name/slug` trước khi lưu.
+6. API cũ đã chỉnh cách dùng:
+   - Không dùng `/status` cho workflow UI; `updateCategoryStatus()` chỉ giữ compatibility/deprecated.
+   - Reject single và batch bắt buộc reason không rỗng trước khi gọi API.
+   - Cancel approve chỉ hiển thị/chạy từ category `APPROVED`.
+   - Display chỉ hiển thị/chạy khi `APPROVED + isActive=1`; `isActive=0` luôn coi là ẩn public.
+7. Business rule frontend đã implement:
+   - `status` chỉ còn dùng cho workflow: `DRAFT`, `PENDING`, `APPROVED`, `REJECTED`, `CANCEL_APPROVE`.
+   - Thêm `isActive` vào model/create/update/patch/newData và helper `isCategoryActive()`.
+   - Tour selectable helper chỉ true khi `APPROVED + isActive + isDisplay`.
+   - Grid thêm cột `Hoạt động`, display label/class phân biệt inactive, chưa public, đang hiển thị, đang ẩn.
+   - Action menu: `DRAFT/REJECTED/CANCEL_APPROVE` có sửa/gửi duyệt theo policy; `PENDING` mở xem duyệt; `APPROVED` có hủy duyệt và display nếu active; delete chỉ `SUPER_ADMIN` theo status/display/newData rule.
+   - Form thêm mode `create/edit/copy`, field `Trạng thái hoạt động`, nút `Lưu` và `Lưu và gửi duyệt`; payload không gửi `status`.
+   - Detail panel bắt buộc nhập lý do từ chối, thêm compare row `Trạng thái hoạt động`.
+   - Batch action lọc eligibility theo workflow mới, active/display rule và reason bắt buộc cho reject.
+8. Kết quả build/test:
+   - `npx ng build --configuration development`: pass.
+   - `npm run build`: pass.
+   - Scan UTF-8 bằng Node trên Categories/model/API: không phát hiện pattern mojibake phổ biến.
+9. Warning còn lại:
+   - `npm run build` còn warning initial bundle vượt budget 500 kB: total 867.87 kB.
+   - Các warning SCSS budget còn lại: `admin/tours/tours.scss`, `admin/tours/tour-form/tour-form.scss`, `admin/destinations/destinations.scss`, `public-layout.scss`, `public/home/home-hero.scss`.
+   - `category-form.scss` warning 8.48 kB vượt budget 8 kB 476 bytes nhưng vẫn dưới hard budget 10 kB; thay đổi lần này chỉ thêm selector `select` tối thiểu.
+10. Ghi chú rủi ro còn lại:
+    - Chưa chạy browser manual/E2E trong lượt này; task tập trung đồng bộ code và build.
+    - Không sửa public frontend, Admin Tours, Admin Destinations hoặc Media.
+    - Không đổi workflow/API/payload backend; chỉ đồng bộ frontend Admin Categories theo contract backend đã ghi trong report.
+    - Worktree đang có thay đổi backend/migration từ trước, không thuộc phạm vi sửa của lượt này.
+
+## Cập Nhật: Admin Categories Bổ Sung Rule isActive Chỉ Áp Dụng Khi APPROVED
+
+1. Thời gian cập nhật: 2026-06-10 16:46:30 +07:00.
+2. File đã sửa:
+   - `src/app/pages/admin/categories/category-utils.ts`
+   - `src/app/pages/admin/categories/components/category-table/category-table.scss`
+   - `src/app/pages/admin/categories/components/category-form/category-form.ts`
+   - `src/app/pages/admin/categories/components/category-form/category-form.html`
+   - `src/app/pages/admin/categories/components/category-detail-panel/category-detail-panel.ts`
+3. Nội dung chỉnh rule `isActive`:
+   - Form create/copy không còn render select `Trạng thái hoạt động`.
+   - Form create/copy không cho user chọn `isActive`; payload không gửi `isActive` cho create/copy.
+   - Form edit chỉ render `Trạng thái hoạt động` khi category đang `APPROVED`.
+   - Với `DRAFT`, `PENDING`, `REJECTED`, `CANCEL_APPROVE`, form không hiển thị field `isActive`.
+   - Grid cột `Hoạt động` hiển thị `Chưa áp dụng` cho category chưa `APPROVED`, không coi các bản nháp/chờ duyệt là active thật.
+   - Detail panel chỉ thêm row `Trạng thái hoạt động` khi category đang `APPROVED`.
+   - Display/public rule giữ nguyên: chỉ cho bật/tắt khi `APPROVED + isActive=1`.
+4. Kết quả build/test:
+   - `npx ng build --configuration development`: pass.
+   - `npm run build`: pass.
+5. Warning còn lại:
+   - `npm run build` còn warning initial bundle vượt budget 500 kB: total 867.87 kB.
+   - Các warning SCSS budget hiện có vẫn còn ở `public-layout.scss`, `admin/destinations/destinations.scss`, `admin/tours/tours.scss`, `public/home/home-hero.scss`, `admin/tours/tour-form/tour-form.scss`, `category-form.scss`.
+6. Ghi chú:
+   - Không sửa public frontend.
+    - Không sửa backend/API contract.
+    - Không đổi workflow Categories ngoài rule hiển thị/xử lý `isActive` ở frontend.
+
+## Cập Nhật: Admin Categories Detail Panel Theo Layout PMH
+
+1. Thời gian cập nhật: 2026-06-10 22:46:30 +07:00.
+2. File đã sửa:
+   - `src/app/pages/admin/categories/components/category-detail-panel/category-detail-panel.ts`
+   - `src/app/pages/admin/categories/components/category-detail-panel/category-detail-panel.html`
+   - `src/app/pages/admin/categories/components/category-detail-panel/category-detail-panel.scss`
+3. Thay đổi UI detail panel:
+   - Chuyển layout review từ table 4 cột sang 2 card kiểu PMH: `Dữ liệu cũ` và `Dữ liệu mới`.
+   - Field thay đổi được highlight trong card `Dữ liệu mới`.
+   - Field ảnh hiển thị preview ảnh cũ/mới và URL rút gọn dưới ảnh nếu có.
+   - Khi không có `newData`, panel vẫn hiển thị dữ liệu hiện tại ở card `Dữ liệu mới`; card `Dữ liệu cũ` hiển thị giá trị rỗng/không áp dụng.
+   - Reject textarea có counter `0/500`; nút `Xác nhận từ chối` disabled khi reason rỗng.
+4. Rule workflow giữ nguyên:
+   - Approve/reject chỉ hiển thị và gọi API khi category `PENDING` và role `ADMIN/SUPER_ADMIN`.
+   - Reject vẫn bắt buộc reason không rỗng.
+   - Cancel approve chỉ hiển thị và gọi API khi category `APPROVED`.
+   - Text cancel approve giữ là `Hủy duyệt`.
+   - `isActive` chỉ hiển thị trong compare khi category hiện tại `APPROVED`.
+   - Không đổi backend API, parent flow, selector component, input/output hoặc public frontend.
+5. Kết quả build/test:
+   - `npx ng build --configuration development`: pass.
+   - `npm run build`: pass.
+6. Warning còn lại:
+   - `npm run build` còn warning initial bundle vượt budget 500 kB: total 867.87 kB.
+   - Các warning SCSS budget hiện có vẫn còn ở `public-layout.scss`, `home-hero.scss`, `admin/tours/tours.scss`, `admin/tours/tour-form.scss`, `admin/destinations/destinations.scss`, `category-form.scss`.
+   - `category-detail-panel.scss` hiện 8.74 kB, vượt warning budget 8 kB 742 bytes nhưng vẫn dưới hard budget 10 kB.
+7. Ghi chú:
+    - Chưa chạy manual browser trong lượt này; cần kiểm tra thực tế với category `PENDING` có `newData` và category `APPROVED`.
+    - Không sửa Admin Tours/Destinations/Media.
+
+## Cập Nhật: Admin Categories Detail Panel Centered Modal PMH
+
+1. Thời gian cập nhật: 2026-06-10 23:00:30 +07:00.
+2. File đã sửa:
+   - `src/app/pages/admin/categories/components/category-detail-panel/category-detail-panel.ts`
+   - `src/app/pages/admin/categories/components/category-detail-panel/category-detail-panel.html`
+   - `src/app/pages/admin/categories/components/category-detail-panel/category-detail-panel.scss`
+3. Thay đổi UI detail panel:
+   - Đổi Category detail từ right drawer/slide-over sang centered modal.
+   - Thêm cấu trúc `backdrop + modal-shell + modal content`; modal nằm giữa màn hình, không bám `right`, không chiếm full height bên phải.
+   - Body modal có scroll nội bộ với `max-height: calc(100vh - 64px)`, tránh kéo trang nền theo.
+   - Header rút gọn theo kiểu PMH: `Xem chi tiết`, workflow badge, các badge nhỏ và nút đóng `×`.
+   - Bỏ summary block `Tên hiện tại / Slug / Workflow / Public` để modal tập trung vào 2 card compare.
+   - Footer action căn phải theo workflow; bổ sung logic submit/delete trong detail panel để hỗ trợ `DRAFT`, `REJECTED`, `CANCEL_APPROVE` nếu panel được mở ở các trạng thái này.
+4. Thay đổi highlight:
+   - Chỉ bôi đỏ value ở card `Dữ liệu mới` qua `.admin-category-detail__data-value--new`.
+   - Không bôi đỏ label, không bôi đỏ card `Dữ liệu cũ`, không bôi đỏ cả row.
+   - Với field ảnh, không bôi đỏ khi thay đổi; render ảnh cũ và ảnh mới để đối chiếu trực quan.
+5. Rule workflow giữ nguyên:
+   - Approve/reject chỉ cho `PENDING` và role `ADMIN/SUPER_ADMIN`.
+   - Reject vẫn bắt buộc reason không rỗng và gọi API `{ reason }`.
+   - Cancel approve chỉ cho `APPROVED`, text `Hủy duyệt`.
+   - `isActive` chỉ có ý nghĩa/hiển thị khi category `APPROVED`.
+   - Không sửa backend API, parent flow, public frontend, Admin Tours/Destinations/Media.
+6. Kết quả build/test:
+   - `npx ng build --configuration development`: pass.
+   - `npm run build`: pass.
+7. Warning còn lại:
+   - `npm run build` còn warning initial bundle vượt budget 500 kB: total 867.87 kB.
+   - Các warning SCSS budget hiện có vẫn còn ở `public-layout.scss`, `category-form.scss`, `home-hero.scss`, `admin/tours/tours.scss`, `admin/tours/tour-form.scss`, `admin/destinations/destinations.scss`.
+    - `category-detail-panel.scss` hiện 9.25 kB, vượt warning budget 8 kB 1.25 kB nhưng vẫn dưới hard budget 10 kB.
+8. Ghi chú:
+    - Chưa chạy manual browser trong lượt này; cần kiểm tra thực tế modal centered, scroll nội bộ, PENDING có `newData`, APPROVED có `Hủy duyệt`.
+
+## Cập Nhật: Admin Categories Detail Panel Căn Giữa Và Bỏ Nút Đóng Footer
+
+1. Thời gian cập nhật: 2026-06-10 23:04:50 +07:00.
+2. File đã sửa:
+   - `src/app/pages/admin/categories/components/category-detail-panel/category-detail-panel.html`
+   - `src/app/pages/admin/categories/components/category-detail-panel/category-detail-panel.scss`
+3. Nội dung chỉnh:
+   - Bỏ nút `Đóng` ở footer vì header đã có nút đóng `×`.
+   - Đổi modal content sang `position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%)` để căn giữa trực tiếp, không phụ thuộc flex shell.
+   - Giữ backdrop toàn màn hình, body scroll nội bộ và workflow action hiện có.
+4. Kết quả build/test:
+   - `npx ng build --configuration development`: pass.
+   - `npm run build`: pass.
+5. Warning còn lại:
+   - `npm run build` còn warning initial bundle vượt budget 500 kB: total 867.87 kB.
+   - `category-detail-panel.scss` hiện 9.21 kB, vẫn dưới hard budget 10 kB.
+   - Các warning SCSS budget hiện hữu khác không đổi.
+
+## Cập Nhật: Admin Categories Detail Panel Rút Gọn Field Hiển Thị
+
+1. Thời gian cập nhật: 2026-06-10 23:15:00 +07:00.
+2. File đã sửa:
+   - `src/app/pages/admin/categories/components/category-detail-panel/category-detail-panel.ts`
+   - `src/app/pages/admin/categories/components/category-detail-panel/category-detail-panel.html`
+3. Nội dung chỉnh:
+   - Detail modal chỉ còn hiển thị các field nội dung chính: `Tên danh mục`, `Đường dẫn`, `Mô tả`, `Ảnh danh mục`.
+   - Đổi nhãn `Slug` thành `Đường dẫn` để dễ hiểu hơn bằng tiếng Việt.
+   - Bỏ row trạng thái workflow/public/display/order/active khỏi phần compare vì trạng thái đã có badge ở header modal.
+   - Field ảnh chỉ render ảnh cũ/mới hoặc `Chưa có ảnh`; không hiển thị URL/link rút gọn dưới ảnh nữa.
+4. Kết quả build/test:
+   - `npx ng build --configuration development`: pass.
+   - `npm run build`: pass.
+5. Warning còn lại:
+   - `npm run build` còn warning initial bundle và các SCSS budget hiện hữu.
+   - `category-detail-panel.scss` hiện 9.21 kB, vẫn dưới hard budget 10 kB.
+
+## Cập Nhật: Admin Categories Click Row Mở Detail Modal
+
+1. Thời gian cập nhật: 2026-06-10 23:08:35 +07:00.
+2. File đã sửa:
+   - `src/app/pages/admin/categories/components/category-table/category-table.html`
+   - `src/app/pages/admin/categories/components/category-table/category-table.ts`
+   - `src/app/pages/admin/categories/components/category-table/category-table-columns.ts`
+   - `src/app/pages/admin/categories/categories.ts`
+   - `src/app/pages/admin/categories/categories.html`
+3. Nội dung chỉnh:
+   - Thêm `(rowClicked)="handleRowClicked($event)"` cho AG Grid Admin Categories.
+   - Thêm `handleRowClicked()` để click vùng row/text/ảnh/tên danh mục mở `AdminCategoryDetailPanelComponent` hiện có.
+   - Mở modal qua cùng state `reviewCategory`, nên category không có `newData` vẫn hiển thị dữ liệu hiện tại; category có `newData` vẫn hiển thị so sánh dữ liệu cũ/mới.
+   - Mở rộng `CategoryTableContext` với `openDetail?: (category) => void`.
+   - Parent truyền `openDetail: (category) => this.openDetail(category)`.
+4. Chặn click tương tác không mở detail:
+   - Không mở modal khi click checkbox AG Grid.
+   - Không mở modal khi click action cell/menu ba chấm.
+   - Không mở modal khi click `button`, `input`, `select`, `textarea`, `a`.
+   - Header/sort không đi qua row click nên không mở modal.
+5. Kết quả build/test:
+   - `npx ng build --configuration development`: pass.
+   - `npm run build`: pass.
+6. Warning còn lại:
+   - `npm run build` còn warning initial bundle vượt budget 500 kB: total 867.87 kB.
+   - `category-detail-panel.scss` hiện 9.21 kB, vẫn dưới hard budget 10 kB.
+   - Các warning SCSS budget hiện hữu khác không đổi.
+## Cập Nhật: Admin Categories Detail Panel Field Hiển Thị Và Ảnh
+
+1. Thời gian cập nhật: 2026-06-10 23:23:52 +07:00.
+2. File đã sửa:
+   - `src/app/pages/admin/categories/components/category-detail-panel/category-detail-panel.ts`
+   - `src/app/pages/admin/categories/components/category-detail-panel/category-detail-panel.html`
+   - `src/app/pages/admin/categories/components/category-detail-panel/category-detail-panel.scss`
+3. Nội dung chỉnh:
+   - Bỏ badge `Có dữ liệu chờ duyệt` / `Không có dữ liệu chờ duyệt` khỏi header modal.
+   - Đưa trạng thái public vào field `Hiển thị` trong detail card.
+   - Badge `Đang hiển thị` giữ style xanh; trạng thái ẩn dùng badge xám tối trong detail.
+   - Field ảnh tiếp tục chỉ hiển thị ảnh hoặc `Chưa có ảnh`, không hiển thị URL/link.
+   - Căn lại placeholder `Chưa có ảnh` với vùng cao cố định để không đè hoặc lệch so với label `Ảnh danh mục`.
+   - Cắt các style cũ không còn dùng của drawer/table/summary/header badge để `category-detail-panel.scss` không vượt hard budget 10 kB.
+4. Kết quả build/test:
+   - `npx ng build --configuration development`: pass.
+   - `npm run build`: pass.
+5. Warning còn lại:
+   - `npm run build` còn warning initial bundle vượt budget 500 kB: total 867.87 kB.
+   - Các warning SCSS budget hiện hữu còn lại: `category-form.scss`, `destinations.scss`, `tours.scss`, `home-hero.scss`, `public-layout.scss`, `tour-form.scss`.
+   - `category-detail-panel.scss` không còn vượt hard budget 10 kB.
+## Cập Nhật: Admin Categories Detail Panel Căn Hàng Field Hai Bên
+
+1. Thời gian cập nhật: 2026-06-10 23:29:30 +07:00.
+2. File đã sửa:
+   - `src/app/pages/admin/categories/components/category-detail-panel/category-detail-panel.html`
+   - `src/app/pages/admin/categories/components/category-detail-panel/category-detail-panel.scss`
+3. Nội dung chỉnh:
+   - Đổi phần compare từ hai card body render độc lập sang grid theo cặp field.
+   - Mỗi field bên `Dữ liệu cũ` và `Dữ liệu mới` nằm cùng một CSS grid row, nên các dòng như `Hiển thị` căn ngang nhau.
+   - Giữ header hai card `Dữ liệu cũ` / `Dữ liệu mới`, badge hiển thị, ảnh và workflow action hiện có.
+4. Kết quả build/test:
+   - `npx ng build --configuration development`: pass.
+   - `npm run build`: pass.
+5. Warning còn lại:
+   - `npm run build` còn warning initial bundle vượt budget 500 kB: total 867.87 kB.
+   - Các warning SCSS budget hiện hữu còn lại không đổi.
+## Cập Nhật: Admin Categories Reject Reason Modal Riêng
+
+1. Thời gian cập nhật: 2026-06-10 23:36:27 +07:00.
+2. File đã sửa:
+   - `src/app/pages/admin/categories/components/category-detail-panel/category-detail-panel.ts`
+   - `src/app/pages/admin/categories/components/category-detail-panel/category-detail-panel.html`
+   - `src/app/pages/admin/categories/components/category-detail-panel/category-detail-panel.scss`
+3. Nội dung chỉnh:
+   - Tách form nhập lý do từ chối khỏi body detail modal.
+   - Khi bấm `Từ chối`, mở modal riêng phía trên detail modal với backdrop riêng.
+   - Modal từ chối có textarea, counter 0/500, nút `Hủy` và `Xác nhận từ chối`.
+   - Không gửi reject nếu reason rỗng; API vẫn gọi `rejectCategory(id, { reason })`.
+   - Chặn đóng modal từ chối khi đang submit.
+4. Kết quả build/test:
+   - `npx ng build --configuration development`: pass.
+   - `npm run build`: pass.
+5. Warning còn lại:
+   - `npm run build` còn warning initial bundle vượt budget 500 kB: total 867.87 kB.
+   - `category-detail-panel.scss` có warning vượt budget 8 kB: total 8.69 kB, vẫn dưới hard budget 10 kB.
+   - Các warning SCSS budget hiện hữu khác không đổi.
+## Cập Nhật: Admin Categories Refactor Order Column Và Action Menu Theo Workflow
+
+Thời gian cập nhật: 2026-06-11 08:51:33 +07:00
+
+### File đã sửa
+- `src/app/pages/admin/categories/components/category-table/category-table-columns.ts`
+- `src/app/pages/admin/categories/components/category-table/category-table.scss`
+- `src/app/pages/admin/categories/components/category-action-cell/category-action-cell.ts`
+- `src/app/pages/admin/categories/components/category-action-cell/category-action-cell.html`
+- `src/app/pages/admin/categories/components/category-action-cell/category-action-cell.scss`
+- `VOYAGE_ADMIN_AUDIT_REPORT.md`
+
+### File đã thêm
+- `src/app/pages/admin/categories/components/category-table/category-order-cell/category-order-cell.ts`
+
+### File đã xóa
+- Không xóa file nào.
+
+### Nội dung đã làm
+- Chuyển nút lên/xuống reorder sang cột `Thứ tự`.
+- Cột `Thứ tự` hiển thị nút lên, số thứ tự, nút xuống và giữ `width/minWidth/maxWidth = 132`, `sort: 'asc'`.
+- Thêm spinner CSS khi `row.reorderBusy=true`.
+- Nút reorder gọi `context.move(row.category, row.rowIndex, 'up'|'down')`, có `preventDefault()` và `stopPropagation()` để không mở detail row.
+- Bỏ reorder khỏi menu `Hành động`.
+- Refactor menu `Hành động` theo workflow `DRAFT/PENDING/APPROVED/REJECTED/CANCEL_APPROVE`.
+- `PENDING` chỉ có `Sao chép`, `Xem & duyệt`; không còn `Sửa/Xóa`.
+- `APPROVED` chỉ có `Sao chép`, `Hủy duyệt`; không còn `Sửa/Xóa`.
+- `DRAFT`, `REJECTED`, `CANCEL_APPROVE` có nhóm `Sửa`, `Sao chép`, separator, workflow action và `Xóa`.
+- `Gửi duyệt`, `Gửi duyệt lại`, `Xem & duyệt`, `Hủy duyệt` mở đúng modal qua `context.openPending`.
+- `Sao chép` mở form copy qua `context.openCopy`.
+- `Sửa` mở form edit qua `context.openEdit`.
+- `Xóa` tạm thời gọi `context.openEdit(category)` theo yêu cầu hiện tại, chờ `openDelete` riêng.
+- Không đổi backend API, parent flow, detail panel, form, public frontend hoặc module khác.
+
+### Kết quả build/test
+- `npx ng build --configuration development`: pass.
+- `npm run build`: pass.
+
+### Warning còn lại
+- `npm run build` còn warning initial bundle vượt budget 500 kB: total 867.87 kB.
+- Các warning SCSS budget hiện hữu còn lại: `category-detail-panel.scss`, `tour-form.scss`, `public-layout.scss`, `tours.scss`, `category-form.scss`, `destinations.scss`, `home-hero.scss`.
+- Không có lỗi compile hoặc warning Angular mới sau khi bỏ import `NgClass` không dùng.
+
+### Ghi chú/rủi ro
+- Action `Xóa` đang tạm gọi `openEdit` vì chưa có `openDelete`.
+- Action cell không còn gọi API workflow/delete/display trực tiếp; backend vẫn là lớp enforce quyền và workflow chính.
+- Icon menu giữ Taiga icon hiện có trong project để build/runtime an toàn, không thêm thư viện icon mới.
+## Cập Nhật: Sửa Lỗi Admin Categories Action Menu Và Reorder Sau Workflow Mới
+
+Thời gian cập nhật: 2026-06-11 09:09:28 +07:00
+
+### File đã sửa
+- `src/app/core/api/admin-category-api.service.ts`
+- `src/app/core/models/category.model.ts`
+- `src/app/pages/admin/categories/categories.ts`
+- `src/app/pages/admin/categories/components/category-table/category-table-columns.ts`
+- `src/app/pages/admin/categories/components/category-table/category-order-cell/category-order-cell.ts`
+- `src/app/pages/admin/categories/components/category-action-cell/category-action-cell.ts`
+- `VOYAGE_ADMIN_AUDIT_REPORT.md`
+
+### Nội dung đã sửa
+- Dừng dùng `PUT /api/admin/categories/{id}` để reorder vì xung đột backend workflow mới.
+- Xóa method `swapCategoryOrder()` khỏi `AdminCategoryApiService` để không còn đường gọi `PUT` reorder cũ.
+- Xóa type `AdminCategoryOrderSwapItem` không còn dùng sau khi bỏ reorder bằng update category.
+- Backend report chưa có endpoint reorder riêng cho Category, nên reorder hiện được tạm disable ở grid row (`canMoveUp=false`, `canMoveDown=false`).
+- `moveCategory()` ở parent chỉ hiển thị warning: sắp xếp thứ tự cần endpoint backend riêng, không bắn request API.
+- Nút reorder disabled có title giải thích đang chờ endpoint backend riêng.
+- Thêm `openDelete?: (category) => void` vào `CategoryTableContext`.
+- Parent truyền `openDelete` bằng arrow function để không mất `this`.
+- Action `Xóa` không còn gọi tạm `openEdit`; hiện warning rõ `Chức năng xóa sẽ được nối ở bước tiếp theo.`
+- Action menu vẫn gọi đúng context handler: edit/copy/pending/delete warning.
+- Click action/reorder vẫn `preventDefault()`/`stopPropagation()` và không mở detail row.
+
+### Kết quả build/test
+- `npx ng build --configuration development`: pass.
+- `npm run build`: pass.
+
+### Warning/rủi ro
+- Nếu backend chưa có endpoint reorder riêng, reorder đang tạm disable/chờ backend.
+- `npm run build` còn warning initial bundle vượt budget 500 kB: total 867.87 kB.
+- Các warning SCSS budget hiện hữu còn lại không đổi: `home-hero.scss`, `tour-form.scss`, `category-detail-panel.scss`, `destinations.scss`, `category-form.scss`, `public-layout.scss`, `tours.scss`.
+
+## Cập Nhật: Sửa Lỗi Admin Categories Action Menu Không Phản Hồi
+
+Thời gian cập nhật: 2026-06-11 09:30:17 +07:00
+
+### File đã sửa
+- `src/app/pages/admin/categories/components/category-action-cell/category-action-cell.ts`
+- `src/app/pages/admin/categories/categories.ts`
+- `VOYAGE_ADMIN_AUDIT_REPORT.md`
+
+### Nội dung đã sửa
+- Giữ nguyên reorder disabled vì backend chưa có endpoint reorder riêng; không bật lại reorder và không gọi API reorder.
+- Bỏ cơ chế `appendMenuToBody()` trong action cell để menu không bị tách khỏi cây DOM Angular của cell renderer.
+- `runMenuAction()` lấy `category` và `context` trước khi đóng menu, log debug trong dev mode, và warning rõ nếu thiếu category/context.
+- Action menu gọi trực tiếp đúng context handler: `openEdit`, `openCopy`, `openPending`, `openDelete`.
+- Parent thêm debug dev mode cho `openEditForm`, `openCopyForm`, `openPendingChangesPanel`, `openDelete` để xác định action đã đi tới state render.
+- `Xóa` tiếp tục hiện warning `Chức năng xóa sẽ được nối ở bước tiếp theo.` thay vì im lặng hoặc mở nhầm form edit.
+
+### Nguyên nhân thực tế
+- Action cell trước đó append menu ra `document.body`, làm luồng click/event của Angular cell renderer khó kiểm soát trong AG Grid. Đã chuyển menu về render trong cell với position/z-index hiện có để click button đi qua template handler ổn định hơn.
+
+### Kết quả build/test
+- `npx ng build --configuration development`: pass.
+- `npm run build`: pass.
+
+### Warning còn lại
+- `npm run build` còn warning initial bundle vượt budget 500 kB: total 867.90 kB.
+- Các warning SCSS budget hiện hữu không đổi: `home-hero.scss`, `category-form.scss`, `destinations.scss`, `tours.scss`, `tour-form.scss`, `category-detail-panel.scss`, `public-layout.scss`.
+
+### Ghi chú/rủi ro
+- Debug log chỉ chạy trong dev mode qua `isDevMode()` để hỗ trợ kiểm tra browser; production build không spam log debug.
+- Reorder vẫn đang chờ backend endpoint riêng.
+- Delete thật vẫn chưa nối, hiện mới warning rõ theo phạm vi task.
+
+## Cập Nhật: Sửa Bổ Sung Hiển Thị Menu Ba Chấm Admin Categories
+
+Thời gian cập nhật: 2026-06-11 09:38:20 +07:00
+
+### File đã sửa
+- `src/app/pages/admin/categories/components/category-action-cell/category-action-cell.ts`
+- `src/app/pages/admin/categories/components/category-action-cell/category-action-cell.html`
+- `src/app/pages/admin/categories/components/category-action-cell/category-action-cell.scss`
+- `VOYAGE_ADMIN_AUDIT_REPORT.md`
+
+### Nội dung đã sửa
+- Giữ reorder disabled, không gọi API reorder.
+- Bỏ điều kiện disable trigger ba chấm theo `row.category.id` để tránh trường hợp dữ liệu id không đúng key làm nút không mở menu.
+- Bỏ `ngStyle/menuPosition` fixed viewport; chuyển menu sang `position: absolute` trong action cell.
+- Thêm `openDirection` để menu mở xuống hoặc mở lên theo khoảng trống màn hình.
+- Menu action có width/max-height rõ ràng, z-index cao, không phụ thuộc append vào `document.body`.
+
+### Kết quả build/test
+- `npx ng build --configuration development`: pass.
+- `npm run build`: pass.
+
+### Warning còn lại
+- `npm run build` còn warning initial bundle vượt budget 500 kB: total 863.37 kB.
+- Các warning SCSS budget hiện hữu không đổi: `category-detail-panel.scss`, `destinations.scss`, `tour-form.scss`, `home-hero.scss`, `tours.scss`, `public-layout.scss`, `category-form.scss`.
+
+### Ghi chú/rủi ro
+- Menu hiện render trong cell thay vì append body để ưu tiên click/action ổn định trong Angular.
+- Với row sát mép dưới grid, menu sẽ tự mở lên theo khoảng trống viewport.
+
+## Cập Nhật: Sửa Menu Action Admin Categories Bị Đè Và Không Click Được
+
+Thời gian cập nhật: 2026-06-11 09:43:30 +07:00
+
+### File đã sửa
+- `src/app/pages/admin/categories/components/category-action-cell/category-action-cell.ts`
+- `src/app/pages/admin/categories/components/category-action-cell/category-action-cell.html`
+- `src/app/pages/admin/categories/components/category-action-cell/category-action-cell.scss`
+- `VOYAGE_ADMIN_AUDIT_REPORT.md`
+
+### Nội dung đã sửa
+- Giữ reorder disabled, không gọi API reorder.
+- Chuyển action menu từ template nằm trong AG Grid cell sang menu tạo bằng DOM và append vào `document.body`.
+- Gắn native click listener trực tiếp cho từng action item để tránh AG Grid/stacking context nuốt click.
+- Thêm cleanup `destroyBodyMenu()` khi đóng menu hoặc destroy cell renderer.
+- Dùng `ViewEncapsulation.None` cho action cell để style `.admin-categories__action-menu` áp dụng được cho menu append ngoài component host.
+- Menu body dùng `position: fixed`, z-index cao, tính top/left theo trigger và tự mở lên/xuống theo viewport.
+- Template action cell chỉ giữ nút ba chấm, không còn render menu inline trong grid row.
+
+### Kết quả build/test
+- `npx ng build --configuration development`: pass.
+- `npm run build`: pass.
+
+### Warning còn lại
+- `npm run build` còn warning initial bundle vượt budget 500 kB: total 863.37 kB.
+- Các warning SCSS budget hiện hữu không đổi: `tours.scss`, `destinations.scss`, `tour-form.scss`, `category-form.scss`, `category-detail-panel.scss`, `public-layout.scss`, `home-hero.scss`.
+
+### Ghi chú/rủi ro
+- Menu action hiện bypass layout clipping của AG Grid bằng body-level menu; cần test browser click từng action sau khi reload trang.
+- Delete thật vẫn chưa nối, chỉ hiện warning theo phạm vi hiện tại.
+
+## Cập Nhật: Đổi Icon Menu Action Admin Categories Sang TuiIcon
+
+Thời gian cập nhật: 2026-06-11 09:49:06 +07:00
+
+### File đã sửa
+- `src/app/pages/admin/categories/components/category-action-cell/category-action-cell.ts`
+- `VOYAGE_ADMIN_AUDIT_REPORT.md`
+
+### Nội dung đã sửa
+- Giữ nguyên body-level action menu đang hoạt động, không đổi logic click/action/reorder.
+- Thay icon text tạm trong menu action bằng `TuiIcon` tạo động qua Angular `createComponent`.
+- Mỗi action item tiếp tục dùng icon mapping hiện có: copy, eye, pencil, arrow-up, arrow-down, trash-2.
+- Thêm cleanup cho các `ComponentRef<TuiIcon>` khi đóng menu hoặc destroy cell renderer để tránh leak view.
+
+### Kết quả build/test
+- `npx ng build --configuration development`: pass.
+- `npm run build`: pass.
+
+### Warning còn lại
+- `npm run build` còn warning initial bundle vượt budget 500 kB: total 863.37 kB.
+- Các warning SCSS budget hiện hữu không đổi.
+
+### Ghi chú/rủi ro
+- Không đụng lại chức năng hiển thị/click menu action ngoài phần icon.
+
+## Cập Nhật: Bỏ Option Tất Cả Trong Dropdown Bộ Lọc Admin Categories
+
+Thời gian cập nhật: 2026-06-11 09:52:39 +07:00
+
+### File đã sửa
+- `src/app/pages/admin/categories/components/category-filter/category-filter.ts`
+- `src/app/pages/admin/categories/components/category-filter/category-filter.html`
+- `VOYAGE_ADMIN_AUDIT_REPORT.md`
+
+### Nội dung đã sửa
+- Giữ trạng thái mặc định của bộ lọc là `ALL` và trigger vẫn hiển thị `Tất cả` khi chưa chọn filter cụ thể.
+- Thêm `statusDropdownOptions` để loại option `ALL` khỏi danh sách dropdown.
+- Dropdown trạng thái hiện chỉ hiển thị các workflow status cụ thể: Nháp, Chờ duyệt, Đã duyệt, Từ chối, Hủy duyệt.
+
+### Kết quả build/test
+- `npx ng build --configuration development`: pass.
+- `npm run build`: không chạy lại vì thay đổi nhỏ và development build đã pass.
+
+### Warning còn lại
+- Không phát sinh warning/lỗi mới.
+
+## Cập Nhật: Sửa Màu Ô Lý Do Từ Chối Admin Categories Detail
+
+Thời gian cập nhật: 2026-06-11 10:08:50 +07:00
+
+### File đã sửa
+- `src/app/pages/admin/categories/components/category-detail-panel/category-detail-panel.scss`
+- `src/app/pages/admin/categories/components/category-filter/category-filter.scss`
+- `VOYAGE_ADMIN_AUDIT_REPORT.md`
+
+### Nội dung đã sửa
+- Chỉnh đúng textarea `Lý do từ chối` trong reject modal của Category detail panel sang nền trắng, chữ đen.
+- Giữ nền trắng/chữ đen cả khi focus và disabled để không bị đổi màu khó đọc.
+- Hoàn tác chỉnh nhầm style ô filter trạng thái/tìm kiếm ở lượt trước, trả filter về màu cũ.
+- Không đổi logic reject, workflow, action menu hoặc reorder.
+
+### Kết quả build/test
+- `npx ng build --configuration development`: pass.
+
+### Warning còn lại
+- Không phát sinh warning/lỗi mới.
+
+
+## Cập Nhật: Tăng Độ Tương Phản Admin Confirm Dialog
+
+Thời gian cập nhật: 2026-06-11 11:18:28 +07:00
+
+### File đã sửa
+- `src/app/core/services/admin-confirm-dialog.component.ts`
+- `src/app/core/services/admin-confirm-dialog.component.scss`
+- `VOYAGE_ADMIN_AUDIT_REPORT.md`
+
+### Nội dung đã sửa
+- Tách style confirm dialog admin từ inline styles sang SCSS riêng.
+- Chuyển confirm dialog admin sang nền sáng `#ffffff`, chữ chính `#0f172a`, message `#475569` với line-height cao hơn để dễ đọc.
+- Style lại title, close button, nút Hủy và nút xác nhận theo theme VoyageViet teal/green.
+- Giữ style riêng cho `confirmInfo`, `confirmWarning`, `confirmDanger`: primary teal, warning amber, danger red.
+- Scope CSS vào confirm dialog chung bằng `.admin-confirm`/`:has(.admin-confirm)` để không sửa từng màn riêng và không ảnh hưởng business logic.
+- Giữ nguyên API và logic `AdminUiFeedbackService.confirmInfo/confirmWarning/confirmDanger`.
+
+### Kết quả build/test
+- `npx ng build --configuration development`: pass.
+- `npm run build`: pass.
+
+### Warning còn lại
+- `npm run build` còn warning initial bundle vượt budget 500 kB: total 863.37 kB.
+- Các warning SCSS budget hiện hữu còn lại: `tours.scss`, `home-hero.scss`, `destinations.scss`, `category-detail-panel.scss`, `tour-form.scss`, `public-layout.scss`, `category-form.scss`.

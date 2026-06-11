@@ -47,6 +47,10 @@ public class Category extends BaseEntity {
     private Integer isDisplay = 0;
 
     @Builder.Default
+    @Column(name = "IS_ACTIVE", nullable = false)
+    private Integer isActive = 1;
+
+    @Builder.Default
     @Column(name = "DISPLAY_ORDER", nullable = false)
     private Integer displayOrder = 0;
 
@@ -87,6 +91,15 @@ public class Category extends BaseEntity {
         this.isDisplay = 0;
     }
 
+    public void activate() {
+        this.isActive = 1;
+    }
+
+    public void deactivate() {
+        this.isActive = 0;
+        hide();
+    }
+
     public void replaceNewData(String newData) {
         this.newData = newData;
     }
@@ -108,6 +121,8 @@ public class Category extends BaseEntity {
     }
 
     public boolean isPublicVisible() {
-        return this.status == CategoryStatus.APPROVED && Objects.equals(this.isDisplay, 1);
+        return this.status == CategoryStatus.APPROVED
+                && Objects.equals(this.isActive, 1)
+                && Objects.equals(this.isDisplay, 1);
     }
 }

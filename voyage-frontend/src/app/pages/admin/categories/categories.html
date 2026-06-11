@@ -46,6 +46,7 @@
   <app-admin-category-form
     *ngIf="isFormOpen"
     [selectedCategory]="selectedCategory"
+    [mode]="formMode"
     [nextDisplayOrder]="nextDisplayOrder"
     (saved)="handleFormSaved()"
     (closed)="closeForm()"
@@ -85,7 +86,8 @@
   </ng-container>
 
   <app-admin-category-detail-panel
-    [category]="pendingCategory"
+    *ngIf="reviewCategory"
+    [category]="reviewCategory"
     (completed)="handleChildCompleted()"
     (closed)="closePendingChangesPanel()"
   />

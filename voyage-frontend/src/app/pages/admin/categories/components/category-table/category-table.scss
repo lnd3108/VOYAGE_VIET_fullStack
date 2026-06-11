@@ -5,6 +5,7 @@
 .admin-category-table {
   display: grid;
   gap: 12px;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
 }
 
 .admin-category-table__reorder-note {
@@ -42,9 +43,9 @@
   }
 
   .ag-header-cell-label {
-    font-size: 12px;
-    font-weight: 800;
-    letter-spacing: 0.01em;
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: 0.015em;
     text-transform: uppercase;
   }
 
@@ -171,13 +172,16 @@
 
   strong {
     color: #143734;
-    font-weight: 800;
+    font-size: 15px;
+    font-weight: 700;
+    line-height: 1.25;
   }
 
   small {
     color: #64748b;
-    font-size: 12px;
-    font-weight: 700;
+    font-size: 13px;
+    font-weight: 600;
+    line-height: 1.35;
   }
 }
 
@@ -195,19 +199,21 @@
 }
 
 :host ::ng-deep .admin-categories__workflow,
+:host ::ng-deep .admin-categories__active,
 :host ::ng-deep .admin-categories__display,
 :host ::ng-deep .admin-categories__approval {
   display: inline-flex;
   align-items: center;
   justify-content: center;
   border-radius: 999px;
-  font-size: 12px;
+  font-size: 13px;
+  line-height: 1.2;
   white-space: nowrap;
 }
 
 :host ::ng-deep .admin-categories__workflow {
   padding: 7px 10px;
-  font-weight: 800;
+  font-weight: 700;
 }
 
 :host ::ng-deep .admin-categories__workflow--draft {
@@ -235,10 +241,32 @@
   color: #6d28d9;
 }
 
+:host ::ng-deep .admin-categories__active {
+  min-height: 28px;
+  padding: 6px 10px;
+  font-weight: 600;
+  line-height: 1.2;
+}
+
+:host ::ng-deep .admin-categories__active--enabled {
+  background: #dcfce7;
+  color: #166534;
+}
+
+:host ::ng-deep .admin-categories__active--disabled {
+  background: #fee2e2;
+  color: #b91c1c;
+}
+
+:host ::ng-deep .admin-categories__active--not-applicable {
+  background: #f1f5f9;
+  color: #64748b;
+}
+
 :host ::ng-deep .admin-categories__display {
   min-height: 28px;
   padding: 6px 10px;
-  font-weight: 700;
+  font-weight: 600;
   line-height: 1.2;
 }
 
@@ -257,11 +285,21 @@
   color: #92400e;
 }
 
+:host ::ng-deep .admin-categories__display--inactive {
+  background: #fee2e2;
+  color: #b91c1c;
+}
+
+:host ::ng-deep .admin-categories__display--not-public {
+  background: #f1f5f9;
+  color: #64748b;
+}
+
 :host ::ng-deep .admin-categories__approval {
   max-width: 100%;
   min-height: 28px;
   padding: 6px 10px;
-  font-weight: 700;
+  font-weight: 600;
   line-height: 1.2;
 }
 
@@ -273,4 +311,61 @@
 :host ::ng-deep .admin-categories__approval--empty {
   background: #f1f5f9;
   color: #64748b;
+}
+
+:host ::ng-deep .admin-categories__order-cell {
+  width: 100%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+
+:host ::ng-deep .admin-categories__order-button {
+  width: 28px;
+  height: 28px;
+  border: 1px solid #cbd5e1;
+  border-radius: 999px;
+  background: #ffffff;
+  color: #0f766e;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+  line-height: 1;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+:host ::ng-deep .admin-categories__order-button:hover:not(:disabled) {
+  border-color: #0f766e;
+  background: #ecfdf5;
+}
+
+:host ::ng-deep .admin-categories__order-button:disabled {
+  cursor: not-allowed;
+  opacity: 0.38;
+}
+
+:host ::ng-deep .admin-categories__order-number {
+  min-width: 24px;
+  color: #0f172a;
+  font-size: 15px;
+  font-weight: 600;
+  text-align: center;
+}
+
+:host ::ng-deep .admin-categories__order-spinner {
+  width: 18px;
+  height: 18px;
+  border: 2px solid #d1d5db;
+  border-top-color: #0f766e;
+  border-radius: 999px;
+  animation: admin-category-order-spin 0.75s linear infinite;
+}
+
+@keyframes admin-category-order-spin {
+  to {
+    transform: rotate(360deg);
+  }
 }

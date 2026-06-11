@@ -1,32 +1,20 @@
 ﻿<ng-container *ngIf="review as detail">
   <div class="admin-category-detail__backdrop" (click)="close()"></div>
 
-  <aside
-    class="admin-category-detail"
+  <div
+    class="admin-category-detail__modal-shell"
     role="dialog"
     aria-modal="true"
-    aria-label="Dữ liệu thay đổi chờ duyệt"
+    [attr.aria-label]="detail.hasPendingData ? 'Dữ liệu thay đổi chờ duyệt' : 'Dữ liệu hiện tại'"
   >
+  <section class="admin-category-detail">
     <header class="admin-category-detail__head">
       <div>
-        <p>Dữ liệu thay đổi chờ duyệt</p>
-        <h2>{{ detail.title }}</h2>
+        <div class="admin-category-detail__title-row">
+          <h2>Xem chi tiết</h2>
 
-        <div class="admin-category-detail__badges">
           <span class="admin-category-detail__workflow {{ detail.workflowClassName }}">
             {{ detail.workflowLabel }}
-          </span>
-
-          <span class="admin-category-detail__display {{ detail.displayClassName }}">
-            {{ detail.displayLabel }}
-          </span>
-
-          <span
-            class="admin-category-detail__approval"
-            [class.admin-category-detail__approval--pending]="detail.hasPendingData"
-            [class.admin-category-detail__approval--empty]="!detail.hasPendingData"
-          >
-            {{ detail.hasPendingData ? 'Có dữ liệu chờ duyệt' : 'Không có dữ liệu chờ duyệt' }}
           </span>
         </div>
       </div>
@@ -36,153 +24,159 @@
         class="admin-category-detail__close"
         [disabled]="submitting"
         (click)="close()"
+        aria-label="Đóng"
       >
-        Đóng
+        ×
       </button>
     </header>
 
-    <section class="admin-category-detail__summary">
-      <article>
-        <span>Tên hiện tại</span>
-        <strong>{{ detail.title }}</strong>
-      </article>
-
-      <article>
-        <span>Slug</span>
-        <code>{{ detail.slug }}</code>
-      </article>
-
-      <article>
-        <span>Workflow</span>
-        <strong>{{ detail.workflowLabel }}</strong>
-      </article>
-
-      <article>
-        <span>Public</span>
-        <strong>{{ detail.displayLabel }}</strong>
-      </article>
-    </section>
+    <div class="admin-category-detail__body">
 
     <div class="admin-category-detail__error" *ngIf="detail.parseError">
       {{ detail.parseError }}
     </div>
 
     <div class="admin-category-detail__empty" *ngIf="!detail.parseError && !detail.rows.length">
-      Không có dữ liệu thay đổi để so sánh.
+      Không có dữ liệu để hiển thị.
     </div>
 
-    <section class="admin-category-detail__table" *ngIf="detail.rows.length">
-      <div class="admin-category-detail__table-head">
-        <span>Trường dữ liệu</span>
-        <span>Hiện tại</span>
-        <span>Dữ liệu chờ duyệt</span>
-        <span>Trạng thái</span>
-      </div>
-
-      <article
-        class="admin-category-detail__row"
-        *ngFor="let row of detail.rows"
-        [class.admin-category-detail__row--changed]="row.changed"
-      >
-        <div class="admin-category-detail__cell admin-category-detail__cell--field">
-          {{ row.label }}
-        </div>
-
-        <div class="admin-category-detail__cell">
-          <ng-container *ngIf="row.type === 'image'; else currentTextValue">
-            <img
-              class="admin-category-detail__thumb"
-              *ngIf="row.currentImageUrl; else currentEmptyImage"
-              [src]="row.currentImageUrl"
-              alt="Ảnh hiện tại"
-              (error)="handleImageError($event)"
-            />
-
-            <ng-template #currentEmptyImage>
-              <span class="admin-category-detail__image-empty">Chưa có ảnh</span>
-            </ng-template>
-
-            <code *ngIf="row.currentImageUrl" [title]="row.currentImageUrl">
-              {{ row.currentValue }}
-            </code>
-          </ng-container>
-
-          <ng-template #currentTextValue>
-            {{ row.currentValue }}
-          </ng-template>
-        </div>
-
-        <div class="admin-category-detail__cell">
-          <ng-container *ngIf="row.type === 'image'; else pendingTextValue">
-            <img
-              class="admin-category-detail__thumb"
-              *ngIf="row.pendingImageUrl; else pendingEmptyImage"
-              [src]="row.pendingImageUrl"
-              alt="Ảnh chờ duyệt"
-              (error)="handleImageError($event)"
-            />
-
-            <ng-template #pendingEmptyImage>
-              <span class="admin-category-detail__image-empty">Chưa có ảnh</span>
-            </ng-template>
-
-            <code *ngIf="row.pendingImageUrl" [title]="row.pendingImageUrl">
-              {{ row.pendingValue }}
-            </code>
-          </ng-container>
-
-          <ng-template #pendingTextValue>
-            {{ row.pendingValue }}
-          </ng-template>
-        </div>
-
-        <div class="admin-category-detail__cell admin-category-detail__cell--state">
-          <span
-            [class.admin-category-detail__state--changed]="row.changed"
-            [class.admin-category-detail__state--same]="!row.changed"
-          >
-            {{ row.changed ? 'Đã thay đổi' : 'Không đổi' }}
+    <div class="admin-category-detail__compare-grid" *ngIf="detail.rows.length">
+      <section class="admin-category-detail__data-card">
+        <header class="admin-category-detail__data-card-header">
+          <span class="admin-category-detail__data-card-icon admin-category-detail__data-card-icon--old">
+            i
           </span>
-        </div>
-      </article>
-    </section>
+          Dữ liệu cũ
+        </header>
+      </section>
+
+      <section class="admin-category-detail__data-card">
+        <header class="admin-category-detail__data-card-header">
+          <span class="admin-category-detail__data-card-icon admin-category-detail__data-card-icon--new">
+            i
+          </span>
+          Dữ liệu mới
+        </header>
+      </section>
+
+      <ng-container *ngFor="let row of detail.rows; let first = first; let last = last">
+        <article
+          class="admin-category-detail__data-row"
+          [class.admin-category-detail__data-row--first]="first"
+          [class.admin-category-detail__data-row--last]="last"
+        >
+          <div class="admin-category-detail__data-label">{{ row.label }}</div>
+
+          <div class="admin-category-detail__data-value">
+            <ng-container *ngIf="row.type === 'image'; else oldNonImageValue">
+              <img
+                class="admin-category-detail__thumb"
+                *ngIf="row.oldImageUrl; else oldEmptyImage"
+                [src]="row.oldImageUrl"
+                alt="Ảnh hiện tại"
+                (error)="handleImageError($event)"
+              />
+
+              <ng-template #oldEmptyImage>
+                <span class="admin-category-detail__image-empty">Chưa có ảnh</span>
+              </ng-template>
+            </ng-container>
+
+            <ng-template #oldNonImageValue>
+              <ng-container *ngIf="row.type === 'display'; else oldTextValue">
+                <span
+                  class="admin-category-detail__display-badge {{ row.oldClassName }}"
+                  *ngIf="row.oldClassName; else oldDisplayText"
+                >
+                  {{ row.oldValue }}
+                </span>
+
+                <ng-template #oldDisplayText>
+                  {{ row.oldValue }}
+                </ng-template>
+              </ng-container>
+
+              <ng-template #oldTextValue>
+                {{ row.oldValue }}
+              </ng-template>
+            </ng-template>
+          </div>
+        </article>
+
+        <article
+          class="admin-category-detail__data-row"
+          [class.admin-category-detail__data-row--first]="first"
+          [class.admin-category-detail__data-row--last]="last"
+          [class.admin-category-detail__data-row--changed]="row.changed && row.type !== 'image' && row.type !== 'display'"
+        >
+          <div class="admin-category-detail__data-label">{{ row.label }}</div>
+
+          <div class="admin-category-detail__data-value admin-category-detail__data-value--new">
+            <ng-container *ngIf="row.type === 'image'; else newNonImageValue">
+              <img
+                class="admin-category-detail__thumb"
+                *ngIf="row.newImageUrl; else newEmptyImage"
+                [src]="row.newImageUrl"
+                alt="Ảnh chờ duyệt"
+                (error)="handleImageError($event)"
+              />
+
+              <ng-template #newEmptyImage>
+                <span class="admin-category-detail__image-empty">Chưa có ảnh</span>
+              </ng-template>
+            </ng-container>
+
+            <ng-template #newNonImageValue>
+              <ng-container *ngIf="row.type === 'display'; else newTextValue">
+                <span class="admin-category-detail__display-badge {{ row.newClassName }}">
+                  {{ row.newValue }}
+                </span>
+              </ng-container>
+
+              <ng-template #newTextValue>
+                {{ row.newValue }}
+              </ng-template>
+            </ng-template>
+          </div>
+        </article>
+      </ng-container>
+    </div>
 
     <div class="admin-category-detail__error" *ngIf="errorMessage">
       {{ errorMessage }}
     </div>
-
-    <section class="admin-category-detail__reject" *ngIf="rejectMode">
-      <label>
-        Lý do từ chối
-        <textarea
-          rows="4"
-          [value]="rejectReason"
-          [disabled]="submitting"
-          placeholder="Nhập lý do từ chối để người chỉnh sửa biết cần sửa gì"
-          (input)="updateRejectReason($event)"
-        ></textarea>
-      </label>
-    </section>
+    </div>
 
     <footer class="admin-category-detail__footer">
       <p *ngIf="detail.parseError && detail.canCancelApprove">
-        Dữ liệu thay đổi không đọc được. Có thể hủy trình duyệt để backend xóa dữ liệu lỗi.
+        Dữ liệu thay đổi không đọc được. Có thể hủy duyệt để backend xóa dữ liệu lỗi.
       </p>
 
       <div class="admin-category-detail__actions">
         <button
           type="button"
-          class="admin-category-detail__button admin-category-detail__button--secondary"
+          class="admin-category-detail__button admin-category-detail__button--danger-soft"
+          *ngIf="detail.canDelete"
           [disabled]="submitting"
-          (click)="close()"
+          (click)="deleteCategory()"
         >
-          Đóng
+          Xóa
+        </button>
+
+        <button
+          type="button"
+          class="admin-category-detail__button admin-category-detail__button--primary"
+          *ngIf="detail.canSubmit"
+          [disabled]="submitting"
+          (click)="submitPendingReview()"
+        >
+          {{ submitting ? 'Đang gửi...' : 'Gửi duyệt' }}
         </button>
 
         <button
           type="button"
           class="admin-category-detail__button admin-category-detail__button--danger-soft"
-          *ngIf="detail.canApproveReject && !rejectMode"
+          *ngIf="detail.canApproveReject"
           [disabled]="submitting"
           (click)="startReject()"
         >
@@ -192,31 +186,11 @@
         <button
           type="button"
           class="admin-category-detail__button admin-category-detail__button--secondary"
-          *ngIf="rejectMode"
-          [disabled]="submitting"
-          (click)="cancelReject()"
-        >
-          Hủy từ chối
-        </button>
-
-        <button
-          type="button"
-          class="admin-category-detail__button admin-category-detail__button--danger-soft"
-          *ngIf="detail.canApproveReject && rejectMode"
-          [disabled]="submitting"
-          (click)="rejectPendingReview()"
-        >
-          {{ submitting ? 'Đang từ chối...' : 'Xác nhận từ chối' }}
-        </button>
-
-        <button
-          type="button"
-          class="admin-category-detail__button admin-category-detail__button--secondary"
           *ngIf="detail.canCancelApprove"
           [disabled]="submitting"
           (click)="cancelApprovePendingReview()"
         >
-          {{ submitting ? 'Đang hủy...' : 'Hủy trình duyệt' }}
+          {{ submitting ? 'Đang hủy...' : 'Hủy duyệt' }}
         </button>
 
         <button
@@ -226,9 +200,79 @@
           [disabled]="submitting"
           (click)="approvePendingReview()"
         >
-          {{ submitting ? 'Đang duyệt...' : 'Duyệt' }}
+          {{ submitting ? 'Đang phê duyệt...' : 'Phê duyệt' }}
         </button>
       </div>
     </footer>
-  </aside>
+  </section>
+  </div>
+
+  <div class="admin-category-detail__reject-backdrop" *ngIf="rejectMode" (click)="cancelReject()"></div>
+
+  <div
+    class="admin-category-detail__reject-shell"
+    *ngIf="rejectMode"
+    role="dialog"
+    aria-modal="true"
+    aria-label="Nhập lý do từ chối"
+  >
+    <section class="admin-category-detail__reject-modal">
+      <header class="admin-category-detail__reject-head">
+        <div>
+          <h3>Từ chối danh mục</h3>
+          <p>Nhập lý do để người chỉnh sửa biết cần cập nhật nội dung nào.</p>
+        </div>
+
+        <button
+          type="button"
+          class="admin-category-detail__reject-close"
+          [disabled]="submitting"
+          (click)="cancelReject()"
+          aria-label="Đóng"
+        >
+          ×
+        </button>
+      </header>
+
+      <div class="admin-category-detail__reject-body">
+        <label>
+          Lý do từ chối
+          <textarea
+            class="admin-category-detail__reject-textarea"
+            rows="5"
+            [value]="rejectReason"
+            [attr.maxlength]="rejectReasonMaxLength"
+            [disabled]="submitting"
+            placeholder="Nhập lý do từ chối"
+            (input)="updateRejectReason($event)"
+          ></textarea>
+        </label>
+
+        <div class="admin-category-detail__reject-meta">
+          <span *ngIf="errorMessage">{{ errorMessage }}</span>
+          <span>{{ rejectReasonLength }}/{{ rejectReasonMaxLength }}</span>
+        </div>
+      </div>
+
+      <footer class="admin-category-detail__reject-actions">
+        <button
+          type="button"
+          class="admin-category-detail__button admin-category-detail__button--secondary"
+          [disabled]="submitting"
+          (click)="cancelReject()"
+        >
+          Hủy
+        </button>
+
+        <button
+          type="button"
+          class="admin-category-detail__button admin-category-detail__button--danger-soft"
+          [disabled]="!canConfirmReject"
+          (click)="rejectPendingReview()"
+        >
+          {{ submitting ? 'Đang từ chối...' : 'Xác nhận từ chối' }}
+        </button>
+      </footer>
+    </section>
+  </div>
 </ng-container>

@@ -52,6 +52,8 @@ public class SecurityConfig {
                         ).permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/admin/categories").hasAnyRole("STAFF", "ADMIN", "SUPER_ADMIN")
                         .requestMatchers(HttpMethod.POST, "/api/admin/categories").hasAnyRole("STAFF", "ADMIN", "SUPER_ADMIN")
+                        .requestMatchers(HttpMethod.POST, "/api/admin/categories/submit-create").hasAnyRole("STAFF", "ADMIN", "SUPER_ADMIN")
+                        .requestMatchers(HttpMethod.POST, "/api/admin/categories/*/copy").hasAnyRole("STAFF", "ADMIN", "SUPER_ADMIN")
                         .requestMatchers(HttpMethod.PATCH, "/api/admin/categories/batch/*").hasAnyRole("ADMIN", "SUPER_ADMIN")
                         .requestMatchers(HttpMethod.PUT, "/api/admin/categories/*").hasAnyRole("STAFF", "ADMIN", "SUPER_ADMIN")
                         .requestMatchers(HttpMethod.PATCH, "/api/admin/categories/*").hasAnyRole("STAFF", "ADMIN", "SUPER_ADMIN")

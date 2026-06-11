@@ -1,4 +1,5 @@
 ﻿import { AdminCategory, CategoryStatus } from '../../../core/models/category.model';
+import { RoleCode } from '../../../core/models/user.model';
 
 export const CATEGORY_FALLBACK_IMAGE = '/hero/bg-home.png';
 
@@ -143,6 +144,101 @@ export function isCategoryDisplayEnabled(value: unknown): boolean {
   return value === 1 || value === true || value === '1' || value === 'true';
 }
 
+export function isCategoryActive(value: unknown): boolean {
+  return value === undefined || value === null || value === 1 || value === true || value === '1' || value === 'true';
+}
+
+export function activeLabel(category: AdminCategory): string {
+  if (parseCategoryStatus(category.status) !== 'APPROVED') {
+    return 'Chưa áp dụng';
+  }
+
+  return isCategoryActive(category.isActive) ? 'Hoạt động' : 'Không hoạt động';
+}
+
+export function activeClass(category: AdminCategory): string {
+  if (parseCategoryStatus(category.status) !== 'APPROVED') {
+    return 'admin-categories__active--not-applicable';
+  }
+
+  return isCategoryActive(category.isActive)
+    ? 'admin-categories__active--enabled'
+    : 'admin-categories__active--disabled';
+}
+
+export function hasMeaningfulCategoryNewData(category: AdminCategory): boolean {
+  const newData = category.newData;
+
+  if (newData === null || newData === undefined || newData === '') {
+    return false;
+  }
+
+  if (typeof newData !== 'string') {
+    return true;
+  }
+
+  const trimmed = newData.trim();
+
+  if (!trimmed) {
+    return false;
+  }
+
+  try {
+    const parsed = JSON.parse(trimmed);
+
+    if (!isRecord(parsed)) {
+      return true;
+    }
+
+    return Object.values(parsed).some((value) => value !== null && value !== undefined && value !== '');
+  } catch {
+    return true;
+  }
+}
+
+export function hasCategoryStaffAccess(role?: RoleCode | string | null): boolean {
+  return role === 'STAFF' || role === 'ADMIN' || role === 'SUPER_ADMIN';
+}
+
+export function hasCategoryAdminAccess(role?: RoleCode | string | null): boolean {
+  return role === 'ADMIN' || role === 'SUPER_ADMIN';
+}
+
+export function canEditCategory(category: AdminCategory, role?: RoleCode | string | null): boolean {
+  return hasCategoryStaffAccess(role) && ['DRAFT', 'REJECTED', 'CANCEL_APPROVE'].includes(parseCategoryStatus(category.status) || '');
+}
+
+export function canSubmitCategory(category: AdminCategory, role?: RoleCode | string | null): boolean {
+  return hasCategoryStaffAccess(role) && ['DRAFT', 'REJECTED', 'CANCEL_APPROVE'].includes(parseCategoryStatus(category.status) || '');
+}
+
+export function canApproveCategory(category: AdminCategory, role?: RoleCode | string | null): boolean {
+  return hasCategoryAdminAccess(role) && parseCategoryStatus(category.status) === 'PENDING';
+}
+
+export function canRejectCategory(category: AdminCategory, role?: RoleCode | string | null): boolean {
+  return hasCategoryAdminAccess(role) && parseCategoryStatus(category.status) === 'PENDING';
+}
+
+export function canCancelApproveCategory(category: AdminCategory, role?: RoleCode | string | null): boolean {
+  return hasCategoryAdminAccess(role) && parseCategoryStatus(category.status) === 'APPROVED';
+}
+
+export function canDeleteCategory(category: AdminCategory, role?: RoleCode | string | null): boolean {
+  const status = parseCategoryStatus(category.status);
+
+  return role === 'SUPER_ADMIN' &&
+    (status === 'DRAFT' || status === 'REJECTED' || status === 'CANCEL_APPROVE') &&
+    !isCategoryDisplayEnabled(category.isDisplay) &&
+    !hasMeaningfulCategoryNewData(category);
+}
+
+export function canToggleDisplayCategory(category: AdminCategory, role?: RoleCode | string | null): boolean {
+  return hasCategoryAdminAccess(role) &&
+    parseCategoryStatus(category.status) === 'APPROVED' &&
+    isCategoryActive(category.isActive);
+}
+
 export function workflowLabel(status?: string | null): string {
   switch (parseCategoryStatus(status)) {
     case 'PENDING':
@@ -152,7 +248,7 @@ export function workflowLabel(status?: string | null): string {
     case 'REJECTED':
       return 'Từ chối';
     case 'CANCEL_APPROVE':
-      return 'Hủy trình duyệt';
+      return 'Đã hủy duyệt';
     case 'DRAFT':
     default:
       return 'Nháp';
@@ -164,16 +260,24 @@ export function workflowClass(status?: string | null): string {
 }
 
 export function displayLabel(category: AdminCategory): string {
-  if (parseCategoryStatus(category.status) !== 'APPROVED' && isCategoryDisplayEnabled(category.isDisplay)) {
-    return 'Chưa thể hiển thị';
+  if (parseCategoryStatus(category.status) !== 'APPROVED') {
+    return 'Chưa public';
+  }
+
+  if (!isCategoryActive(category.isActive)) {
+    return 'Không hoạt động - ẩn';
   }
 
   return isCategoryDisplayEnabled(category.isDisplay) ? 'Đang hiển thị' : 'Đang ẩn';
 }
 
 export function displayClass(category: AdminCategory): string {
-  if (parseCategoryStatus(category.status) !== 'APPROVED' && isCategoryDisplayEnabled(category.isDisplay)) {
-    return 'admin-categories__display--blocked';
+  if (parseCategoryStatus(category.status) !== 'APPROVED') {
+    return 'admin-categories__display--not-public';
+  }
+
+  if (!isCategoryActive(category.isActive)) {
+    return 'admin-categories__display--inactive';
   }
 
   return isCategoryDisplayEnabled(category.isDisplay)
@@ -247,7 +351,7 @@ export function handleCategoryImageError(event: Event): void {
 export function hasPendingCategoryChange(category: AdminCategory): boolean {
   return (
     parseCategoryStatus(category.status) === 'PENDING' ||
-    (typeof category.newData === 'string' && category.newData.trim().length > 0)
+    hasMeaningfulCategoryNewData(category)
   );
 }
 
