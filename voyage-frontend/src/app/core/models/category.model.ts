@@ -6,7 +6,7 @@ export interface CategoryResponse {
   slug: string;
   description?: string;
   imageUrl?: string;
-  status: CategoryStatus;
+  status: CategoryStatus | number;
   isActive?: number | boolean | string | null;
   isDisplay?: number | boolean | null;
   rejectReason?: string | null;
@@ -28,7 +28,7 @@ export interface AdminCategory {
   slug?: string;
   description?: string;
   imageUrl?: string;
-  status?: CategoryStatus | string;
+  status?: CategoryStatus | string | number;
   isActive?: number | boolean | string | null;
   isDisplay?: number | boolean | null;
   rejectReason?: string | null;
@@ -83,7 +83,7 @@ export interface CategoryNewData {
   slug?: string | null;
   description?: string | null;
   imageUrl?: string | null;
-  status?: CategoryStatus | string | null;
+  status?: CategoryStatus | string | number | null;
   isActive?: CategoryActiveValue;
   isDisplay?: CategoryDisplayValue;
   displayOrder?: number | string | null;

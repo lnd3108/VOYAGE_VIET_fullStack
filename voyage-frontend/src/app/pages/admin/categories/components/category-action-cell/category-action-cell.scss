@@ -28,7 +28,7 @@ button.admin-categories__action-trigger {
   border: 1px solid #cfe3df;
   border-radius: 12px;
   background: #ffffff;
-  color: #1f6f6d;
+  color: #111827;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -42,9 +42,9 @@ button.admin-categories__action-trigger {
 button.admin-categories__action-trigger:hover:not(:disabled),
 button.admin-categories__action-trigger:focus-visible,
 button.admin-categories__action-trigger[aria-expanded='true'] {
-  border-color: rgba(31, 111, 104, 0.35);
-  background: #eef8f6;
-  box-shadow: 0 10px 24px rgba(31, 111, 104, 0.12);
+  border-color: rgba(17, 24, 39, 0.25);
+  background: #f8fafc;
+  box-shadow: 0 10px 24px rgba(15, 23, 42, 0.12);
   outline: 0;
 }
 
@@ -105,7 +105,7 @@ button.admin-categories__action-item {
   align-items: center;
   justify-content: flex-start;
   gap: 8px;
-  color: var(--c, #1f6f6d);
+  color: var(--c, #111827);
   font-family: inherit;
   font-size: 14px;
   font-weight: 500;
@@ -123,7 +123,7 @@ button.admin-categories__action-item {
 button.admin-categories__action-item:hover:not(:disabled),
 button.admin-categories__action-item:focus-visible {
   background: var(--h, #effaf7);
-  color: var(--hc, var(--c, #14534f));
+  color: var(--hc, var(--c, #111827));
   outline: 0;
 }
 
@@ -151,9 +151,9 @@ button.admin-categories__action-item span {
 button.admin-categories__action-item--primary,
 .admin-categories__action-item--order,
 .admin-categories__action-item--edit {
-  --c: #1f6f6d;
-  --h: rgba(31, 111, 104, 0.08);
-  --hc: #14534f;
+  --c: #111827;
+  --h: #f8fafc;
+  --hc: #111827;
 }
 
 .admin-categories__action-item--status {

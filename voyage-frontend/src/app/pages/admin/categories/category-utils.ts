@@ -3,7 +3,11 @@ import { RoleCode } from '../../../core/models/user.model';
 
 export const CATEGORY_FALLBACK_IMAGE = '/hero/bg-home.png';
 
-export function parseCategoryStatus(status?: string | null): CategoryStatus | null {
+export function parseCategoryStatus(status?: string | number | null): CategoryStatus | null {
+  if (status === 4 || status === '4') {
+    return 'APPROVED';
+  }
+
   return status === 'DRAFT' ||
     status === 'PENDING' ||
     status === 'APPROVED' ||
@@ -239,7 +243,7 @@ export function canToggleDisplayCategory(category: AdminCategory, role?: RoleCod
     isCategoryActive(category.isActive);
 }
 
-export function workflowLabel(status?: string | null): string {
+export function workflowLabel(status?: string | number | null): string {
   switch (parseCategoryStatus(status)) {
     case 'PENDING':
       return 'Chờ duyệt';
@@ -255,7 +259,7 @@ export function workflowLabel(status?: string | null): string {
   }
 }
 
-export function workflowClass(status?: string | null): string {
+export function workflowClass(status?: string | number | null): string {
   return `admin-categories__workflow--${(parseCategoryStatus(status) || 'DRAFT').toLowerCase().replace('_', '-')}`;
 }
 

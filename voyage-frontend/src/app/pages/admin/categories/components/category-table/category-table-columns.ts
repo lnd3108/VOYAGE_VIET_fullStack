@@ -54,6 +54,9 @@ export interface CategoryTableContext {
   openDetail?: (category: AdminCategory) => void;
   openPending(category: AdminCategory): void;
   openDelete?: (category: AdminCategory) => void;
+  canDelete?: (category: AdminCategory) => boolean;
+  toggleDisplay?: (category: AdminCategory) => void;
+  canToggleDisplay?: (category: AdminCategory) => boolean;
   reload(): void;
   move(category: AdminCategory, index: number, direction: 'up' | 'down'): void;
 }

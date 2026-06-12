@@ -67,6 +67,16 @@
 
     <button
       type="button"
+      class="admin-category-bulk-actions__button admin-category-bulk-actions__button--danger-soft"
+      *ngIf="canDelete"
+      [disabled]="processing"
+      (click)="runBatchDelete()"
+    >
+      Xóa
+    </button>
+
+    <button
+      type="button"
       class="admin-category-bulk-actions__button admin-category-bulk-actions__button--secondary"
       [disabled]="processing"
       (click)="clearSelection()"

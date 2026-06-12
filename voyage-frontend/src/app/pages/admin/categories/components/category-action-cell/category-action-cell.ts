@@ -17,7 +17,7 @@ import { ICellRendererAngularComp } from 'ag-grid-angular';
 import { ICellRendererParams } from 'ag-grid-community';
 
 import { CategoryGridRow, CategoryTableContext } from '../category-table/category-table-columns';
-import { parseCategoryStatus } from '../../category-utils';
+import { isCategoryDisplayEnabled, parseCategoryStatus } from '../../category-utils';
 
 interface CategoryActionCellParams extends ICellRendererParams<CategoryGridRow> {
   context: CategoryTableContext;
@@ -30,6 +30,8 @@ type CategoryMenuActionKey =
   | 'resubmit'
   | 'review'
   | 'cancelApprove'
+  | 'showDisplay'
+  | 'hideDisplay'
   | 'delete';
 
 interface CategoryMenuAction {
@@ -96,7 +98,7 @@ export class CategoryActionCellRendererComponent implements ICellRendererAngular
         ];
 
       case 'APPROVED':
-        return [
+        return this.withOptionalDisplayToggle([
           { key: 'copy', label: 'Sao chép', icon: '@tui.copy' },
           {
             key: 'cancelApprove',
@@ -104,10 +106,10 @@ export class CategoryActionCellRendererComponent implements ICellRendererAngular
             icon: '@tui.rotate-ccw',
             separatorBefore: true,
           },
-        ];
+        ]);
 
       case 'REJECTED':
-        return [
+        return this.withOptionalDelete([
           { key: 'edit', label: 'Sửa', icon: '@tui.pencil' },
           { key: 'copy', label: 'Sao chép', icon: '@tui.copy' },
           {
@@ -117,11 +119,10 @@ export class CategoryActionCellRendererComponent implements ICellRendererAngular
             tone: 'primary',
             separatorBefore: true,
           },
-          { key: 'delete', label: 'Xóa', icon: '@tui.trash-2', tone: 'danger' },
-        ];
+        ]);
 
       case 'CANCEL_APPROVE':
-        return [
+        return this.withOptionalDelete([
           { key: 'edit', label: 'Sửa', icon: '@tui.pencil' },
           { key: 'copy', label: 'Sao chép', icon: '@tui.copy' },
           {
@@ -131,12 +132,11 @@ export class CategoryActionCellRendererComponent implements ICellRendererAngular
             tone: 'primary',
             separatorBefore: true,
           },
-          { key: 'delete', label: 'Xóa', icon: '@tui.trash-2', tone: 'danger' },
-        ];
+        ]);
 
       case 'DRAFT':
       default:
-        return [
+        return this.withOptionalDelete([
           { key: 'edit', label: 'Sửa', icon: '@tui.pencil' },
           { key: 'copy', label: 'Sao chép', icon: '@tui.copy' },
           {
@@ -146,8 +146,7 @@ export class CategoryActionCellRendererComponent implements ICellRendererAngular
             tone: 'primary',
             separatorBefore: true,
           },
-          { key: 'delete', label: 'Xóa', icon: '@tui.trash-2', tone: 'danger' },
-        ];
+        ]);
     }
   }
 
@@ -248,6 +247,11 @@ export class CategoryActionCellRendererComponent implements ICellRendererAngular
         context.openPending(category);
         break;
 
+      case 'showDisplay':
+      case 'hideDisplay':
+        context.toggleDisplay?.(category);
+        break;
+
       case 'delete':
         context.openDelete?.(category);
         break;
@@ -256,6 +260,40 @@ export class CategoryActionCellRendererComponent implements ICellRendererAngular
 
   private get status(): string {
     return parseCategoryStatus(this.row?.category.status) || 'DRAFT';
+  }
+
+  private withOptionalDelete(actions: CategoryMenuAction[]): CategoryMenuAction[] {
+    const category = this.row?.category;
+
+    if (!category || !this.context?.canDelete?.(category)) {
+      return actions;
+    }
+
+    return [
+      ...actions,
+      { key: 'delete', label: 'Xóa', icon: '@tui.trash-2', tone: 'danger' },
+    ];
+  }
+
+  private withOptionalDisplayToggle(actions: CategoryMenuAction[]): CategoryMenuAction[] {
+    const category = this.row?.category;
+
+    if (!category || !this.context?.canToggleDisplay?.(category)) {
+      return actions;
+    }
+
+    const isDisplay = isCategoryDisplayEnabled(category.isDisplay);
+
+    return [
+      ...actions,
+      {
+        key: isDisplay ? 'hideDisplay' : 'showDisplay',
+        label: isDisplay ? 'Ẩn' : 'Hiển thị',
+        icon: isDisplay ? '@tui.eye-off' : '@tui.eye',
+        tone: 'primary',
+        separatorBefore: true,
+      },
+    ];
   }
 
   private setMenuDirection(trigger: HTMLElement): void {

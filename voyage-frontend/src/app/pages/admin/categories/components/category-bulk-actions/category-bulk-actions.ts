@@ -1,7 +1,7 @@
 ﻿import { NgIf } from '@angular/common';
 import { Component, DestroyRef, EventEmitter, Input, Output, inject } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { Observable, take } from 'rxjs';
+import { Observable, catchError, forkJoin, map, of, take } from 'rxjs';
 
 import { AdminCategoryApiService } from '../../../../../core/api/admin-category-api.service';
 import { AuthService } from '../../../../../core/auth/auth.service';
@@ -12,6 +12,7 @@ import {
 import { AdminUiFeedbackService } from '../../../../../core/services/admin-ui-feedback.service';
 import {
   errorText,
+  canDeleteCategory,
   isCategoryActive,
   isCategoryDisplayEnabled,
   isRecord,
@@ -19,7 +20,14 @@ import {
   parseNumber,
 } from '../../category-utils';
 
-type CategoryBatchAction = 'submit' | 'approve' | 'reject' | 'cancelApprove' | 'show' | 'hide';
+type CategoryBatchAction =
+  | 'submit'
+  | 'approve'
+  | 'reject'
+  | 'cancelApprove'
+  | 'show'
+  | 'hide'
+  | 'delete';
 
 interface CategoryBatchActionConfig {
   label: string;
@@ -76,6 +84,10 @@ export class AdminCategoryBulkActionsComponent {
 
   get canHide(): boolean {
     return this.hasAdminAccess;
+  }
+
+  get canDelete(): boolean {
+    return this.hasDeleteAccess;
   }
 
   runBatchSubmit(): void {
@@ -135,6 +147,10 @@ export class AdminCategoryBulkActionsComponent {
     this.confirmAndRunBatchAction('hide');
   }
 
+  runBatchDelete(): void {
+    this.confirmAndRunBatchAction('delete');
+  }
+
   clearSelection(): void {
     this.cancelBatchReject();
     this.clearSelectionRequested.emit();
@@ -142,6 +158,10 @@ export class AdminCategoryBulkActionsComponent {
 
   private get hasAdminAccess(): boolean {
     return this.auth.hasRole('ADMIN', 'SUPER_ADMIN');
+  }
+
+  private get hasDeleteAccess(): boolean {
+    return this.auth.hasRole('SUPER_ADMIN');
   }
 
   private confirmAndRunBatchAction(action: CategoryBatchAction, reason: string | null = null): void {
@@ -166,7 +186,9 @@ export class AdminCategoryBulkActionsComponent {
 
     const confirmMessage = `Bạn đã chọn ${selectedCount} danh mục. Có ${eligibleCategories.length} danh mục hợp lệ để ${config.confirmLabel}, ${skippedCount} danh mục sẽ bị bỏ qua. Bạn có chắc muốn tiếp tục không?`;
     const confirm$ =
-      action === 'approve' || action === 'show' || action === 'submit'
+      action === 'delete'
+        ? this.feedback.confirmDanger(confirmMessage, 'Xác nhận xóa hàng loạt', config.label)
+        : action === 'approve' || action === 'show' || action === 'submit'
         ? this.feedback.confirmInfo(confirmMessage, 'Xác nhận thao tác hàng loạt', config.label)
         : this.feedback.confirmWarning(confirmMessage, 'Xác nhận thao tác hàng loạt', config.label);
 
@@ -246,6 +268,8 @@ export class AdminCategoryBulkActionsComponent {
         return this.api.updateCategoriesDisplay(ids, 1);
       case 'hide':
         return this.api.updateCategoriesDisplay(ids, 0);
+      case 'delete':
+        return this.deleteCategories(ids);
     }
   }
 
@@ -256,7 +280,7 @@ export class AdminCategoryBulkActionsComponent {
   }
 
   private isCategoryEligibleForBatchAction(action: CategoryBatchAction, category: AdminCategory): boolean {
-    if (!this.hasAdminAccess) {
+    if (action === 'delete' ? !this.hasDeleteAccess : !this.hasAdminAccess) {
       return false;
     }
 
@@ -275,6 +299,8 @@ export class AdminCategoryBulkActionsComponent {
         return status === 'APPROVED' && isCategoryActive(category.isActive) && !isDisplay;
       case 'hide':
         return status === 'APPROVED' && isCategoryActive(category.isActive) && isDisplay;
+      case 'delete':
+        return canDeleteCategory(category, this.auth.currentRole());
     }
   }
 
@@ -300,7 +326,45 @@ export class AdminCategoryBulkActionsComponent {
         };
       case 'hide':
         return { label: 'Ẩn public', confirmLabel: 'ẩn public', successVerb: 'Ẩn public hàng loạt' };
+      case 'delete':
+        return { label: 'Xóa', confirmLabel: 'xóa', successVerb: 'Xóa hàng loạt' };
     }
+  }
+
+  private deleteCategories(ids: number[]): Observable<CategoryBatchActionResponse> {
+    return forkJoin(
+      ids.map((id) =>
+        this.api.deleteCategory(id).pipe(
+          map(() => ({
+            id,
+            name: null,
+            success: true,
+            message: null,
+          })),
+          catchError((error) =>
+            of({
+              id,
+              name: null,
+              success: false,
+              message: errorText(error, 'Không thể xóa danh mục này.'),
+            }),
+          ),
+        ),
+      ),
+    ).pipe(
+      map((items) => {
+        const successItems = items.filter((item) => item.success);
+        const failedItems = items.filter((item) => !item.success);
+
+        return {
+          total: items.length,
+          successCount: successItems.length,
+          failedCount: failedItems.length,
+          successItems,
+          failedItems,
+        };
+      }),
+    );
   }
 
   private extractBatchActionResponse(response: unknown): CategoryBatchActionResponse | null {

@@ -186,6 +186,16 @@
         <button
           type="button"
           class="admin-category-detail__button admin-category-detail__button--secondary"
+          *ngIf="detail.canToggleDisplay"
+          [disabled]="submitting"
+          (click)="toggleDisplay()"
+        >
+          {{ submitting ? 'Đang xử lý...' : detail.displayToggleLabel }}
+        </button>
+
+        <button
+          type="button"
+          class="admin-category-detail__button admin-category-detail__button--secondary"
           *ngIf="detail.canCancelApprove"
           [disabled]="submitting"
           (click)="cancelApprovePendingReview()"

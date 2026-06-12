@@ -14,6 +14,8 @@ import {
   handleCategoryImageError,
   canDeleteCategory,
   canSubmitCategory,
+  canToggleDisplayCategory,
+  isCategoryDisplayEnabled,
   isRecord,
   normalizeText,
   parseCategoryStatus,
@@ -50,6 +52,8 @@ export interface AdminCategoryPendingReviewViewModel {
   rows: AdminCategoryPendingComparisonRow[];
   canSubmit: boolean;
   canDelete: boolean;
+  canToggleDisplay: boolean;
+  displayToggleLabel: string;
   canApproveReject: boolean;
   canCancelApprove: boolean;
 }
@@ -264,6 +268,38 @@ export class AdminCategoryDetailPanelComponent implements OnChanges {
       });
   }
 
+  toggleDisplay(): void {
+    const review = this.review;
+    const category = review?.category;
+
+    if (!category || !review.canToggleDisplay || !category.id || this.submitting) {
+      if (category && !review?.canToggleDisplay) {
+        this.denyCategoryAction();
+      }
+      return;
+    }
+
+    const nextDisplay = isCategoryDisplayEnabled(category.isDisplay) ? 0 : 1;
+    const actionLabel = nextDisplay ? 'hiển thị public' : 'ẩn public';
+
+    this.feedback
+      .confirmWarning(
+        `Bạn có chắc muốn ${actionLabel} danh mục này không?`,
+        'Xác nhận thao tác',
+        nextDisplay ? 'Hiển thị' : 'Ẩn',
+      )
+      .pipe(take(1))
+      .subscribe((confirmed) => {
+        if (confirmed) {
+          this.runWorkflowAction(
+            (id) => this.api.updateCategoryDisplay(id, nextDisplay),
+            nextDisplay ? 'Đã hiển thị public danh mục.' : 'Đã ẩn public danh mục.',
+            'Không thể cập nhật hiển thị danh mục. Vui lòng thử lại sau.',
+          );
+        }
+      });
+  }
+
   handleImageError(event: Event): void {
     handleCategoryImageError(event);
   }
@@ -319,6 +355,8 @@ export class AdminCategoryDetailPanelComponent implements OnChanges {
       rows,
       canSubmit: canSubmitCategory(category, this.auth.currentRole()),
       canDelete: canDeleteCategory(category, this.auth.currentRole()),
+      canToggleDisplay: canToggleDisplayCategory(category, this.auth.currentRole()),
+      displayToggleLabel: isCategoryDisplayEnabled(category.isDisplay) ? 'Ẩn' : 'Hiển thị',
       canApproveReject: status === 'PENDING' && !hasParseError && this.canApproveCategory() && this.canRejectCategory(),
       canCancelApprove: status === 'APPROVED' && this.canCancelApproveCategory(),
     };

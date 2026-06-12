@@ -11,6 +11,7 @@ import {
 } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { ActivatedRoute, Router } from '@angular/router';
+import { take } from 'rxjs';
 
 import { AdminCategoryApiService } from '../../../core/api/admin-category-api.service';
 import { AuthService } from '../../../core/auth/auth.service';
@@ -27,6 +28,9 @@ import {
   extractCategoryList,
   getCategoryOrder,
   canEditCategory,
+  canDeleteCategory,
+  canToggleDisplayCategory,
+  isCategoryDisplayEnabled,
   normalizeCategoryOrders,
   parseCategoryStatus,
   sortCategory,
@@ -87,6 +91,7 @@ export class AdminCategories implements OnInit {
   isFormOpen = false;
   selectedBatchCategories: AdminCategory[] = [];
   reorderingCategoryIds = new Set<number>();
+  deletingCategoryIds = new Set<number>();
   reorderBlockedByFilter = false;
   gridSortBlocksReorder = false;
 
@@ -96,6 +101,9 @@ export class AdminCategories implements OnInit {
     openDetail: (category) => this.openDetail(category),
     openPending: (category) => this.openPendingChangesPanel(category),
     openDelete: (category) => this.openDelete(category),
+    canDelete: (category) => canDeleteCategory(category, this.auth.currentRole()),
+    toggleDisplay: (category) => this.toggleCategoryDisplay(category),
+    canToggleDisplay: (category) => canToggleDisplayCategory(category, this.auth.currentRole()),
     reload: () => this.reloadCategories(),
     move: (category, index, direction) => this.moveCategory(category, index, direction),
   };
@@ -311,7 +319,106 @@ export class AdminCategories implements OnInit {
       console.debug('[AdminCategories] openDelete', category.id);
     }
 
-    this.feedback.warning('Chức năng xóa sẽ được nối ở bước tiếp theo.');
+    const id = category.id;
+
+    if (!id || this.deletingCategoryIds.has(id)) {
+      return;
+    }
+
+    if (!canDeleteCategory(category, this.auth.currentRole())) {
+      this.denyCategoryAction();
+      return;
+    }
+
+    this.feedback
+      .confirmDanger(
+        `Thao tác này không thể hoàn tác. Bạn có chắc muốn xóa danh mục "${category.name || category.slug || id}"?`,
+      )
+      .pipe(take(1))
+      .subscribe((confirmed) => {
+        if (!confirmed) {
+          return;
+        }
+
+        this.deletingCategoryIds.add(id);
+        this.errorMessage = '';
+        this.successMessage = '';
+
+        this.categoryApi
+          .deleteCategory(id)
+          .pipe(takeUntilDestroyed(this.destroyRef))
+          .subscribe({
+            next: () => {
+              this.categories = this.categories.filter((item) => item.id !== id);
+              this.clearBatchSelection();
+              this.applyFilters();
+              this.successMessage = 'Đã xóa danh mục.';
+              this.feedback.success(this.successMessage);
+              this.deletingCategoryIds.delete(id);
+              this.loadCategories();
+            },
+            error: (error) => {
+              this.errorMessage = errorText(
+                error,
+                'Không thể xóa danh mục. Vui lòng kiểm tra quyền hoặc dữ liệu liên quan rồi thử lại.',
+              );
+              this.feedback.error(this.errorMessage);
+              this.deletingCategoryIds.delete(id);
+            },
+          });
+      });
+  }
+
+  toggleCategoryDisplay(category: AdminCategory): void {
+    const id = category.id;
+
+    if (!id) {
+      return;
+    }
+
+    if (!canToggleDisplayCategory(category, this.auth.currentRole())) {
+      this.denyCategoryAction();
+      return;
+    }
+
+    const nextDisplay = isCategoryDisplayEnabled(category.isDisplay) ? 0 : 1;
+    const actionLabel = nextDisplay ? 'hiển thị public' : 'ẩn public';
+
+    this.feedback
+      .confirmWarning(
+        `Bạn có chắc muốn ${actionLabel} danh mục "${category.name || category.slug || id}" không?`,
+        'Xác nhận thao tác',
+        nextDisplay ? 'Hiển thị' : 'Ẩn',
+      )
+      .pipe(take(1))
+      .subscribe((confirmed) => {
+        if (!confirmed) {
+          return;
+        }
+
+        this.errorMessage = '';
+        this.successMessage = '';
+
+        this.categoryApi
+          .updateCategoryDisplay(id, nextDisplay)
+          .pipe(takeUntilDestroyed(this.destroyRef))
+          .subscribe({
+            next: () => {
+              this.successMessage = nextDisplay
+                ? 'Đã hiển thị public danh mục.'
+                : 'Đã ẩn public danh mục.';
+              this.feedback.success(this.successMessage);
+              this.loadCategories();
+            },
+            error: (error) => {
+              this.errorMessage = errorText(
+                error,
+                'Không thể cập nhật hiển thị danh mục. Vui lòng thử lại sau.',
+              );
+              this.feedback.error(this.errorMessage);
+            },
+          });
+      });
   }
 
   closePendingChangesPanel(): void {
