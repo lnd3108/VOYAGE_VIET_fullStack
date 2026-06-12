@@ -1,0 +1,73 @@
+<section class="admin-destinations__toolbar">
+  <label>
+    Tìm kiếm
+    <input
+      type="search"
+      [value]="keyword"
+      placeholder="Tìm theo tên, slug, quốc gia, khu vực"
+      (input)="updateKeyword($event)"
+      (keydown.enter)="requestSearch()"
+    />
+  </label>
+
+  <label>
+    Trạng thái
+    <div
+      class="admin-destinations__control-wrap admin-destinations__control-wrap--select"
+      [class.admin-destinations__control-wrap--open]="focusedSelect === 'statusFilter'"
+    >
+      <button
+        type="button"
+        class="admin-destinations__select-trigger"
+        (click)="toggleSelect('statusFilter')"
+      >
+        {{ statusFilterLabel(statusFilter) }}
+      </button>
+      <tui-icon class="admin-destinations__chevron-icon admin-destinations__chevron-icon--select" icon="@tui.chevron-down" />
+      <div class="admin-destinations__select-menu" *ngIf="focusedSelect === 'statusFilter'">
+        <button
+          type="button"
+          class="admin-destinations__select-option"
+          [class.admin-destinations__select-option--selected]="statusFilter === option.value"
+          *ngFor="let option of statusFilters"
+          (click)="selectStatusFilter(option.value)"
+        >
+          {{ option.label }}
+        </button>
+      </div>
+    </div>
+  </label>
+
+  <label>
+    Khu vực
+    <div
+      class="admin-destinations__control-wrap admin-destinations__control-wrap--select"
+      [class.admin-destinations__control-wrap--open]="focusedSelect === 'regionFilter'"
+    >
+      <button
+        type="button"
+        class="admin-destinations__select-trigger"
+        (click)="toggleSelect('regionFilter')"
+      >
+        {{ regionFilterLabel(regionFilter) }}
+      </button>
+      <tui-icon class="admin-destinations__chevron-icon admin-destinations__chevron-icon--select" icon="@tui.chevron-down" />
+      <div class="admin-destinations__select-menu" *ngIf="focusedSelect === 'regionFilter'">
+        <button
+          type="button"
+          class="admin-destinations__select-option"
+          [class.admin-destinations__select-option--selected]="regionFilter === option.value"
+          *ngFor="let option of regionFilters"
+          (click)="selectRegionFilter(option.value)"
+        >
+          {{ option.label }}
+        </button>
+      </div>
+    </div>
+  </label>
+
+  <div>
+    <strong>{{ filteredCount }}</strong>
+    <span>/ {{ totalCount }} điểm đến</span>
+  </div>
+</section>

@@ -1,4 +1,4 @@
-package com.voyageviet.backend.destination.dto;
+package com.voyageviet.backend.destination.dto.response;
 
 public record DestinationBatchActionItemResponse(
         Long id,

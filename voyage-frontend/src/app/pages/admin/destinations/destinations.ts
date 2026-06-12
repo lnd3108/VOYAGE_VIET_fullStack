@@ -19,13 +19,31 @@ import {
   DestinationStatus,
   DestinationSubRegion,
   ProvinceRegionMap,
-  isDestinationDisplayEnabled,
 } from '../../../core/models/destination.model';
 import { AuthService } from '../../../core/auth/auth.service';
 import { RoleCode } from '../../../core/models/user.model';
 import { VietnamProvince } from '../../../core/models/vietnam-province.model';
 import { AdminUiFeedbackService } from '../../../core/services/admin-ui-feedback.service';
 import { AdminImageUpload } from '../shared/admin-image-upload/admin-image-upload';
+import { AdminDestinationFilterComponent } from './components/destination-filter/destination-filter';
+import {
+  DESTINATION_FALLBACK_IMAGE,
+  displayClass,
+  displayLabel,
+  formatDate,
+  formatRegion,
+  generateSlug,
+  getDestinationImage,
+  hasPendingData,
+  isDisplayEnabled,
+  isDisplayValueEnabled,
+  normalizeText,
+  parseStatus,
+  statusClass,
+  statusLabel,
+  workflowClass,
+  workflowLabel,
+} from './destination-utils';
 
 type DestinationStatusFilter = 'ALL' | DestinationStatus;
 type DestinationRegionFilter = 'ALL' | DestinationRegion;
@@ -72,7 +90,16 @@ interface DestinationNewDataParseResult {
 
 @Component({
   selector: 'app-admin-destinations',
-  imports: [AdminImageUpload, NgClass, NgFor, NgIf, ReactiveFormsModule, RouterLink, TuiIcon],
+  imports: [
+    AdminDestinationFilterComponent,
+    AdminImageUpload,
+    NgClass,
+    NgFor,
+    NgIf,
+    ReactiveFormsModule,
+    RouterLink,
+    TuiIcon,
+  ],
   templateUrl: './destinations.html',
   styleUrl: './destinations.scss',
 })
@@ -84,7 +111,7 @@ export class AdminDestinations implements OnInit {
   private readonly feedback = inject(AdminUiFeedbackService);
   private readonly authService = inject(AuthService);
 
-  readonly fallbackImage = '/hero/bg-home.png';
+  readonly fallbackImage = DESTINATION_FALLBACK_IMAGE;
   readonly statusFilters: FilterOption<DestinationStatusFilter>[] = [
     { label: 'Tất cả', value: 'ALL' },
     { label: 'Nháp', value: 'DRAFT' },
@@ -925,8 +952,15 @@ export class AdminDestinations implements OnInit {
     return this.normalizeText(this.provinceDisplayName(this.selectedProvince)) === this.normalizeText(this.provinceDisplayName(province));
   }
 
-  updateKeyword(event: Event): void {
-    this.keyword = (event.target as HTMLInputElement).value;
+  onFilterKeywordChange(keyword: string): void {
+    this.keyword = keyword;
+    this.applyFilters();
+  }
+
+  resetFilters(): void {
+    this.keyword = '';
+    this.statusFilter = 'ALL';
+    this.regionFilter = 'ALL';
     this.applyFilters();
   }
 
@@ -1192,7 +1226,7 @@ export class AdminDestinations implements OnInit {
   }
 
   getDestinationImage(destination: AdminDestination): string {
-    return destination.imageUrl || this.fallbackImage;
+    return getDestinationImage(destination, this.fallbackImage);
   }
 
   coordinatesText(destination: AdminDestination): string {
@@ -1207,11 +1241,11 @@ export class AdminDestinations implements OnInit {
   }
 
   statusLabel(status?: string): string {
-    return this.workflowLabel(status);
+    return statusLabel(status);
   }
 
   statusClass(status?: string): string {
-    return this.workflowClass(status);
+    return statusClass(status);
   }
 
   nextStatusLabel(destination: AdminDestination): string {
@@ -1219,40 +1253,19 @@ export class AdminDestinations implements OnInit {
   }
 
   workflowLabel(status?: string): string {
-    switch (this.parseStatus(status)) {
-      case 'DRAFT':
-        return 'Nháp';
-      case 'PENDING':
-        return 'Chờ duyệt';
-      case 'APPROVED':
-        return 'Đã duyệt';
-      case 'REJECTED':
-        return 'Từ chối';
-      case 'CANCEL_APPROVE':
-        return 'Hủy trình duyệt';
-      default:
-        return 'Chưa xác định';
-    }
+    return workflowLabel(status);
   }
 
   workflowClass(status?: string): string {
-    return `admin-destinations__status--${(this.parseStatus(status) || 'draft').toLowerCase().replace('_', '-')}`;
+    return workflowClass(status);
   }
 
   displayLabel(destination: AdminDestination): string {
-    if (this.parseStatus(destination.status) !== 'APPROVED') {
-      return 'Chưa thể hiển thị';
-    }
-
-    return this.isDisplayEnabled(destination) ? 'Đang hiển thị' : 'Đang ẩn';
+    return displayLabel(destination);
   }
 
   displayClass(destination: AdminDestination): string {
-    if (this.parseStatus(destination.status) !== 'APPROVED') {
-      return 'admin-destinations__display--blocked';
-    }
-
-    return this.isDisplayEnabled(destination) ? 'admin-destinations__display--shown' : 'admin-destinations__display--hidden';
+    return displayClass(destination);
   }
 
   pendingDataLabel(destination: AdminDestination): string {
@@ -1264,11 +1277,11 @@ export class AdminDestinations implements OnInit {
   }
 
   isDisplayEnabled(destination: AdminDestination): boolean {
-    return isDestinationDisplayEnabled(destination.isDisplay);
+    return isDisplayEnabled(destination);
   }
 
   hasPendingData(destination: AdminDestination): boolean {
-    return typeof destination.newData === 'string' && destination.newData.trim().length > 0;
+    return hasPendingData(destination);
   }
 
   canCreateDestination(): boolean {
@@ -1313,29 +1326,11 @@ export class AdminDestinations implements OnInit {
   }
 
   formatRegion(value?: string): string {
-    if (value === 'DOMESTIC') {
-      return 'Trong nước';
-    }
-
-    if (value === 'INTERNATIONAL') {
-      return 'Quốc tế';
-    }
-
-    return value || 'Chưa phân vùng';
+    return formatRegion(value);
   }
 
   formatDate(value?: string): string {
-    if (!value) {
-      return 'Đang cập nhật';
-    }
-
-    const date = new Date(value);
-
-    if (Number.isNaN(date.getTime())) {
-      return value;
-    }
-
-    return new Intl.DateTimeFormat('vi-VN').format(date);
+    return formatDate(value);
   }
 
   handleImageError(event: Event): void {
@@ -1968,7 +1963,7 @@ export class AdminDestinations implements OnInit {
     }
 
     if (type === 'display') {
-      return isDestinationDisplayEnabled(value as string | number | boolean | null | undefined) ? 'Đang hiển thị' : 'Đang ẩn';
+      return isDisplayValueEnabled(value) ? 'Đang hiển thị' : 'Đang ẩn';
     }
 
     if (value === null || value === undefined || value === '') {
@@ -2200,27 +2195,11 @@ export class AdminDestinations implements OnInit {
   }
 
   private generateSlug(value: string): string {
-    return value
-      .normalize('NFD')
-      .replace(/[\u0300-\u036f]/g, '')
-      .replace(/đ/g, 'd')
-      .replace(/Đ/g, 'd')
-      .toLowerCase()
-      .trim()
-      .replace(/[^a-z0-9\s-]/g, '')
-      .replace(/\s+/g, '-')
-      .replace(/-+/g, '-')
-      .replace(/^-|-$/g, '');
+    return generateSlug(value);
   }
 
   private parseStatus(status?: string): DestinationStatus | null {
-    return status === 'DRAFT' ||
-      status === 'PENDING' ||
-      status === 'APPROVED' ||
-      status === 'REJECTED' ||
-      status === 'CANCEL_APPROVE'
-      ? status
-      : null;
+    return parseStatus(status);
   }
 
   private errorText(error: unknown, fallback: string): string {
@@ -2256,14 +2235,7 @@ export class AdminDestinations implements OnInit {
   }
 
   private normalizeText(value: string): string {
-    return value
-      .normalize('NFD')
-      .replace(/[\u0300-\u036f]/g, '')
-      .replace(/đ/g, 'd')
-      .replace(/Đ/g, 'd')
-      .toLowerCase()
-      .trim()
-      .replace(/\s+/g, '-');
+    return normalizeText(value);
   }
 
   private isDestination(value: AdminDestination | null): value is AdminDestination {

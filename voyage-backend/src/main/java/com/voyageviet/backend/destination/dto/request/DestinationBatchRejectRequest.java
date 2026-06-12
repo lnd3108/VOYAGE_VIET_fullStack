@@ -1,4 +1,4 @@
-package com.voyageviet.backend.destination.dto;
+package com.voyageviet.backend.destination.dto.request;
 
 import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.NotNull;

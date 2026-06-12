@@ -1,4 +1,4 @@
-package com.voyageviet.backend.destination.dto;
+package com.voyageviet.backend.destination.dto.response;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.voyageviet.backend.destination.entity.DestinationStatus;

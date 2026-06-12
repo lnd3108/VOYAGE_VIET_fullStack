@@ -1,4 +1,4 @@
-package com.voyageviet.backend.destination.dto;
+package com.voyageviet.backend.destination.dto.request;
 
 import com.voyageviet.backend.destination.entity.DestinationStatus;
 import jakarta.validation.constraints.DecimalMax;

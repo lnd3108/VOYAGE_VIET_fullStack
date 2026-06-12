@@ -1,7 +1,9 @@
 package com.voyageviet.backend.destination.controller;
 
 import com.voyageviet.backend.common.response.ApiResponse;
-import com.voyageviet.backend.destination.dto.*;
+import com.voyageviet.backend.destination.dto.request.*;
+import com.voyageviet.backend.destination.dto.response.DestinationBatchActionResponse;
+import com.voyageviet.backend.destination.dto.response.DestinationResponse;
 import com.voyageviet.backend.destination.service.DestinationService;
 import com.voyageviet.backend.media.dto.ImageUrlUpdateRequest;
 import jakarta.validation.Valid;
