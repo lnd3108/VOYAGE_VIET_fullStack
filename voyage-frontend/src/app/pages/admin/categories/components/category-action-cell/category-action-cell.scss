@@ -22,11 +22,11 @@
 }
 
 button.admin-categories__action-trigger {
-  width: 48px;
-  min-height: 48px;
+  width: 38px;
+  min-height: 38px;
   padding: 0;
   border: 1px solid #cfe3df;
-  border-radius: 16px;
+  border-radius: 12px;
   background: #ffffff;
   color: #1f6f6d;
   display: inline-flex;
@@ -55,25 +55,25 @@ button.admin-categories__action-trigger:disabled {
 }
 
 button.admin-categories__action-trigger tui-icon {
-  width: 22px;
-  height: 22px;
+  width: 18px;
+  height: 18px;
   color: currentColor;
 }
 
 .admin-categories__action-menu {
   position: absolute;
-  top: calc(100% + 10px);
+  top: calc(100% + 8px);
   right: 0;
   z-index: 99999;
-  width: 220px;
-  max-height: 260px;
-  padding: 12px 14px;
+  width: 204px;
+  max-height: 240px;
+  padding: 8px 10px;
   display: flex;
   flex-direction: column;
   align-items: stretch;
   gap: 0;
   border: 1px solid #dde7e4;
-  border-radius: 16px;
+  border-radius: 12px;
   background: #ffffff;
   box-shadow: 0 24px 60px rgba(15, 23, 42, 0.22);
   overflow-x: hidden;
@@ -82,7 +82,7 @@ button.admin-categories__action-trigger tui-icon {
 
 .admin-categories__action-menu--up {
   top: auto;
-  bottom: calc(100% + 10px);
+  bottom: calc(100% + 8px);
 }
 
 .admin-categories__action-menu--body {
@@ -96,7 +96,7 @@ button.admin-categories__action-trigger tui-icon {
 button.admin-categories__action-item {
   width: 100%;
   min-width: 0;
-  min-height: 38px;
+  min-height: 34px;
   padding: 0 8px;
   border: 0;
   border-radius: 10px;
@@ -104,12 +104,12 @@ button.admin-categories__action-item {
   display: flex;
   align-items: center;
   justify-content: flex-start;
-  gap: 10px;
+  gap: 8px;
   color: var(--c, #1f6f6d);
   font-family: inherit;
   font-size: 14px;
-  font-weight: 600;
-  line-height: 1.35;
+  font-weight: 500;
+  line-height: 1.3;
   text-align: left;
   white-space: nowrap;
   cursor: pointer;
@@ -138,12 +138,13 @@ button.admin-categories__action-item span {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  color: #0f172a;
 }
 
 .admin-categories__action-item-icon {
-  width: 18px;
-  height: 18px;
-  flex: 0 0 18px;
+  width: 16px;
+  height: 16px;
+  flex: 0 0 16px;
   color: currentColor;
 }
 
@@ -176,18 +177,18 @@ button.admin-categories__action-item--primary,
 .admin-categories__action-separator {
   width: 100%;
   height: 1px;
-  margin: 4px 0;
+  margin: 3px 0;
   flex: 0 0 auto;
   background: #dde7e4;
 }
 
 @media (max-width: 520px) {
   .admin-categories__action-menu {
-    padding: 10px 12px;
+    padding: 8px 10px;
   }
 
   button.admin-categories__action-item {
-    min-height: 38px;
+    min-height: 34px;
     font-size: 14px;
   }
 }

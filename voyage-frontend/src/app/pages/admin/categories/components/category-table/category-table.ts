@@ -41,7 +41,8 @@ export class AdminCategoryTableComponent implements OnChanges {
   @Input() reorderBlockedByFilter = false;
   @Input() reorderingCategoryIds = new Set<number>();
 
-  @Input() rowHeight = 76;
+  @Input() rowHeight = 56;
+  @Input() headerHeight = 48;
   @Input() domLayout: DomLayoutType = 'normal';
   @Input() suppressCellFocus = true;
   @Input() loadThemeGoogleFonts = false;
@@ -53,7 +54,20 @@ export class AdminCategoryTableComponent implements OnChanges {
   @Output() selectionChanged = new EventEmitter<AdminCategory[]>();
   @Output() sortBlockedChange = new EventEmitter<boolean>();
 
-  readonly theme: Theme = themeQuartz;
+  readonly theme: Theme = themeQuartz.withParams({
+    accentColor: '#1f6f6d',
+    fontFamily:
+      "Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
+    fontSize: 14,
+    backgroundColor: '#ffffff',
+    foregroundColor: '#0f2747',
+    headerBackgroundColor: '#f8fafc',
+    headerTextColor: '#587091',
+    borderColor: '#dde5ef',
+    rowHoverColor: '#f8fafc',
+    selectedRowBackgroundColor: '#eefafa',
+    wrapperBorderRadius: 12,
+  });
   readonly defaultColDef: ColDef<CategoryGridRow> = {
     sortable: true,
     resizable: true,

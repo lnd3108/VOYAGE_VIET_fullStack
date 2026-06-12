@@ -2691,3 +2691,63 @@ Thời gian cập nhật: 2026-06-11 11:18:28 +07:00
 ### Warning còn lại
 - `npm run build` còn warning initial bundle vượt budget 500 kB: total 863.37 kB.
 - Các warning SCSS budget hiện hữu còn lại: `tours.scss`, `home-hero.scss`, `destinations.scss`, `category-detail-panel.scss`, `tour-form.scss`, `public-layout.scss`, `category-form.scss`.
+
+## Cập Nhật: Admin Categories Filter Và Header Danh Sách Theo Style PMH
+
+Thời gian cập nhật: 2026-06-11 11:45:24 +07:00
+
+### File đã sửa
+- `src/app/pages/admin/categories/categories.ts`
+- `src/app/pages/admin/categories/categories.html`
+- `src/app/pages/admin/categories/categories.scss`
+- `src/app/pages/admin/categories/components/category-filter/category-filter.ts`
+- `src/app/pages/admin/categories/components/category-filter/category-filter.html`
+- `src/app/pages/admin/categories/components/category-filter/category-filter.scss`
+
+### Nội dung đã sửa
+- Thêm nút Tìm kiếm cho bộ lọc Admin Categories.
+- Thêm nút Xóa bộ lọc, reset keyword và status về mặc định.
+- Status filter mặc định là Tất cả.
+- Đổi filter sang cơ chế nhập draft, chỉ áp dụng khi bấm Tìm kiếm hoặc Enter.
+- Thêm header `Danh sách bản ghi` kèm badge số lượng phía trên AG Grid.
+- Giữ nguyên workflow/action/reorder hiện có.
+
+### Kết quả build/test
+- `npx ng build --configuration development`: pass.
+- `npm run build`: pass.
+
+### Warning còn lại
+- `bundle initial exceeded maximum budget`: tổng 863.37 kB, vượt 363.37 kB so với budget 500.00 kB.
+- SCSS budget warnings còn ở `tour-form.scss`, `destinations.scss`, `home-hero.scss`, `category-detail-panel.scss`, `tours.scss`, `public-layout.scss`, `category-form.scss`.
+
+### Ghi chú/rủi ro
+- Filter hiện vẫn xử lý client-side trên danh sách đã load từ `GET /api/admin/categories`.
+- Nếu sau này backend hỗ trợ paging/search server-side, cần chuyển filter sang query params/API.
+
+## Cập Nhật: Admin Layout Hai Sidebar Theo Nhóm Module
+
+Thời gian cập nhật: 2026-06-11 14:23:04 +07:00
+
+### File đã sửa
+- `src/app/layouts/admin-layout/admin-layout.html`
+- `src/app/layouts/admin-layout/admin-layout.ts`
+- `src/app/layouts/admin-layout/admin-layout.scss`
+
+### Nội dung đã sửa
+- Đổi admin layout từ sidebar đơn sang rail icon + menu panel theo nhóm.
+- Thêm group route sync theo URL.
+- Menu nhóm Nội dung/Vận hành/Hệ thống/Khác.
+- Giữ router-outlet và role guard hiện có.
+- Không sửa page con hoặc backend.
+
+### Kết quả build/test
+- `npx ng build --configuration development`: pass.
+- `npm run build`: pass.
+
+### Warning còn lại
+- `bundle initial exceeded maximum budget`: tổng 867.63 kB, vượt 367.63 kB so với budget 500.00 kB.
+- SCSS budget warnings còn ở `public-layout.scss`, `destinations.scss`, `category-form.scss`, `tour-form.scss`, `home-hero.scss`, `tours.scss`, `category-detail-panel.scss`.
+
+### Ghi chú/rủi ro
+- Route `/admin/visa` và `/admin/flights` chưa tồn tại trong `app.routes.ts`, nên menu không thêm link Visa/Flights để tránh route chết.
+- Project chưa import Tabler icon CSS, nên rail/menu dùng ký hiệu chữ CSS nội bộ thay vì thêm dependency icon mới.

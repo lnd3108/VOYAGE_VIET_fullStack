@@ -1,145 +1,397 @@
-<div class="admin-layout">
-  <aside class="admin-layout__sidebar">
-    <div class="admin-layout__brand">
-      <a class="admin-layout__brand-link" routerLink="/admin">
-        <span class="admin-layout__brand-logo">VV</span>
-
-        <span class="admin-layout__brand-content">
-          <span class="admin-layout__brand-title">VoyageViet</span>
-          <span class="admin-layout__brand-subtitle">Admin Panel</span>
-        </span>
-      </a>
-    </div>
-
-    <nav class="admin-layout__nav">
-      <a
-        class="admin-layout__nav-link"
-        routerLink="/admin"
-        routerLinkActive="admin-layout__nav-link--active"
-        [routerLinkActiveOptions]="{ exact: true }"
-        *ngIf="authService.isAdmin()"
-      >
-        Dashboard
-      </a>
-
-      <a
-        class="admin-layout__nav-link"
-        routerLink="/admin/categories"
-        routerLinkActive="admin-layout__nav-link--active"
-      >
-        Danh mục
-      </a>
-
-      <a
-        class="admin-layout__nav-link"
-        routerLink="/admin/destinations"
-        routerLinkActive="admin-layout__nav-link--active"
-        *ngIf="authService.isStaff()"
-      >
-        Điểm đến
-      </a>
-
-      <a
-        class="admin-layout__nav-link"
-        routerLink="/admin/tours"
-        routerLinkActive="admin-layout__nav-link--active"
-        *ngIf="authService.isAdmin()"
-      >
-        Tour
-      </a>
-
-      <a
-        class="admin-layout__nav-link"
-        routerLink="/admin/bookings"
-        routerLinkActive="admin-layout__nav-link--active"
-        *ngIf="authService.isAdmin()"
-      >
-        Booking
-      </a>
-
-      <a
-        class="admin-layout__nav-link"
-        routerLink="/admin/users"
-        routerLinkActive="admin-layout__nav-link--active"
-        *ngIf="authService.isAdmin()"
-      >
-        Người dùng
-      </a>
-
-      <a
-        class="admin-layout__nav-link"
-        routerLink="/admin/reviews"
-        routerLinkActive="admin-layout__nav-link--active"
-        *ngIf="authService.isAdmin()"
-      >
-        Đánh giá
-      </a>
-
-      <a
-        class="admin-layout__nav-link"
-        routerLink="/admin/media"
-        routerLinkActive="admin-layout__nav-link--active"
-        *ngIf="authService.isAdmin()"
-      >
-        Media
-      </a>
-
-      <a
-        class="admin-layout__nav-link"
-        routerLink="/admin/features"
-        routerLinkActive="admin-layout__nav-link--active"
-        *ngIf="authService.isAdmin()"
-      >
-        Tính năng
-      </a>
-
-      <a
-        class="admin-layout__nav-link"
-        routerLink="/admin/audit-logs"
-        routerLinkActive="admin-layout__nav-link--active"
-        *ngIf="authService.isAdmin()"
-      >
-        Audit Logs
-      </a>
-
-      <a class="admin-layout__nav-link admin-layout__nav-link--public" routerLink="/">
-        Về trang public
-      </a>
-    </nav>
-
-    <div class="admin-layout__sidebar-footer">
+<div class="vv-layout" [class.vv-layout--menu-hidden]="!activeGroup()" [class.vv-layout--rail-hidden]="railCollapsed()">
+  <aside class="vv-rail" aria-label="Nhóm menu admin">
+    <div class="vv-rail__top">
       <button
         type="button"
-        class="admin-layout__logout-button"
+        class="vv-rail__collapse"
+        title="Ẩn sidebar"
+        aria-label="Ẩn sidebar"
+        (click)="toggleRail()"
+      >
+        <svg viewBox="0 0 24 24" focusable="false" aria-hidden="true">
+          <path d="M19 3v18" />
+          <path d="M15 12H5" />
+          <path d="m9 8-4 4 4 4" />
+        </svg>
+      </button>
+    </div>
+
+    <nav class="vv-rail__nav">
+      <button
+        type="button"
+        class="vv-rail__item"
+        [class.vv-rail__item--active]="activeGroup() === 'tong-quan'"
+        (click)="toggleGroup('tong-quan')"
+        title="Tổng quan"
+      >
+        <span class="vv-rail__icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24" focusable="false">
+            <path d="M3 10.6 12 3l9 7.6" />
+            <path d="M5 9.4V21h5v-6h4v6h5V9.4" />
+          </svg>
+        </span>
+        <span class="vv-rail__label">Tổng quan</span>
+      </button>
+
+      <button
+        type="button"
+        class="vv-rail__item"
+        [class.vv-rail__item--active]="activeGroup() === 'noi-dung'"
+        (click)="toggleGroup('noi-dung')"
+        title="Nội dung"
+      >
+        <span class="vv-rail__icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24" focusable="false">
+            <path d="M9 6h11" />
+            <path d="M9 12h11" />
+            <path d="M9 18h11" />
+            <path d="M4 6h1" />
+            <path d="M4 12h1" />
+            <path d="M4 18h1" />
+          </svg>
+        </span>
+        <span class="vv-rail__label">Nội dung</span>
+      </button>
+
+      <button
+        type="button"
+        class="vv-rail__item"
+        [class.vv-rail__item--active]="activeGroup() === 'van-hanh'"
+        (click)="toggleGroup('van-hanh')"
+        title="Vận hành"
+      >
+        <span class="vv-rail__icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24" focusable="false">
+            <circle cx="6" cy="6" r="2.5" />
+            <circle cx="18" cy="6" r="2.5" />
+            <circle cx="12" cy="18" r="2.5" />
+            <path d="M8.3 7.2 10.8 9.6" />
+            <path d="M15.7 7.2 13.2 9.6" />
+            <path d="M12 10v5.5" />
+          </svg>
+        </span>
+        <span class="vv-rail__label">Vận hành</span>
+      </button>
+
+      <button
+        type="button"
+        class="vv-rail__item"
+        [class.vv-rail__item--active]="activeGroup() === 'he-thong'"
+        (click)="toggleGroup('he-thong')"
+        title="Hệ thống"
+      >
+        <span class="vv-rail__icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24" focusable="false">
+            <rect x="3" y="4" width="18" height="12" rx="2" />
+            <path d="M8 20h8" />
+            <path d="M12 16v4" />
+            <circle cx="16.5" cy="10" r="1.6" />
+            <path d="M16.5 6.8v1" />
+            <path d="M16.5 12.2v1" />
+            <path d="m13.7 8.4.9.5" />
+            <path d="m18.4 11.1.9.5" />
+            <path d="m13.7 11.6.9-.5" />
+            <path d="m18.4 8.9.9-.5" />
+          </svg>
+        </span>
+        <span class="vv-rail__label">Hệ thống</span>
+      </button>
+
+      <button
+        type="button"
+        class="vv-rail__item"
+        [class.vv-rail__item--active]="activeGroup() === 'khac'"
+        (click)="toggleGroup('khac')"
+        title="Khác"
+      >
+        <span class="vv-rail__icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24" focusable="false">
+            <circle cx="12" cy="12" r="9" />
+            <path d="M5.7 5.7 18.3 18.3" />
+            <path d="M18.3 5.7 5.7 18.3" />
+          </svg>
+        </span>
+        <span class="vv-rail__label">Khác</span>
+      </button>
+    </nav>
+
+    <div class="vv-rail__footer">
+      <button
+        type="button"
+        class="vv-rail__logout"
+        title="Đăng xuất"
+        aria-label="Đăng xuất"
         (click)="authService.logout()"
       >
-        Đăng xuất
+        <svg viewBox="0 0 24 24" focusable="false" aria-hidden="true">
+          <path d="M10 5H6a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h4" />
+          <path d="M15 7l5 5-5 5" />
+          <path d="M20 12H9" />
+        </svg>
       </button>
     </div>
   </aside>
 
-  <section class="admin-layout__content">
-    <header class="admin-layout__topbar">
-      <div>
-        <h1 class="admin-layout__page-title">Quản trị hệ thống</h1>
-        <p class="admin-layout__page-desc">
-          Quản lý tour, booking, người dùng và dữ liệu VoyageViet.
-        </p>
+  <aside class="vv-menu" [class.vv-menu--hidden]="!activeGroup()" aria-label="Menu admin">
+    <div class="vv-menu__brand">
+      <a class="vv-menu__logo" routerLink="/admin" aria-label="VoyageViet Admin">
+        <img src="/logo.png" alt="VoyageViet" />
+      </a>
+    </div>
+
+    <nav class="vv-menu__nav">
+      <ng-container *ngIf="activeGroup() === 'tong-quan'">
+        <a
+          class="vv-menu__link"
+          routerLink="/admin"
+          routerLinkActive="vv-menu__link--active"
+          [routerLinkActiveOptions]="{ exact: true }"
+          *ngIf="authService.isAdmin()"
+        >
+          <span class="vv-menu__link-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" focusable="false">
+              <rect x="3" y="3" width="7" height="8" rx="1.5" />
+              <rect x="14" y="3" width="7" height="5" rx="1.5" />
+              <rect x="14" y="12" width="7" height="9" rx="1.5" />
+              <rect x="3" y="15" width="7" height="6" rx="1.5" />
+            </svg>
+          </span>
+          <span>Dashboard</span>
+        </a>
+      </ng-container>
+
+      <ng-container *ngIf="activeGroup() === 'noi-dung'">
+        <a
+          class="vv-menu__link"
+          routerLink="/admin/categories"
+          routerLinkActive="vv-menu__link--active"
+          *ngIf="authService.hasRole('STAFF', 'ADMIN', 'SUPER_ADMIN')"
+        >
+          <span class="vv-menu__link-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" focusable="false">
+              <path d="M4 19h16" />
+              <path d="M7 16V9" />
+              <path d="M12 16V5" />
+              <path d="M17 16v-7" />
+              <path d="M5 9h4" />
+              <path d="M10 5h4" />
+              <path d="M15 9h4" />
+            </svg>
+          </span>
+          <span>Danh mục</span>
+        </a>
+
+        <a
+          class="vv-menu__link"
+          routerLink="/admin/destinations"
+          routerLinkActive="vv-menu__link--active"
+          *ngIf="authService.isStaff()"
+        >
+          <span class="vv-menu__link-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" focusable="false">
+              <path d="M9 18 3 21V6l6-3 6 3 6-3v10" />
+              <path d="M9 3v15" />
+              <path d="M15 6v6" />
+              <path d="M18.5 21s3.5-3 3.5-5.5a3.5 3.5 0 0 0-7 0C15 18 18.5 21 18.5 21z" />
+              <circle cx="18.5" cy="15.5" r="1" />
+            </svg>
+          </span>
+          <span>Điểm đến</span>
+        </a>
+
+        <a
+          class="vv-menu__link"
+          routerLink="/admin/tours"
+          routerLinkActive="vv-menu__link--active"
+          *ngIf="authService.isAdmin()"
+        >
+          <span class="vv-menu__link-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" focusable="false">
+              <rect x="6" y="7" width="12" height="13" rx="2" />
+              <path d="M9 7V5a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2" />
+              <path d="M9 11h6" />
+              <path d="M9 20v1" />
+              <path d="M15 20v1" />
+            </svg>
+          </span>
+          <span>Tour</span>
+        </a>
+      </ng-container>
+
+      <ng-container *ngIf="activeGroup() === 'van-hanh'">
+        <a
+          class="vv-menu__link"
+          routerLink="/admin/bookings"
+          routerLinkActive="vv-menu__link--active"
+          *ngIf="authService.isAdmin()"
+        >
+          <span class="vv-menu__link-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" focusable="false">
+              <path d="M8 6V5a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v1" />
+              <rect x="5" y="6" width="14" height="11" rx="2" />
+              <path d="M8 17v2" />
+              <path d="M16 17v2" />
+              <path d="M3 21h18" />
+              <path d="M9 10h6" />
+            </svg>
+          </span>
+          <span>Booking</span>
+        </a>
+
+        <a
+          class="vv-menu__link"
+          routerLink="/admin/reviews"
+          routerLinkActive="vv-menu__link--active"
+          *ngIf="authService.isAdmin()"
+        >
+          <span class="vv-menu__link-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" focusable="false">
+              <path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z" />
+              <path d="M14 3v6h6" />
+              <path d="M9 13h6" />
+              <path d="M12 10l3 3-3 3" />
+            </svg>
+          </span>
+          <span>Đánh giá</span>
+        </a>
+      </ng-container>
+
+      <ng-container *ngIf="activeGroup() === 'he-thong'">
+        <a
+          class="vv-menu__link"
+          routerLink="/admin/users"
+          routerLinkActive="vv-menu__link--active"
+          *ngIf="authService.isAdmin()"
+        >
+          <span class="vv-menu__link-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" focusable="false">
+              <circle cx="12" cy="8" r="4" />
+              <path d="M4 21a8 8 0 0 1 16 0" />
+            </svg>
+          </span>
+          <span>Người dùng</span>
+        </a>
+
+        <a
+          class="vv-menu__link"
+          routerLink="/admin/media"
+          routerLinkActive="vv-menu__link--active"
+          *ngIf="authService.isAdmin()"
+        >
+          <span class="vv-menu__link-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" focusable="false">
+              <rect x="3" y="5" width="18" height="14" rx="2" />
+              <circle cx="8.5" cy="10" r="1.5" />
+              <path d="m21 15-4.5-4.5L7 19" />
+            </svg>
+          </span>
+          <span>Media</span>
+        </a>
+
+        <a
+          class="vv-menu__link"
+          routerLink="/admin/features"
+          routerLinkActive="vv-menu__link--active"
+          *ngIf="authService.isAdmin()"
+        >
+          <span class="vv-menu__link-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" focusable="false">
+              <path d="M20.2 4.8c-4.6.2-9.7 2.2-13 5.5-2.8 2.8-3.3 6.2-3.2 8.7 2.5.1 5.9-.4 8.7-3.2 3.3-3.3 5.3-8.4 5.5-13z" />
+              <path d="M4 20c3.8-3.8 7.6-6.4 12-8" />
+            </svg>
+          </span>
+          <span>Tính năng</span>
+        </a>
+
+        <a
+          class="vv-menu__link"
+          routerLink="/admin/audit-logs"
+          routerLinkActive="vv-menu__link--active"
+          *ngIf="authService.isAdmin()"
+        >
+          <span class="vv-menu__link-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" focusable="false">
+              <path d="M9 5h6" />
+              <path d="M9 3h6v4H9z" />
+              <path d="M7 5H6a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2" />
+              <circle cx="16" cy="13" r="4" />
+              <path d="M16 11v2l1.5 1" />
+            </svg>
+          </span>
+          <span>Audit Logs</span>
+        </a>
+      </ng-container>
+
+      <ng-container *ngIf="activeGroup() === 'khac'">
+        <a class="vv-menu__link vv-menu__link--public" routerLink="/">
+          <span class="vv-menu__link-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" focusable="false">
+              <path d="M9 14 4 9l5-5" />
+              <path d="M4 9h10a6 6 0 1 1 0 12h-2" />
+            </svg>
+          </span>
+          <span>Về trang chủ</span>
+        </a>
+      </ng-container>
+    </nav>
+  </aside>
+
+  <section class="vv-body">
+    <header class="vv-header">
+      <div class="vv-header__brand">
+        <button
+          type="button"
+          class="vv-header__rail-toggle"
+          title="Hiện sidebar"
+          aria-label="Hiện sidebar"
+          *ngIf="railCollapsed()"
+          (click)="toggleRail()"
+        >
+          <svg viewBox="0 0 24 24" focusable="false" aria-hidden="true">
+            <path d="M5 3v18" />
+            <path d="M9 12h10" />
+            <path d="m15 8 4 4-4 4" />
+          </svg>
+        </button>
       </div>
 
-      <div class="admin-layout__user">
-        <span class="admin-layout__user-name">
-          {{ authService.currentUser()?.fullName || 'Admin' }}
-        </span>
+      <div class="vv-header__tools">
+        <button
+          type="button"
+          class="vv-header__notification"
+          title="Thông báo"
+          aria-label="Thông báo"
+        >
+          <svg viewBox="0 0 24 24" focusable="false" aria-hidden="true">
+            <path d="M10 21h4" />
+            <path d="M18 8a6 6 0 1 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9" />
+          </svg>
+          <span></span>
+        </button>
 
-        <span class="admin-layout__user-role">
-          {{ authService.currentUser()?.role || 'ADMIN' }}
-        </span>
+        <label class="vv-header__language">
+          <span>Ngôn ngữ</span>
+          <select aria-label="Chọn ngôn ngữ">
+            <option value="vi">VI</option>
+            <option value="en">EN</option>
+          </select>
+        </label>
+
+        <div class="vv-header__identity">
+          <span class="vv-header__role">
+            {{ authService.currentUser()?.role || 'CHUYÊN VIÊN' }}
+          </span>
+          <span class="vv-header__name">
+            {{ authService.currentUser()?.fullName || 'Chuyên viên' }}
+          </span>
+        </div>
       </div>
     </header>
 
-    <main class="admin-layout__main">
-      <router-outlet />
+    <main class="vv-main">
+      <div class="vv-main__inner">
+        <router-outlet />
+      </div>
     </main>
   </section>
 </div>

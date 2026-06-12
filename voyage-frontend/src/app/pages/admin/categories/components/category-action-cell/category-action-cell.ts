@@ -260,7 +260,7 @@ export class CategoryActionCellRendererComponent implements ICellRendererAngular
 
   private setMenuDirection(trigger: HTMLElement): void {
     const rect = trigger.getBoundingClientRect();
-    const menuHeight = 260;
+    const menuHeight = 240;
     const spaceBelow = window.innerHeight - rect.bottom;
     const spaceAbove = rect.top;
 
@@ -271,9 +271,9 @@ export class CategoryActionCellRendererComponent implements ICellRendererAngular
     this.destroyBodyMenu();
 
     const rect = trigger.getBoundingClientRect();
-    const menuWidth = 220;
-    const menuHeight = 260;
-    const gap = 10;
+    const menuWidth = 204;
+    const menuHeight = 240;
+    const gap = 8;
     const viewportPadding = 12;
     const left = Math.min(
       Math.max(viewportPadding, rect.right - menuWidth),

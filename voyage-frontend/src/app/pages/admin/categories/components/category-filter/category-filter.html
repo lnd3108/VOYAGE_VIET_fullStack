@@ -1,6 +1,6 @@
 <section class="admin-category-filter">
   <label class="admin-category-filter__field">
-    <span class="admin-category-filter__label">Tìm kiếm</span>
+    <span class="admin-category-filter__label">Tên danh mục</span>
 
     <input
       type="search"
@@ -9,11 +9,12 @@
       [disabled]="disabled"
       placeholder="Tìm theo tên hoặc slug"
       (input)="updateKeyword($event)"
+      (keydown.enter)="requestSearch()"
     />
   </label>
 
   <label class="admin-category-filter__field">
-    <span class="admin-category-filter__label">Trạng Thái</span>
+    <span class="admin-category-filter__label">Trạng thái</span>
 
     <div
       class="admin-category-filter__select"
@@ -34,7 +35,7 @@
         <button
           type="button"
           class="admin-category-filter__select-option"
-          *ngFor="let option of statusFilters"
+          *ngFor="let option of visibleStatusFilters"
           [class.admin-category-filter__select-option--selected]="statusFilter === option.value"
           (click)="selectStatus(option.value)"
         >
@@ -44,8 +45,25 @@
     </div>
   </label>
 
-  <div class="admin-category-filter__summary">
-    <strong>{{ filteredCount }}</strong>
-    <span>/ {{ totalCount }} danh mục</span>
+  <div class="admin-category-filter__actions">
+    <button
+      type="button"
+      class="admin-category-filter__button admin-category-filter__button--secondary"
+      [disabled]="disabled || !hasActiveDraftFilter"
+      (click)="requestClear()"
+    >
+      <tui-icon class="admin-category-filter__button-icon" icon="@tui.rotate-ccw" />
+      <span>Xóa bộ lọc</span>
+    </button>
+
+    <button
+      type="button"
+      class="admin-category-filter__button admin-category-filter__button--primary"
+      [disabled]="disabled"
+      (click)="requestSearch()"
+    >
+      <tui-icon class="admin-category-filter__button-icon" icon="@tui.search" />
+      <span>Tìm kiếm</span>
+    </button>
   </div>
 </section>

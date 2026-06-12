@@ -10,7 +10,7 @@ import {
   isDevMode,
 } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { ActivatedRoute, Router, RouterLink } from '@angular/router';
+import { ActivatedRoute, Router } from '@angular/router';
 
 import { AdminCategoryApiService } from '../../../core/api/admin-category-api.service';
 import { AuthService } from '../../../core/auth/auth.service';
@@ -43,7 +43,6 @@ interface StatusFilterOption {
   selector: 'app-admin-categories',
   imports: [
     NgIf,
-    RouterLink,
     AdminCategoryFilterComponent,
     AdminCategoryTableComponent,
     AdminCategoryFormComponent,
@@ -78,6 +77,8 @@ export class AdminCategories implements OnInit {
   successMessage = '';
   categories: AdminCategory[] = [];
   filteredCategories: AdminCategory[] = [];
+  filterKeywordDraft = '';
+  filterStatusDraft: CategoryStatusFilter = 'ALL';
   keyword = '';
   statusFilter: CategoryStatusFilter = 'ALL';
   selectedCategory: AdminCategory | null = null;
@@ -106,6 +107,38 @@ export class AdminCategories implements OnInit {
 
   get selectedBatchCount(): number {
     return this.selectedBatchCategories.length;
+  }
+
+  get pageTrailLabel(): string {
+    if (!this.isFormOpen) {
+      return 'Danh mục';
+    }
+
+    if (this.formMode === 'edit') {
+      return 'Chỉnh sửa';
+    }
+
+    if (this.formMode === 'copy') {
+      return 'Sao chép';
+    }
+
+    return 'Thêm mới';
+  }
+
+  get pageDescription(): string {
+    if (!this.isFormOpen) {
+      return 'Quản lý danh mục theo nhóm';
+    }
+
+    if (this.formMode === 'edit') {
+      return 'Chỉnh sửa thông tin danh mục';
+    }
+
+    if (this.formMode === 'copy') {
+      return 'Tạo danh mục mới từ dữ liệu đã có';
+    }
+
+    return 'Thêm mới danh mục theo nhóm';
   }
 
   get nextDisplayOrder(): number {
@@ -217,14 +250,31 @@ export class AdminCategories implements OnInit {
     this.loadCategories();
   }
 
-  onFilterKeywordChange(keyword: string): void {
-    this.keyword = keyword;
-    this.applyFilters();
+  onFilterKeywordDraftChange(keyword: string): void {
+    this.filterKeywordDraft = keyword;
   }
 
-  onFilterStatusChange(status: CategoryStatusFilter): void {
-    this.statusFilter = status;
+  onFilterStatusDraftChange(status: CategoryStatusFilter): void {
+    this.filterStatusDraft = status;
+  }
+
+  searchCategories(): void {
+    const keyword = this.filterKeywordDraft.trim();
+
+    this.filterKeywordDraft = keyword;
+    this.keyword = keyword;
+    this.statusFilter = this.filterStatusDraft;
     this.applyFilters();
+    this.clearBatchSelection();
+  }
+
+  clearFilters(): void {
+    this.filterKeywordDraft = '';
+    this.filterStatusDraft = 'ALL';
+    this.keyword = '';
+    this.statusFilter = 'ALL';
+    this.applyFilters();
+    this.clearBatchSelection();
   }
 
   onTableSelectionChanged(categories: AdminCategory[]): void {

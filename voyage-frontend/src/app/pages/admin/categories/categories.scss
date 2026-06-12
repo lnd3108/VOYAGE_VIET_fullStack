@@ -13,7 +13,6 @@
   font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
   color: #143734;
 
-  &__header,
   &__grid-card,
   &__error,
   &__notice {
@@ -24,42 +23,51 @@
   }
 
   &__header {
-    padding: 26px;
     display: flex;
+    align-items: flex-start;
     justify-content: space-between;
-    gap: 18px;
-    background:
-      radial-gradient(circle at top right, rgba(77, 182, 167, 0.2), transparent 30%), #fff;
+    gap: 12px;
+  }
 
-    h1 {
-      margin: 0;
-      color: var(--cat-dark);
-      font-size: clamp(28px, 4vw, 42px);
-      font-weight: 800;
-      letter-spacing: -0.04em;
-    }
+  &__title-block {
+    display: grid;
+    gap: 6px;
 
     p {
-      margin: 8px 0 0;
+      margin: 0;
       color: #64748b;
+      font-size: 14px;
+      font-weight: 600;
     }
   }
 
-  &__eyebrow {
-    margin: 0 0 8px !important;
-    color: var(--cat-secondary) !important;
-    font-weight: 800;
-    text-transform: uppercase;
+  &__breadcrumb {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    color: #64748b;
+    font-size: 14px;
+    font-weight: 700;
+    letter-spacing: 0;
+
+    strong {
+      color: #334155;
+      font-weight: 800;
+    }
+  }
+
+  &__breadcrumb-separator {
+    color: #cbd5e1;
+    font-weight: 700;
   }
 
   &__actions {
     display: flex;
     gap: 10px;
     flex-wrap: wrap;
-  }
-
-  &__actions {
-    align-items: flex-start;
+    align-items: center;
+    justify-content: flex-end;
+    margin-left: auto;
   }
 
   button,
@@ -112,6 +120,16 @@
       transform: none;
       box-shadow: none;
     }
+  }
+
+  &__button svg {
+    width: 17px;
+    height: 17px;
+    fill: none;
+    stroke: currentColor;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    stroke-width: 2.4;
   }
 
   &__button--primary {
@@ -201,6 +219,41 @@
     overflow-y: visible;
   }
 
+  &__list-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    padding: 18px 20px 12px;
+    border-bottom: 1px solid #e2e8f0;
+  }
+
+  &__list-title {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+
+    h2 {
+      margin: 0;
+      color: #0f172a;
+      font-size: 20px;
+      font-weight: 800;
+    }
+
+    span {
+      min-width: 28px;
+      height: 24px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 999px;
+      background: #f1f5f9;
+      color: #475569;
+      font-size: 13px;
+      font-weight: 800;
+    }
+  }
+
   &__field {
     display: grid;
     gap: 8px;
@@ -248,6 +301,12 @@
   @media (max-width: 760px) {
     &__header {
       flex-direction: column;
+    }
+
+    &__actions {
+      width: 100%;
+      justify-content: flex-start;
+      margin-left: 0;
     }
 
     &__pending-panel {

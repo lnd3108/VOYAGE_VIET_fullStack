@@ -1,26 +1,28 @@
 ﻿<section class="admin-categories">
   <header class="admin-categories__header">
-    <div>
-      <p class="admin-categories__eyebrow">Admin Categories</p>
-      <h1>Quản lý danh mục</h1>
-      <p>Tạo và quản lý các nhóm tour hiển thị trên hệ thống</p>
+    <div class="admin-categories__title-block">
+      <nav class="admin-categories__breadcrumb" aria-label="Breadcrumb">
+        <span>Nội dung</span>
+        <span class="admin-categories__breadcrumb-separator">›</span>
+        <span *ngIf="isFormOpen">Danh mục</span>
+        <span class="admin-categories__breadcrumb-separator" *ngIf="isFormOpen">›</span>
+        <strong>{{ pageTrailLabel }}</strong>
+      </nav>
+
+      <p>{{ pageDescription }}</p>
     </div>
 
     <div class="admin-categories__actions" *ngIf="!isFormOpen">
-      <a
-        routerLink="/admin/media"
-        class="admin-categories__button admin-categories__button--secondary"
-        *ngIf="canOpenMedia()"
-      >
-        Mở Ảnh
-      </a>
-
       <button
         type="button"
         class="admin-categories__button admin-categories__button--primary"
         *ngIf="canCreateCategory()"
         (click)="openCreateForm()"
       >
+        <svg viewBox="0 0 24 24" focusable="false" aria-hidden="true">
+          <path d="M12 5v14" />
+          <path d="M5 12h14" />
+        </svg>
         Thêm danh mục
       </button>
     </div>
@@ -54,17 +56,26 @@
 
   <ng-container *ngIf="!isFormOpen">
     <app-admin-category-filter
-      [keyword]="keyword"
-      [statusFilter]="statusFilter"
+      [keyword]="filterKeywordDraft"
+      [statusFilter]="filterStatusDraft"
       [statusFilters]="statusFilters"
       [filteredCount]="filteredCategories.length"
       [totalCount]="categories.length"
       [disabled]="loading"
-      (keywordChange)="onFilterKeywordChange($event)"
-      (statusFilterChange)="onFilterStatusChange($event)"
+      (keywordChange)="onFilterKeywordDraftChange($event)"
+      (statusFilterChange)="onFilterStatusDraftChange($event)"
+      (searchRequested)="searchCategories()"
+      (clearRequested)="clearFilters()"
     />
 
     <section class="admin-categories__grid-card">
+      <div class="admin-categories__list-head">
+        <div class="admin-categories__list-title">
+          <h2>Danh sách bản ghi</h2>
+          <span>{{ filteredCategories.length }}</span>
+        </div>
+      </div>
+
       <app-admin-category-bulk-actions
         *ngIf="selectedBatchCount > 0"
         [selectedCategories]="selectedBatchCategories"

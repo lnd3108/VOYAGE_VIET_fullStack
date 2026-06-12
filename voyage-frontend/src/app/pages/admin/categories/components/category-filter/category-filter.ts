@@ -28,6 +28,8 @@ export class AdminCategoryFilterComponent {
 
   @Output() keywordChange = new EventEmitter<string>();
   @Output() statusFilterChange = new EventEmitter<AdminCategoryStatusFilter>();
+  @Output() searchRequested = new EventEmitter<void>();
+  @Output() clearRequested = new EventEmitter<void>();
 
   isStatusOpen = false;
 
@@ -35,6 +37,14 @@ export class AdminCategoryFilterComponent {
     return (
       this.statusFilters.find((option) => option.value === this.statusFilter)?.label || 'Tất cả'
     );
+  }
+
+  get hasActiveDraftFilter(): boolean {
+    return !!this.keyword.trim() || this.statusFilter !== 'ALL';
+  }
+
+  get visibleStatusFilters(): AdminCategoryStatusFilterOption[] {
+    return this.statusFilters.filter((option) => option.value !== 'ALL');
   }
 
   updateKeyword(event: Event): void {
@@ -60,6 +70,24 @@ export class AdminCategoryFilterComponent {
 
     this.statusFilterChange.emit(status);
     this.isStatusOpen = false;
+  }
+
+  requestSearch(): void {
+    if (this.disabled) {
+      return;
+    }
+
+    this.isStatusOpen = false;
+    this.searchRequested.emit();
+  }
+
+  requestClear(): void {
+    if (this.disabled) {
+      return;
+    }
+
+    this.isStatusOpen = false;
+    this.clearRequested.emit();
   }
 
   @HostListener('document:mousedown', ['$event'])
