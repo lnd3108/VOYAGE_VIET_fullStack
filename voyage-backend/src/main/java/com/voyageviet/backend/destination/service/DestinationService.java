@@ -3,6 +3,7 @@ package com.voyageviet.backend.destination.service;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.voyageviet.backend.common.paging.PageResponse;
 import com.voyageviet.backend.common.exception.BusinessException;
 import com.voyageviet.backend.common.exception.ErrorCode;
 import com.voyageviet.backend.common.util.SlugUtils;
@@ -16,8 +17,13 @@ import com.voyageviet.backend.destination.entity.DestinationStatus;
 import com.voyageviet.backend.destination.repository.DestinationRepository;
 import com.voyageviet.backend.media.dto.ImageUrlUpdateRequest;
 import com.voyageviet.backend.tour.repository.TourRepository;
+import jakarta.persistence.criteria.Predicate;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -27,7 +33,9 @@ import java.util.ArrayList;
 import java.util.EnumSet;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Locale;
 import java.util.Objects;
+import java.util.Set;
 import java.util.function.Function;
 
 @Service
@@ -37,6 +45,17 @@ public class DestinationService {
 
     private static final Integer DISPLAY_VISIBLE = 1;
     private static final Integer DISPLAY_HIDDEN = 0;
+    private static final Set<String> ALLOWED_SORT_FIELDS = Set.of(
+            "id",
+            "name",
+            "slug",
+            "region",
+            "country",
+            "status",
+            "isDisplay",
+            "createdAt",
+            "updatedAt"
+    );
 
     private final DestinationRepository destinationRepository;
     private final TourRepository tourRepository;
@@ -52,6 +71,29 @@ public class DestinationService {
                 .toList();
     }
 
+    public PageResponse<DestinationResponse> getPublicDestinationsPage(
+            int page,
+            int size,
+            String keyword,
+            String region,
+            String country,
+            String sort
+    ) {
+        Pageable pageable = buildPageable(page, size, sort, "name,asc");
+        Page<Destination> pageData = destinationRepository.findAll(
+                buildDestinationSpecification(
+                        keyword,
+                        DestinationStatus.APPROVED,
+                        region,
+                        country,
+                        true
+                ),
+                pageable
+        );
+
+        return PageResponse.from(pageData, destination -> toResponse(destination, false));
+    }
+
     public List<DestinationResponse> getAllDestinationsForAdmin() {
         return destinationRepository.findAll(Sort.by(Sort.Direction.ASC, "region", "name", "id"))
                 .stream()
@@ -59,8 +101,42 @@ public class DestinationService {
                 .toList();
     }
 
+    public PageResponse<DestinationResponse> getDestinationsPageForAdmin(
+            int page,
+            int size,
+            String keyword,
+            String status,
+            String region,
+            String country,
+            String sort
+    ) {
+        Pageable pageable = buildPageable(page, size, sort, "updatedAt,desc");
+        DestinationStatus workflowStatus = parseOptionalStatus(status);
+        Page<Destination> pageData = destinationRepository.findAll(
+                buildDestinationSpecification(keyword, workflowStatus, region, country, false),
+                pageable
+        );
+
+        return PageResponse.from(pageData, destination -> toResponse(destination, true));
+    }
+
+    public DestinationResponse getDestinationForAdmin(Long id) {
+        return toResponse(findDestinationById(id), true);
+    }
+
     @Transactional
     public DestinationResponse createDestination(DestinationCreateRequest request) {
+        Destination destination = buildNewDestination(request, DestinationStatus.DRAFT);
+        return toResponse(destinationRepository.save(destination), true);
+    }
+
+    @Transactional
+    public DestinationResponse submitCreateDestination(DestinationCreateRequest request) {
+        Destination destination = buildNewDestination(request, DestinationStatus.PENDING);
+        return toResponse(destinationRepository.save(destination), true);
+    }
+
+    private Destination buildNewDestination(DestinationCreateRequest request, DestinationStatus status) {
         String slug = buildSlug(request.name(), request.slug());
 
         if (destinationRepository.existsBySlug(slug)) {
@@ -79,12 +155,12 @@ public class DestinationService {
                 .imageUrl(trimToNull(request.imageUrl()))
                 .latitude(request.latitude())
                 .longitude(request.longitude())
-                .status(DestinationStatus.DRAFT)
+                .status(status)
                 .isDisplay(DISPLAY_HIDDEN)
+                .rejectReason(null)
+                .newData(null)
                 .build();
-        destination.clearNewData();
-
-        return toResponse(destinationRepository.save(destination), true);
+        return destination;
     }
 
     @Transactional
@@ -172,7 +248,8 @@ public class DestinationService {
         Destination destination = findDestinationById(id);
         requirePending(destination, "Only PENDING destinations can be rejected");
 
-        destination.markAsRejected(trimToNull(reason));
+        String normalizedReason = normalizeRejectReason(reason);
+        destination.markAsRejected(normalizedReason);
 
         return toResponse(destinationRepository.save(destination), true);
     }
@@ -220,7 +297,8 @@ public class DestinationService {
 
     @Transactional
     public DestinationBatchActionResponse rejectDestinations(DestinationBatchRejectRequest request) {
-        return runBatchAction(request.ids(), id -> rejectDestination(id, request.reason()));
+        String normalizedReason = normalizeRejectReason(request.reason());
+        return runBatchAction(request.ids(), id -> rejectDestination(id, normalizedReason));
     }
 
     @Transactional
@@ -249,6 +327,30 @@ public class DestinationService {
     }
 
     @Transactional
+    public DestinationResponse copyDestination(Long id) {
+        Destination source = findDestinationById(id);
+        String copyName = generateCopyName(source.getName());
+        String copySlug = generateCopySlug(source.getSlug(), source.getName());
+
+        Destination copy = Destination.builder()
+                .name(copyName)
+                .slug(copySlug)
+                .region(trimToNull(source.getRegion()))
+                .country(trimToNull(source.getCountry()))
+                .description(trimToNull(source.getDescription()))
+                .imageUrl(trimToNull(source.getImageUrl()))
+                .latitude(source.getLatitude())
+                .longitude(source.getLongitude())
+                .status(DestinationStatus.DRAFT)
+                .isDisplay(DISPLAY_HIDDEN)
+                .rejectReason(null)
+                .newData(null)
+                .build();
+
+        return toResponse(destinationRepository.save(copy), true);
+    }
+
+    @Transactional
     public DestinationResponse updateDestinationImage(Long id, ImageUrlUpdateRequest request) {
         Destination destination = findDestinationById(id);
         DestinationPatchRequest patchRequest = new DestinationPatchRequest(
@@ -273,6 +375,56 @@ public class DestinationService {
                         ErrorCode.DESTINATION_NOT_FOUND,
                         "Destination not found"
                 ));
+    }
+
+    private Specification<Destination> buildDestinationSpecification(
+            String keyword,
+            DestinationStatus status,
+            String region,
+            String country,
+            boolean publicVisibleOnly
+    ) {
+        return (root, query, criteriaBuilder) -> {
+            List<Predicate> predicates = new ArrayList<>();
+
+            if (status != null) {
+                predicates.add(criteriaBuilder.equal(root.get("status"), status));
+            }
+
+            String normalizedRegion = trimToNull(region);
+            if (normalizedRegion != null) {
+                predicates.add(criteriaBuilder.equal(
+                        criteriaBuilder.lower(root.get("region")),
+                        normalizedRegion.toLowerCase(Locale.ROOT)
+                ));
+            }
+
+            String normalizedCountry = trimToNull(country);
+            if (normalizedCountry != null) {
+                predicates.add(criteriaBuilder.equal(
+                        criteriaBuilder.lower(root.get("country")),
+                        normalizedCountry.toLowerCase(Locale.ROOT)
+                ));
+            }
+
+            if (publicVisibleOnly) {
+                predicates.add(criteriaBuilder.equal(root.get("status"), DestinationStatus.APPROVED));
+                predicates.add(criteriaBuilder.equal(root.get("isDisplay"), DISPLAY_VISIBLE));
+            }
+
+            String normalizedKeyword = trimToNull(keyword);
+            if (normalizedKeyword != null) {
+                String pattern = "%" + normalizedKeyword.toLowerCase(Locale.ROOT) + "%";
+                predicates.add(criteriaBuilder.or(
+                        criteriaBuilder.like(criteriaBuilder.lower(root.get("name")), pattern),
+                        criteriaBuilder.like(criteriaBuilder.lower(root.get("slug")), pattern),
+                        criteriaBuilder.like(criteriaBuilder.lower(root.get("country")), pattern),
+                        criteriaBuilder.like(criteriaBuilder.lower(root.get("region")), pattern)
+                ));
+            }
+
+            return criteriaBuilder.and(predicates.toArray(Predicate[]::new));
+        };
     }
 
     private DestinationBatchActionResponse runBatchAction(
@@ -343,6 +495,15 @@ public class DestinationService {
         }
     }
 
+    private String normalizeRejectReason(String reason) {
+        String normalizedReason = trimToNull(reason);
+        if (normalizedReason == null) {
+            throw new BusinessException(ErrorCode.INVALID_REQUEST, "Reject reason is required");
+        }
+
+        return normalizedReason;
+    }
+
     private void validateUniqueSlugChange(String currentSlug, String nextSlug, Long id) {
         if (!Objects.equals(currentSlug, nextSlug)
                 && destinationRepository.existsBySlugAndIdNot(nextSlug, id)) {
@@ -373,6 +534,104 @@ public class DestinationService {
                 : customSlug;
 
         return SlugUtils.toSlug(rawSlug);
+    }
+
+    private Pageable buildPageable(int page, int size, String sort, String defaultSort) {
+        int normalizedPage = Math.max(page, 0);
+        int normalizedSize = size <= 0 ? 20 : size;
+
+        return PageRequest.of(normalizedPage, normalizedSize, parseSort(sort, defaultSort));
+    }
+
+    private Sort parseSort(String sort, String defaultSort) {
+        String sortValue = trimToNull(sort);
+        if (sortValue == null) {
+            sortValue = defaultSort;
+        }
+
+        String[] parts = sortValue.split(",");
+        String sortBy = parts[0].trim();
+        if (!ALLOWED_SORT_FIELDS.contains(sortBy)) {
+            throw new BusinessException(
+                    ErrorCode.INVALID_REQUEST,
+                    "Destination sort field is invalid"
+            );
+        }
+
+        Sort.Direction direction = Sort.Direction.ASC;
+        if (parts.length > 1 && "desc".equalsIgnoreCase(parts[1].trim())) {
+            direction = Sort.Direction.DESC;
+        }
+
+        return Sort.by(direction, sortBy);
+    }
+
+    private DestinationStatus parseOptionalStatus(String status) {
+        String normalizedStatus = trimToNull(status);
+        if (normalizedStatus == null) {
+            return null;
+        }
+
+        try {
+            return DestinationStatus.valueOf(normalizedStatus.toUpperCase(Locale.ROOT));
+        } catch (IllegalArgumentException exception) {
+            throw new BusinessException(
+                    ErrorCode.INVALID_REQUEST,
+                    "Destination status is invalid"
+            );
+        }
+    }
+
+    private String generateCopyName(String sourceName) {
+        String baseName = buildLimitedCopyNameBase(sourceName);
+        String copyName = baseName;
+        int suffix = 2;
+
+        while (destinationRepository.existsByNameIgnoreCase(copyName)) {
+            copyName = buildLimitedCopyNameBase(sourceName, " - Copy " + suffix);
+            suffix++;
+        }
+
+        return copyName;
+    }
+
+    private String buildLimitedCopyNameBase(String sourceName) {
+        return buildLimitedCopyNameBase(sourceName, " - Copy");
+    }
+
+    private String buildLimitedCopyNameBase(String sourceName, String suffix) {
+        String normalizedName = normalizeRequiredText(sourceName);
+        int maxSourceLength = 150 - suffix.length();
+        if (normalizedName.length() > maxSourceLength) {
+            normalizedName = normalizedName.substring(0, maxSourceLength).trim();
+        }
+
+        return normalizedName + suffix;
+    }
+
+    private String generateCopySlug(String sourceSlug, String sourceName) {
+        String rawSlug = trimToNull(sourceSlug) == null ? sourceName : sourceSlug;
+        String baseSlug = SlugUtils.toSlug(rawSlug);
+        String copySlug = buildLimitedCopySlug(baseSlug, "-copy");
+        int suffix = 2;
+
+        while (destinationRepository.existsBySlug(copySlug)) {
+            copySlug = buildLimitedCopySlug(baseSlug, "-copy-" + suffix);
+            suffix++;
+        }
+
+        return copySlug;
+    }
+
+    private String buildLimitedCopySlug(String baseSlug, String suffix) {
+        String normalizedSlug = trimToNull(baseSlug) == null ? "destination" : baseSlug;
+        int maxSourceLength = 180 - suffix.length();
+        if (normalizedSlug.length() > maxSourceLength) {
+            normalizedSlug = normalizedSlug.substring(0, maxSourceLength);
+            normalizedSlug = normalizedSlug.replaceAll("-+$", "");
+        }
+
+        return normalizedSlug + suffix;
     }
 
     private String trimToNull(String value) {

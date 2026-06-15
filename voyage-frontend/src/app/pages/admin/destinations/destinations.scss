@@ -11,10 +11,10 @@
   color: #143734;
 
   &__header,
-  &__toolbar,
   &__form,
   &__table,
   &__batch,
+  &__pagination,
   &__review-card,
   &__empty,
   &__error,
@@ -127,46 +127,6 @@
       background: transparent;
       color: var(--dest-danger);
     }
-  }
-
-  &__toolbar {
-    padding: 16px;
-    display: grid;
-    grid-template-columns: minmax(240px, 1fr) 190px 190px auto;
-    gap: 14px;
-    align-items: end;
-
-    label {
-      display: grid;
-      gap: 8px;
-      color: #475569;
-      font-size: 13px;
-      font-weight: 800;
-    }
-
-    input {
-      height: 42px;
-      padding: 0 12px;
-      border: 1px solid var(--dest-border);
-      border-radius: 12px;
-      background: #fff;
-      color: #143734;
-
-      &:focus {
-        outline: 0;
-        border-color: var(--dest-primary);
-        box-shadow: 0 0 0 3px rgba(31, 111, 104, 0.1);
-      }
-    }
-
-    div {
-      text-align: right;
-    }
-
-    .admin-destinations__control-wrap {
-      text-align: left;
-    }
-
   }
 
   &__form {
@@ -519,6 +479,22 @@
     color: #d97706;
   }
 
+  &__pagination {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 12px;
+    padding: 14px 16px;
+  }
+
+  &__pagination-actions {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+
   &__danger {
     border-color: rgba(218, 8, 8, 0.2) !important;
     color: var(--dest-danger) !important;
@@ -531,14 +507,6 @@
   &__empty { padding: 34px; }
 
   @media (max-width: 900px) {
-    &__toolbar {
-      grid-template-columns: 1fr 1fr;
-    }
-
-    &__toolbar div {
-      text-align: left;
-    }
-
     &__form-grid {
       grid-template-columns: 1fr;
     }
@@ -550,7 +518,6 @@
       flex-direction: column;
     }
 
-    &__toolbar,
     &__form-grid,
     &__mode,
     &__row {

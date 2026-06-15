@@ -110,6 +110,16 @@ export interface DestinationBatchActionResponse {
   failedItems: DestinationBatchActionItemResponse[];
 }
 
+export interface DestinationPageParams {
+  page?: number;
+  size?: number;
+  keyword?: string;
+  status?: DestinationStatus | 'ALL' | '';
+  region?: DestinationRegion | 'ALL' | string;
+  country?: string;
+  sort?: string;
+}
+
 export function isDestinationDisplayEnabled(value: DestinationDisplayValue): boolean {
   return value === 1 || value === true || value === '1' || value === 'true';
 }

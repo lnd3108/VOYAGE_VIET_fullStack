@@ -1,6 +1,7 @@
 package com.voyageviet.backend.destination.controller;
 
 import com.voyageviet.backend.common.response.ApiResponse;
+import com.voyageviet.backend.common.paging.PageResponse;
 import com.voyageviet.backend.destination.dto.request.*;
 import com.voyageviet.backend.destination.dto.response.DestinationBatchActionResponse;
 import com.voyageviet.backend.destination.dto.response.DestinationResponse;
@@ -27,6 +28,30 @@ public class AdminDestinationController {
         );
     }
 
+    @GetMapping("/page")
+    public ApiResponse<PageResponse<DestinationResponse>> getDestinationsPage(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size,
+            @RequestParam(required = false) String keyword,
+            @RequestParam(required = false) String status,
+            @RequestParam(required = false) String region,
+            @RequestParam(required = false) String country,
+            @RequestParam(defaultValue = "updatedAt,desc") String sort
+    ) {
+        return ApiResponse.success(
+                "Get admin destination page successfully",
+                destinationService.getDestinationsPageForAdmin(page, size, keyword, status, region, country, sort)
+        );
+    }
+
+    @GetMapping("/{id}")
+    public ApiResponse<DestinationResponse> getDestination(@PathVariable Long id) {
+        return ApiResponse.success(
+                "Get admin destination successfully",
+                destinationService.getDestinationForAdmin(id)
+        );
+    }
+
     @PostMapping
     public ApiResponse<DestinationResponse> createDestination(
             @Valid @RequestBody DestinationCreateRequest request
@@ -34,6 +59,16 @@ public class AdminDestinationController {
         return ApiResponse.success(
                 "Create destination successfully",
                 destinationService.createDestination(request)
+        );
+    }
+
+    @PostMapping("/submit-create")
+    public ApiResponse<DestinationResponse> submitCreateDestination(
+            @Valid @RequestBody DestinationCreateRequest request
+    ) {
+        return ApiResponse.success(
+                "Create and submit destination successfully",
+                destinationService.submitCreateDestination(request)
         );
     }
 
@@ -109,11 +144,11 @@ public class AdminDestinationController {
     @PatchMapping("/{id}/reject")
     public ApiResponse<DestinationResponse> rejectDestination(
             @PathVariable Long id,
-            @Valid @RequestBody(required = false) DestinationRejectRequest request
+            @Valid @RequestBody DestinationRejectRequest request
     ) {
         return ApiResponse.success(
                 "Reject destination successfully",
-                destinationService.rejectDestination(id, request == null ? null : request.reason())
+                destinationService.rejectDestination(id, request.reason())
         );
     }
 
@@ -170,6 +205,14 @@ public class AdminDestinationController {
     public ApiResponse<Void> deleteDestination(@PathVariable Long id) {
         destinationService.deleteDestination(id);
         return ApiResponse.success("Delete destination successfully", null);
+    }
+
+    @PostMapping("/{id}/copy")
+    public ApiResponse<DestinationResponse> copyDestination(@PathVariable Long id) {
+        return ApiResponse.success(
+                "Copy destination successfully",
+                destinationService.copyDestination(id)
+        );
     }
 
     @PatchMapping("/{id}/image")

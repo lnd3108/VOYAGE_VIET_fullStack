@@ -22,6 +22,7 @@ import {
 } from '../../../core/models/destination.model';
 import { AuthService } from '../../../core/auth/auth.service';
 import { RoleCode } from '../../../core/models/user.model';
+import { PageResponse } from '../../../core/models/page-response.model';
 import { VietnamProvince } from '../../../core/models/vietnam-province.model';
 import { AdminUiFeedbackService } from '../../../core/services/admin-ui-feedback.service';
 import { AdminImageUpload } from '../shared/admin-image-upload/admin-image-upload';
@@ -173,6 +174,7 @@ export class AdminDestinations implements OnInit {
   updatingWorkflowId: number | null = null;
   updatingDisplayId: number | null = null;
   updatingImage = false;
+  copyingId: number | null = null;
   errorMessage = '';
   successMessage = '';
   destinations: AdminDestination[] = [];
@@ -210,6 +212,14 @@ export class AdminDestinations implements OnInit {
   keyword = '';
   statusFilter: DestinationStatusFilter = 'ALL';
   regionFilter: DestinationRegionFilter = 'ALL';
+  page = 0;
+  size = 20;
+  totalElements = 0;
+  totalPages = 0;
+  first = true;
+  last = true;
+  sort = 'updatedAt,desc';
+  readonly pageSizeOptions = [10, 20, 50];
   selectedDestination: AdminDestination | null = null;
   isFormOpen = false;
   isEditMode = false;
@@ -274,14 +284,37 @@ export class AdminDestinations implements OnInit {
     this.errorMessage = '';
     this.successMessage = '';
 
+    this.clearBatchSelection();
     this.adminDestinationApiService
-      .getDestinations()
+      .getDestinationsPage({
+        page: this.page,
+        size: this.size,
+        keyword: this.keyword,
+        status: this.statusFilter,
+        region: this.regionFilter,
+        sort: this.sort,
+      })
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
         next: (response) => {
-          this.destinations = this.extractList(response).sort((a, b) => this.sortDestination(a, b));
-          this.applyFilters();
-          this.syncBatchSelection();
+          const pageResponse = this.extractPageResponse(response);
+          if (pageResponse) {
+            this.destinations = pageResponse.content;
+            this.filteredDestinations = pageResponse.content;
+            this.page = pageResponse.page;
+            this.size = pageResponse.size;
+            this.totalElements = pageResponse.totalElements;
+            this.totalPages = pageResponse.totalPages;
+            this.first = pageResponse.first;
+            this.last = pageResponse.last;
+          } else {
+            this.destinations = this.extractList(response);
+            this.filteredDestinations = this.destinations;
+            this.totalElements = this.destinations.length;
+            this.totalPages = this.totalElements ? 1 : 0;
+            this.first = true;
+            this.last = true;
+          }
           this.loading = false;
         },
         error: (error) => {
@@ -977,6 +1010,18 @@ export class AdminDestinations implements OnInit {
   }
 
   submitForm(): void {
+    this.saveDestination(false);
+  }
+
+  submitCreateAndSend(): void {
+    if (this.isEditMode) {
+      return;
+    }
+
+    this.saveDestination(true);
+  }
+
+  private saveDestination(submitCreate: boolean): void {
     if (this.isInternationalForm()) {
       this.commitManualCity();
     }
@@ -998,17 +1043,23 @@ export class AdminDestinations implements OnInit {
 
     const request$ = this.isEditMode && this.selectedDestination?.id
       ? this.adminDestinationApiService.updateDestination(this.selectedDestination.id, payload as AdminDestinationUpdateRequest)
-      : this.adminDestinationApiService.createDestination(payload);
+      : submitCreate
+        ? this.adminDestinationApiService.createAndSubmitDestination(payload)
+        : this.adminDestinationApiService.createDestination(payload);
 
     request$
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
         next: (response) => {
           const savedDestination = this.extractItem(response);
+          const submitCreateSuccessMessage = 'Đã tạo và gửi duyệt điểm đến.';
           this.successMessage = this.isEditMode ? 'Đã cập nhật điểm đến.' : 'Đã tạo điểm đến mới.';
+          if (!this.isEditMode && submitCreate) {
+            this.successMessage = submitCreateSuccessMessage;
+          }
           this.saving = false;
 
-          if (savedDestination?.id) {
+          if (this.isEditMode && savedDestination?.id) {
             this.upsertDestination(savedDestination);
           } else {
             this.loadDestinations();
@@ -1080,6 +1131,38 @@ export class AdminDestinations implements OnInit {
     this.runWorkflowAction(destination, 'cancelApprove');
   }
 
+  copyDestination(destination: AdminDestination): void {
+    if (!destination.id || this.copyingId) {
+      return;
+    }
+
+    if (!this.canCreateDestination()) {
+      this.denyDestinationAction();
+      return;
+    }
+
+    this.copyingId = destination.id;
+    this.errorMessage = '';
+    this.successMessage = '';
+
+    this.adminDestinationApiService
+      .copyDestination(destination.id)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: () => {
+          this.copyingId = null;
+          this.successMessage = 'Đã sao chép điểm đến.';
+          this.feedback.success(this.successMessage);
+          this.loadDestinations();
+        },
+        error: (error) => {
+          this.copyingId = null;
+          this.errorMessage = this.errorText(error, 'Không thể sao chép điểm đến. Vui lòng thử lại sau.');
+          this.feedback.error(this.errorMessage);
+        },
+      });
+  }
+
   updateDisplay(destination: AdminDestination, isDisplay: 0 | 1): void {
     if (!destination.id || this.updatingDisplayId) {
       return;
@@ -1113,6 +1196,15 @@ export class AdminDestinations implements OnInit {
       return;
     }
 
+    const rejectReason = reason?.trim() || '';
+    if (action === 'reject' && !rejectReason) {
+      this.errorMessage = 'Vui lòng nhập lý do từ chối.';
+      this.pendingReviewErrorMessage = this.errorMessage;
+      this.feedback.warning(this.errorMessage);
+      this.pendingReviewSubmitting = false;
+      return;
+    }
+
     this.updatingWorkflowId = destination.id;
     this.errorMessage = '';
     this.successMessage = '';
@@ -1122,7 +1214,7 @@ export class AdminDestinations implements OnInit {
       : action === 'approve'
         ? this.adminDestinationApiService.approveDestination(destination.id)
         : action === 'reject'
-          ? this.adminDestinationApiService.rejectDestination(destination.id, { reason: reason || null })
+          ? this.adminDestinationApiService.rejectDestination(destination.id, { reason: rejectReason })
           : this.adminDestinationApiService.cancelApproveDestination(destination.id);
 
     request$
@@ -1183,12 +1275,10 @@ export class AdminDestinations implements OnInit {
           .pipe(takeUntilDestroyed(this.destroyRef))
           .subscribe({
             next: () => {
-              this.destinations = this.destinations.filter((item) => item.id !== destination.id);
               if (destination.id) {
                 this.selectedDestinationIds.delete(destination.id);
               }
-              this.applyFilters();
-              this.syncBatchSelection();
+              this.loadDestinations();
               this.successMessage = '\u0110\u00e3 x\u00f3a \u0111i\u1ec3m \u0111\u1ebfn.';
               this.feedback.success(this.successMessage);
               this.deletingId = null;
@@ -1207,18 +1297,38 @@ export class AdminDestinations implements OnInit {
   }
 
   applyFilters(): void {
-    const keyword = this.normalizeText(this.keyword.trim());
+    this.page = 0;
+    this.loadDestinations();
+  }
 
-    this.filteredDestinations = this.destinations.filter((destination) => {
-      const haystack = [destination.name, destination.slug, destination.country, destination.region]
-        .map((value) => this.normalizeText(value || ''));
-      const matchesKeyword = !keyword || haystack.some((value) => value.includes(keyword));
-      const status = this.parseStatus(destination.status);
-      const matchesStatus = this.statusFilter === 'ALL' || status === this.statusFilter;
-      const matchesRegion = this.matchesRegionFilter(destination);
+  goToPreviousPage(): void {
+    if (this.loading || this.first || this.page <= 0) {
+      return;
+    }
 
-      return matchesKeyword && matchesStatus && matchesRegion;
-    });
+    this.page -= 1;
+    this.loadDestinations();
+  }
+
+  goToNextPage(): void {
+    if (this.loading || this.last) {
+      return;
+    }
+
+    this.page += 1;
+    this.loadDestinations();
+  }
+
+  changePageSize(size: number | string): void {
+    const parsedSize = Number(size);
+
+    if (!Number.isFinite(parsedSize) || parsedSize <= 0 || parsedSize === this.size) {
+      return;
+    }
+
+    this.size = parsedSize;
+    this.page = 0;
+    this.loadDestinations();
   }
 
   imagePreviewUrl(): string {
@@ -1442,6 +1552,13 @@ export class AdminDestinations implements OnInit {
       return;
     }
 
+    const rejectReason = this.batchRejectReason.trim();
+    if (action === 'reject' && !rejectReason) {
+      this.batchErrorMessage = 'Vui lòng nhập lý do từ chối.';
+      this.feedback.warning(this.batchErrorMessage);
+      return;
+    }
+
     const ids = this.selectedBatchDestinations.map((destination) => destination.id).filter((id): id is number => !!id);
     this.batchProcessing = true;
     this.batchErrorMessage = '';
@@ -1451,7 +1568,7 @@ export class AdminDestinations implements OnInit {
       : action === 'approve'
         ? this.adminDestinationApiService.approveDestinations(ids)
         : action === 'reject'
-          ? this.adminDestinationApiService.rejectDestinations(ids, this.batchRejectReason)
+          ? this.adminDestinationApiService.rejectDestinations(ids, rejectReason)
           : action === 'cancelApprove'
             ? this.adminDestinationApiService.cancelApproveDestinations(ids)
             : action === 'show'
@@ -2045,12 +2162,39 @@ export class AdminDestinations implements OnInit {
   }
 
   private upsertDestination(destination: AdminDestination): void {
-    this.destinations = [
-      destination,
-      ...this.destinations.filter((item) => item.id !== destination.id),
-    ].sort((a, b) => this.sortDestination(a, b));
-    this.applyFilters();
+    const existsOnCurrentPage = this.destinations.some((item) => item.id === destination.id);
+    this.destinations = existsOnCurrentPage
+      ? this.destinations.map((item) => item.id === destination.id ? destination : item)
+      : [destination, ...this.destinations];
+    this.filteredDestinations = this.destinations;
     this.syncBatchSelection();
+  }
+
+  private extractPageResponse(response: unknown): PageResponse<AdminDestination> | null {
+    const source = this.isRecord(response) && this.isRecord(response['data']) ? response['data'] : response;
+
+    if (!this.isRecord(source) || !Array.isArray(source['content'])) {
+      return null;
+    }
+
+    const content = source['content'].map((item) => this.normalizeDestination(item)).filter(this.isDestination);
+    const page = this.parseNumber(source['page']) ?? this.parseNumber(source['number']) ?? this.page;
+    const size = this.parseNumber(source['size']) ?? this.size;
+    const totalElements = this.parseNumber(source['totalElements']) ?? content.length;
+    const totalPages = this.parseNumber(source['totalPages']) ?? (totalElements ? Math.ceil(totalElements / size) : 0);
+
+    return {
+      content,
+      page,
+      size,
+      totalElements,
+      totalPages,
+      first: typeof source['first'] === 'boolean' ? source['first'] : page <= 0,
+      last: typeof source['last'] === 'boolean' ? source['last'] : page >= Math.max(totalPages - 1, 0),
+      empty: typeof source['empty'] === 'boolean' ? source['empty'] : content.length === 0,
+      sortBy: typeof source['sortBy'] === 'string' ? source['sortBy'] : undefined,
+      sortDir: typeof source['sortDir'] === 'string' ? source['sortDir'] : undefined,
+    };
   }
 
   private extractList(response: unknown): AdminDestination[] {

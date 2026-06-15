@@ -1,17 +1,23 @@
-<div class="vv-layout" [class.vv-layout--menu-hidden]="!activeGroup()" [class.vv-layout--rail-hidden]="railCollapsed()">
+<div class="vv-layout" [class.vv-layout--menu-hidden]="!activeGroup()">
   <aside class="vv-rail" aria-label="Nhóm menu admin">
     <div class="vv-rail__top">
       <button
         type="button"
         class="vv-rail__collapse"
-        title="Ẩn sidebar"
-        aria-label="Ẩn sidebar"
-        (click)="toggleRail()"
+        [title]="activeGroup() ? 'Đóng menu phụ' : 'Mở menu phụ'"
+        [attr.aria-label]="activeGroup() ? 'Đóng menu phụ' : 'Mở menu phụ'"
+        (click)="toggleSubMenu()"
       >
-        <svg viewBox="0 0 24 24" focusable="false" aria-hidden="true">
+        <svg *ngIf="activeGroup()" viewBox="0 0 24 24" focusable="false" aria-hidden="true">
           <path d="M19 3v18" />
           <path d="M15 12H5" />
           <path d="m9 8-4 4 4 4" />
+        </svg>
+
+        <svg *ngIf="!activeGroup()" viewBox="0 0 24 24" focusable="false" aria-hidden="true">
+          <path d="M5 3v18" />
+          <path d="M9 12h10" />
+          <path d="m15 8 4 4-4 4" />
         </svg>
       </button>
     </div>
@@ -78,7 +84,9 @@
       >
         <span class="vv-rail__icon" aria-hidden="true">
           <svg viewBox="0 0 24 24" focusable="false">
-            <path d="M9.7 3.3a1 1 0 0 1 .8-.8h3a1 1 0 0 1 .8.8l.3 1.8a1 1 0 0 0 .5.7l1.7 1a1 1 0 0 0 .9.1l1.7-.7a1 1 0 0 1 1.1.4l1.5 2.6a1 1 0 0 1-.2 1.2l-1.4 1.1a1 1 0 0 0-.3.8v1.4a1 1 0 0 0 .3.8l1.4 1.1a1 1 0 0 1 .2 1.2l-1.5 2.6a1 1 0 0 1-1.1.4l-1.7-.7a1 1 0 0 0-.9.1l-1.7 1a1 1 0 0 0-.5.7l-.3 1.8a1 1 0 0 1-.8.8h-3a1 1 0 0 1-.8-.8l-.3-1.8a1 1 0 0 0-.5-.7l-1.7-1a1 1 0 0 0-.9-.1l-1.7.7a1 1 0 0 1-1.1-.4L2 16.8a1 1 0 0 1 .2-1.2l1.4-1.1a1 1 0 0 0 .3-.8v-1.4a1 1 0 0 0-.3-.8L2.2 10.4A1 1 0 0 1 2 9.2l1.5-2.6a1 1 0 0 1 1.1-.4l1.7.7a1 1 0 0 0 .9-.1l1.7-1a1 1 0 0 0 .5-.7z" />
+            <path
+              d="M9.7 3.3a1 1 0 0 1 .8-.8h3a1 1 0 0 1 .8.8l.3 1.8a1 1 0 0 0 .5.7l1.7 1a1 1 0 0 0 .9.1l1.7-.7a1 1 0 0 1 1.1.4l1.5 2.6a1 1 0 0 1-.2 1.2l-1.4 1.1a1 1 0 0 0-.3.8v1.4a1 1 0 0 0 .3.8l1.4 1.1a1 1 0 0 1 .2 1.2l-1.5 2.6a1 1 0 0 1-1.1.4l-1.7-.7a1 1 0 0 0-.9.1l-1.7 1a1 1 0 0 0-.5.7l-.3 1.8a1 1 0 0 1-.8.8h-3a1 1 0 0 1-.8-.8l-.3-1.8a1 1 0 0 0-.5-.7l-1.7-1a1 1 0 0 0-.9-.1l-1.7.7a1 1 0 0 1-1.1-.4L2 16.8a1 1 0 0 1 .2-1.2l1.4-1.1a1 1 0 0 0 .3-.8v-1.4a1 1 0 0 0-.3-.8L2.2 10.4A1 1 0 0 1 2 9.2l1.5-2.6a1 1 0 0 1 1.1-.4l1.7.7a1 1 0 0 0 .9-.1l1.7-1a1 1 0 0 0 .5-.7z"
+            />
             <circle cx="12" cy="12" r="3" />
           </svg>
         </span>
@@ -120,220 +128,12 @@
     </div>
   </aside>
 
-  <aside class="vv-menu" [class.vv-menu--hidden]="!activeGroup()" aria-label="Menu admin">
-    <div class="vv-menu__brand">
-      <a class="vv-menu__logo" routerLink="/admin" aria-label="VoyageViet Admin">
-        <img src="/logo.png" alt="VoyageViet" />
-      </a>
-    </div>
-
-    <nav class="vv-menu__nav">
-      <ng-container *ngIf="activeGroup() === 'tong-quan'">
-        <a
-          class="vv-menu__link"
-          routerLink="/admin"
-          routerLinkActive="vv-menu__link--active"
-          [routerLinkActiveOptions]="{ exact: true }"
-          *ngIf="authService.isAdmin()"
-        >
-          <span class="vv-menu__link-icon" aria-hidden="true">
-            <svg viewBox="0 0 24 24" focusable="false">
-              <rect x="3" y="3" width="7" height="8" rx="1.5" />
-              <rect x="14" y="3" width="7" height="5" rx="1.5" />
-              <rect x="14" y="12" width="7" height="9" rx="1.5" />
-              <rect x="3" y="15" width="7" height="6" rx="1.5" />
-            </svg>
-          </span>
-          <span>Dashboard</span>
-        </a>
-      </ng-container>
-
-      <ng-container *ngIf="activeGroup() === 'noi-dung'">
-        <a
-          class="vv-menu__link"
-          routerLink="/admin/categories"
-          routerLinkActive="vv-menu__link--active"
-          *ngIf="authService.hasRole('STAFF', 'ADMIN', 'SUPER_ADMIN')"
-        >
-          <span class="vv-menu__link-icon" aria-hidden="true">
-            <svg viewBox="0 0 24 24" focusable="false">
-              <rect x="3" y="3" width="7" height="7" rx="1" />
-              <rect x="14" y="3" width="7" height="7" rx="1" />
-              <rect x="14" y="14" width="7" height="7" rx="1" />
-              <rect x="3" y="14" width="7" height="7" rx="1" />
-            </svg>
-          </span>
-          <span>Danh mục</span>
-        </a>
-
-        <a
-          class="vv-menu__link"
-          routerLink="/admin/destinations"
-          routerLinkActive="vv-menu__link--active"
-          *ngIf="authService.isStaff()"
-        >
-          <span class="vv-menu__link-icon" aria-hidden="true">
-            <svg viewBox="0 0 24 24" focusable="false">
-              <path d="M20 10c0 5-5.5 10.2-7.4 11.8a1 1 0 0 1-1.2 0C9.5 20.2 4 15 4 10a8 8 0 0 1 16 0" />
-              <circle cx="12" cy="10" r="3" />
-            </svg>
-          </span>
-          <span>Điểm đến</span>
-        </a>
-
-        <a
-          class="vv-menu__link"
-          routerLink="/admin/tours"
-          routerLinkActive="vv-menu__link--active"
-          *ngIf="authService.isAdmin()"
-        >
-          <span class="vv-menu__link-icon" aria-hidden="true">
-            <svg viewBox="0 0 24 24" focusable="false">
-              <path d="M17.8 19.2 16 11l3.5-3.5c1-1 1.4-2.4.9-2.9s-1.9-.1-2.9.9L14 9 5.8 7.2 4 9l6.5 3.5L7 16l-2.5-.5L3 17l4 2 2 4 1.5-1.5L10 19l3.5-3.5L17 22z" />
-            </svg>
-          </span>
-          <span>Tour</span>
-        </a>
-      </ng-container>
-
-      <ng-container *ngIf="activeGroup() === 'van-hanh'">
-        <a
-          class="vv-menu__link"
-          routerLink="/admin/bookings"
-          routerLinkActive="vv-menu__link--active"
-          *ngIf="authService.isAdmin()"
-        >
-          <span class="vv-menu__link-icon" aria-hidden="true">
-            <svg viewBox="0 0 24 24" focusable="false">
-              <path d="M2 6h4" />
-              <path d="M2 10h4" />
-              <path d="M2 14h4" />
-              <path d="M2 18h4" />
-              <rect x="6" y="4" width="16" height="16" rx="2" />
-              <path d="M10 8h8" />
-              <path d="M10 12h8" />
-              <path d="M10 16h6" />
-            </svg>
-          </span>
-          <span>Booking</span>
-        </a>
-
-        <a
-          class="vv-menu__link"
-          routerLink="/admin/reviews"
-          routerLinkActive="vv-menu__link--active"
-          *ngIf="authService.isAdmin()"
-        >
-          <span class="vv-menu__link-icon" aria-hidden="true">
-            <svg viewBox="0 0 24 24" focusable="false">
-              <path d="M11.5 2.8a.6.6 0 0 1 1 0l2.7 5.5 6 .9a.6.6 0 0 1 .3 1l-4.4 4.3 1 6a.6.6 0 0 1-.9.6L12 18.3l-5.4 2.8a.6.6 0 0 1-.9-.6l1-6-4.4-4.3a.6.6 0 0 1 .3-1l6-.9z" />
-            </svg>
-          </span>
-          <span>Đánh giá</span>
-        </a>
-      </ng-container>
-
-      <ng-container *ngIf="activeGroup() === 'he-thong'">
-        <a
-          class="vv-menu__link"
-          routerLink="/admin/users"
-          routerLinkActive="vv-menu__link--active"
-          *ngIf="authService.isAdmin()"
-        >
-          <span class="vv-menu__link-icon" aria-hidden="true">
-            <svg viewBox="0 0 24 24" focusable="false">
-              <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
-              <circle cx="9" cy="7" r="4" />
-              <path d="M22 21v-2a4 4 0 0 0-3-3.9" />
-              <path d="M16 3.1a4 4 0 0 1 0 7.8" />
-            </svg>
-          </span>
-          <span>Người dùng</span>
-        </a>
-
-        <a
-          class="vv-menu__link"
-          routerLink="/admin/media"
-          routerLinkActive="vv-menu__link--active"
-          *ngIf="authService.isAdmin()"
-        >
-          <span class="vv-menu__link-icon" aria-hidden="true">
-            <svg viewBox="0 0 24 24" focusable="false">
-              <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" />
-              <path d="M4 4.5A2.5 2.5 0 0 1 6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5z" />
-              <circle cx="11" cy="9" r="2" />
-              <path d="m8 15 2.5-3 2 2 2.5-3 3 4" />
-            </svg>
-          </span>
-          <span>Media</span>
-        </a>
-
-        <a
-          class="vv-menu__link"
-          routerLink="/admin/features"
-          routerLinkActive="vv-menu__link--active"
-          *ngIf="authService.isAdmin()"
-        >
-          <span class="vv-menu__link-icon" aria-hidden="true">
-            <svg viewBox="0 0 24 24" focusable="false">
-              <rect x="2" y="7" width="20" height="10" rx="5" />
-              <circle cx="8" cy="12" r="2" />
-            </svg>
-          </span>
-          <span>Tính năng</span>
-        </a>
-
-        <a
-          class="vv-menu__link"
-          routerLink="/admin/audit-logs"
-          routerLinkActive="vv-menu__link--active"
-          *ngIf="authService.isAdmin()"
-        >
-          <span class="vv-menu__link-icon" aria-hidden="true">
-            <svg viewBox="0 0 24 24" focusable="false">
-              <path d="M16 14v2.2l1.5.9" />
-              <circle cx="16" cy="16" r="5" />
-              <path d="M9 5h6" />
-              <path d="M9 3h6v4H9z" />
-              <path d="M10 21H6a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2h1" />
-              <path d="M17 5h1a2 2 0 0 1 2 2v3" />
-            </svg>
-          </span>
-          <span>Audit Logs</span>
-        </a>
-      </ng-container>
-
-      <ng-container *ngIf="activeGroup() === 'khac'">
-        <a class="vv-menu__link vv-menu__link--public" routerLink="/">
-          <span class="vv-menu__link-icon" aria-hidden="true">
-            <svg viewBox="0 0 24 24" focusable="false">
-              <path d="M9 14 4 9l5-5" />
-              <path d="M4 9h10a6 6 0 1 1 0 12h-2" />
-            </svg>
-          </span>
-          <span>Về trang chủ</span>
-        </a>
-      </ng-container>
-    </nav>
-  </aside>
-
-  <section class="vv-body">
+  <section class="vv-shell">
     <header class="vv-header">
       <div class="vv-header__brand">
-        <button
-          type="button"
-          class="vv-header__rail-toggle"
-          title="Hiện sidebar"
-          aria-label="Hiện sidebar"
-          *ngIf="railCollapsed()"
-          (click)="toggleRail()"
-        >
-          <svg viewBox="0 0 24 24" focusable="false" aria-hidden="true">
-            <path d="M5 3v18" />
-            <path d="M9 12h10" />
-            <path d="m15 8 4 4-4 4" />
-          </svg>
-        </button>
+        <a class="vv-header__logo" routerLink="/admin" aria-label="VoyageViet Admin">
+          <img src="/logo.png" alt="VoyageViet" />
+        </a>
       </div>
 
       <div class="vv-header__tools">
@@ -369,10 +169,214 @@
       </div>
     </header>
 
-    <main class="vv-main">
-      <div class="vv-main__inner">
-        <router-outlet />
-      </div>
-    </main>
+    <div class="vv-workspace">
+      <aside class="vv-menu" [class.vv-menu--hidden]="!activeGroup()" aria-label="Menu admin">
+        <div class="vv-menu__head">
+          <strong>{{ groupTitle() }}</strong>
+          <span>Menu quản trị</span>
+        </div>
+
+        <nav class="vv-menu__nav">
+          <ng-container *ngIf="activeGroup() === 'tong-quan'">
+            <a
+              class="vv-menu__link"
+              routerLink="/admin"
+              routerLinkActive="vv-menu__link--active"
+              [routerLinkActiveOptions]="{ exact: true }"
+              *ngIf="authService.isAdmin()"
+            >
+              <span class="vv-menu__link-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24" focusable="false">
+                  <rect x="3" y="3" width="7" height="8" rx="1.5" />
+                  <rect x="14" y="3" width="7" height="5" rx="1.5" />
+                  <rect x="14" y="12" width="7" height="9" rx="1.5" />
+                  <rect x="3" y="15" width="7" height="6" rx="1.5" />
+                </svg>
+              </span>
+              <span>Dashboard</span>
+            </a>
+          </ng-container>
+
+          <ng-container *ngIf="activeGroup() === 'noi-dung'">
+            <a
+              class="vv-menu__link"
+              routerLink="/admin/categories"
+              routerLinkActive="vv-menu__link--active"
+              *ngIf="authService.hasRole('STAFF', 'ADMIN', 'SUPER_ADMIN')"
+            >
+              <span class="vv-menu__link-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24" focusable="false">
+                  <rect x="3" y="3" width="7" height="7" rx="1" />
+                  <rect x="14" y="3" width="7" height="7" rx="1" />
+                  <rect x="14" y="14" width="7" height="7" rx="1" />
+                  <rect x="3" y="14" width="7" height="7" rx="1" />
+                </svg>
+              </span>
+              <span>Danh mục</span>
+            </a>
+
+            <a
+              class="vv-menu__link"
+              routerLink="/admin/destinations"
+              routerLinkActive="vv-menu__link--active"
+              *ngIf="authService.isStaff()"
+            >
+              <span class="vv-menu__link-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24" focusable="false">
+                  <path
+                    d="M20 10c0 5-5.5 10.2-7.4 11.8a1 1 0 0 1-1.2 0C9.5 20.2 4 15 4 10a8 8 0 0 1 16 0"
+                  />
+                  <circle cx="12" cy="10" r="3" />
+                </svg>
+              </span>
+              <span>Điểm đến</span>
+            </a>
+
+            <a
+              class="vv-menu__link"
+              routerLink="/admin/tours"
+              routerLinkActive="vv-menu__link--active"
+              *ngIf="authService.isAdmin()"
+            >
+              <span class="vv-menu__link-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24" focusable="false">
+                  <path
+                    d="M17.8 19.2 16 11l3.5-3.5c1-1 1.4-2.4.9-2.9s-1.9-.1-2.9.9L14 9 5.8 7.2 4 9l6.5 3.5L7 16l-2.5-.5L3 17l4 2 2 4 1.5-1.5L10 19l3.5-3.5L17 22z"
+                  />
+                </svg>
+              </span>
+              <span>Tour</span>
+            </a>
+          </ng-container>
+
+          <ng-container *ngIf="activeGroup() === 'van-hanh'">
+            <a
+              class="vv-menu__link"
+              routerLink="/admin/bookings"
+              routerLinkActive="vv-menu__link--active"
+              *ngIf="authService.isAdmin()"
+            >
+              <span class="vv-menu__link-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24" focusable="false">
+                  <path d="M2 6h4" />
+                  <path d="M2 10h4" />
+                  <path d="M2 14h4" />
+                  <path d="M2 18h4" />
+                  <rect x="6" y="4" width="16" height="16" rx="2" />
+                  <path d="M10 8h8" />
+                  <path d="M10 12h8" />
+                  <path d="M10 16h6" />
+                </svg>
+              </span>
+              <span>Booking</span>
+            </a>
+
+            <a
+              class="vv-menu__link"
+              routerLink="/admin/reviews"
+              routerLinkActive="vv-menu__link--active"
+              *ngIf="authService.isAdmin()"
+            >
+              <span class="vv-menu__link-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24" focusable="false">
+                  <path
+                    d="M11.5 2.8a.6.6 0 0 1 1 0l2.7 5.5 6 .9a.6.6 0 0 1 .3 1l-4.4 4.3 1 6a.6.6 0 0 1-.9.6L12 18.3l-5.4 2.8a.6.6 0 0 1-.9-.6l1-6-4.4-4.3a.6.6 0 0 1 .3-1l6-.9z"
+                  />
+                </svg>
+              </span>
+              <span>Đánh giá</span>
+            </a>
+          </ng-container>
+
+          <ng-container *ngIf="activeGroup() === 'he-thong'">
+            <a
+              class="vv-menu__link"
+              routerLink="/admin/users"
+              routerLinkActive="vv-menu__link--active"
+              *ngIf="authService.isAdmin()"
+            >
+              <span class="vv-menu__link-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24" focusable="false">
+                  <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
+                  <circle cx="9" cy="7" r="4" />
+                  <path d="M22 21v-2a4 4 0 0 0-3-3.9" />
+                  <path d="M16 3.1a4 4 0 0 1 0 7.8" />
+                </svg>
+              </span>
+              <span>Người dùng</span>
+            </a>
+
+            <a
+              class="vv-menu__link"
+              routerLink="/admin/media"
+              routerLinkActive="vv-menu__link--active"
+              *ngIf="authService.isAdmin()"
+            >
+              <span class="vv-menu__link-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24" focusable="false">
+                  <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" />
+                  <path d="M4 4.5A2.5 2.5 0 0 1 6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5z" />
+                  <circle cx="11" cy="9" r="2" />
+                  <path d="m8 15 2.5-3 2 2 2.5-3 3 4" />
+                </svg>
+              </span>
+              <span>Media</span>
+            </a>
+
+            <a
+              class="vv-menu__link"
+              routerLink="/admin/features"
+              routerLinkActive="vv-menu__link--active"
+              *ngIf="authService.isAdmin()"
+            >
+              <span class="vv-menu__link-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24" focusable="false">
+                  <rect x="2" y="7" width="20" height="10" rx="5" />
+                  <circle cx="8" cy="12" r="2" />
+                </svg>
+              </span>
+              <span>Tính năng</span>
+            </a>
+
+            <a
+              class="vv-menu__link"
+              routerLink="/admin/audit-logs"
+              routerLinkActive="vv-menu__link--active"
+              *ngIf="authService.isAdmin()"
+            >
+              <span class="vv-menu__link-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24" focusable="false">
+                  <path d="M16 14v2.2l1.5.9" />
+                  <circle cx="16" cy="16" r="5" />
+                  <path d="M9 5h6" />
+                  <path d="M9 3h6v4H9z" />
+                  <path d="M10 21H6a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2h1" />
+                  <path d="M17 5h1a2 2 0 0 1 2 2v3" />
+                </svg>
+              </span>
+              <span>Audit Logs</span>
+            </a>
+          </ng-container>
+
+          <ng-container *ngIf="activeGroup() === 'khac'">
+            <a class="vv-menu__link vv-menu__link--public" routerLink="/">
+              <span class="vv-menu__link-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24" focusable="false">
+                  <path d="M9 14 4 9l5-5" />
+                  <path d="M4 9h10a6 6 0 1 1 0 12h-2" />
+                </svg>
+              </span>
+              <span>Về trang chủ</span>
+            </a>
+          </ng-container>
+        </nav>
+      </aside>
+
+      <main class="vv-main">
+        <div class="vv-main__inner">
+          <router-outlet />
+        </div>
+      </main>
+    </div>
   </section>
 </div>

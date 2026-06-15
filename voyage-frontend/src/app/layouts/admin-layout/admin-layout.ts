@@ -33,9 +33,12 @@ export class AdminLayout {
   private readonly router = inject(Router);
 
   readonly activeGroup = signal<NavGroup>(null);
-  readonly railCollapsed = signal(false);
+  readonly lastGroup = signal<Exclude<NavGroup, null>>('tong-quan');
+
   readonly groupTitle = computed(() => {
-    switch (this.activeGroup()) {
+    const group = this.activeGroup() ?? this.lastGroup();
+
+    switch (group) {
       case 'tong-quan':
         return 'Tổng quan';
       case 'noi-dung':
@@ -60,21 +63,33 @@ export class AdminLayout {
   }
 
   toggleGroup(group: Exclude<NavGroup, null>): void {
+    this.lastGroup.set(group);
     this.activeGroup.update((current) => (current === group ? null : group));
+  }
+
+  toggleSubMenu(): void {
+    if (this.activeGroup()) {
+      this.activeGroup.set(null);
+      return;
+    }
+
+    this.activeGroup.set(this.lastGroup());
   }
 
   isGroupActive(group: Exclude<NavGroup, null>): boolean {
     return this.activeGroup() === group;
   }
 
-  toggleRail(): void {
-    this.railCollapsed.update((collapsed) => !collapsed);
+  closeMenu(): void {
+    this.activeGroup.set(null);
   }
 
   private syncActiveGroup(url: string): void {
     const path = url.split('?')[0].split('#')[0];
     const match = ROUTE_GROUP_MAP.find((item) => path.startsWith(item.prefix));
+    const nextGroup = match?.group ?? 'tong-quan';
 
-    this.activeGroup.set(match?.group ?? 'tong-quan');
+    this.activeGroup.set(nextGroup);
+    this.lastGroup.set(nextGroup);
   }
 }

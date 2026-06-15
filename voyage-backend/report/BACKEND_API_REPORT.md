@@ -539,3 +539,101 @@ Notification hook đã nối vào:
 - Category reorder endpoint riêng chưa được ghi nhận trong report backend cuối cùng, nên frontend không nên dùng `PUT /api/admin/categories/{id}` để reorder.
 - Một số module admin có API backend đã sẵn sàng nhưng frontend có thể chưa nối đủ UI.
 - Tài liệu này không giữ các mục TODO cũ, chỉ ghi lại phần đã triển khai.
+
+---
+
+## Destination backend update - 2026-06-12
+
+### 1. File da sua/tao
+
+- `src/main/java/com/voyageviet/backend/destination/controller/AdminDestinationController.java`
+- `src/main/java/com/voyageviet/backend/destination/controller/DestinationController.java`
+- `src/main/java/com/voyageviet/backend/destination/service/DestinationService.java`
+- `src/main/java/com/voyageviet/backend/destination/repository/DestinationRepository.java`
+- `src/main/java/com/voyageviet/backend/destination/dto/request/DestinationRejectRequest.java`
+- `src/main/java/com/voyageviet/backend/destination/dto/request/DestinationBatchRejectRequest.java`
+- `src/main/java/com/voyageviet/backend/common/config/SecurityConfig.java`
+- `report/BACKEND_API_REPORT.md`
+
+Khong tao DTO paging moi vi backend da co `com.voyageviet.backend.common.paging.PageResponse`.
+
+### 2. API da them
+
+- `GET /api/admin/destinations/page`: paging admin destination, ho tro `page`, `size`, `keyword`, `status`, `region`, `country`, `sort`.
+- `GET /api/public/destinations/page`: paging public destination, ho tro `page`, `size`, `keyword`, `region`, `country`, `sort`.
+- `GET /api/admin/destinations/{id}`: lay chi tiet destination cho admin, tra `DestinationResponse`.
+- `POST /api/admin/destinations/submit-create`: tao destination moi va chuyen thang sang `PENDING`.
+- `POST /api/admin/destinations/{id}/copy`: copy destination sang ban moi o trang thai `DRAFT`.
+
+### 3. API giu nguyen
+
+Khong xoa hoac doi endpoint cu. Cac API hien co nhu `GET /api/admin/destinations`, `POST /api/admin/destinations`, `PUT/PATCH /api/admin/destinations/{id}`, workflow submit/approve/reject/cancel-approve/display, batch workflow, delete va image update van giu nguyen.
+
+Endpoint `/api/admin/destinations/{id}/status` van ton tai nhu truoc, khong dung de bat/tat public. Public display van di qua `/display`.
+
+### 4. Paging behavior
+
+Admin paging dung `PageResponse<DestinationResponse>` va tra cac field `content`, `page`, `size`, `totalElements`, `totalPages`, `first`, `last`, kem cac field san co cua `PageResponse` la `empty`, `sortBy`, `sortDir`.
+
+Admin filter:
+
+- `keyword` tim khong phan biet hoa thuong tren `name`, `slug`, `country`, `region`.
+- `status` nhan workflow `DRAFT`, `PENDING`, `APPROVED`, `REJECTED`, `CANCEL_APPROVE`; null/blank thi bo qua.
+- `region` va `country` loc exact ignore-case; null/blank thi bo qua.
+- `sort` mac dinh `updatedAt,desc`.
+
+Public paging:
+
+- Chi tra destination `status = APPROVED` va `isDisplay = 1`.
+- Destination entity hien chua co `isActive`, nen khong them dieu kien `isActive`.
+- Response public goi mapper voi admin fields disabled, nen khong expose `newData` va `rejectReason`.
+- `sort` mac dinh `name,asc`.
+
+### 5. Reject reason validation
+
+Da siet o DTO:
+
+- `DestinationRejectRequest.reason`: them `@NotBlank`, giu `@Size(max = 500)`.
+- `DestinationBatchRejectRequest.reason`: them `@NotBlank`, giu `@Size(max = 500)`.
+
+Da siet o service:
+
+- `DestinationService.rejectDestination(...)` normalize reason va reject neu null/blank.
+- `DestinationService.rejectDestinations(...)` validate reason truoc khi chay batch, nen batch reject reason null/blank fail ngay.
+
+Da siet o controller:
+
+- Single reject khong con `@RequestBody(required = false)`, request body null/malformed se di theo convention loi hien co.
+
+### 6. Security/RBAC
+
+Public paging nam duoi `/api/public/**`, nen public theo rule hien tai.
+
+Admin endpoint moi da them matcher:
+
+- `GET /api/admin/destinations/page`: `STAFF`, `ADMIN`, `SUPER_ADMIN`.
+- `GET /api/admin/destinations/*`: `STAFF`, `ADMIN`, `SUPER_ADMIN`.
+- `POST /api/admin/destinations/submit-create`: `STAFF`, `ADMIN`, `SUPER_ADMIN`.
+- `POST /api/admin/destinations/*/copy`: `STAFF`, `ADMIN`, `SUPER_ADMIN`.
+
+Cac rule approve/reject/cancel-approve/display va batch workflow van giu nhu truoc: `ADMIN`, `SUPER_ADMIN`.
+
+### 7. Build/test result
+
+- `.\mvnw.cmd clean test`: PASS, BUILD SUCCESS, 1 test chay thanh cong.
+- `.\mvnw.cmd clean package -DskipTests`: PASS, BUILD SUCCESS, jar duoc build tai `target/voyage-backend-0.0.1-SNAPSHOT.jar`.
+
+Chua chay HTTP smoke test thuc te vi khong khoi dong server trong luot nay va khong co san token admin/public test script trong task. Compile/test/package da xac nhan Spring context load va code build thanh cong.
+
+### 8. Warning/loi con lai
+
+- Maven test/package co warning san cua project/moi truong: deprecated API trong `JwtAuthenticationFilter`, Oracle dialect explicit warning, open-in-view warning, SpringDoc enabled warning, Lombok/Mockito dynamic agent warning tren Java hien tai.
+- Khong phat sinh loi build/test moi.
+- `report/BACKEND_API_REPORT.md` truoc do dang co nhieu doan tieng Viet bi mojibake; phan report moi duoc them o cuoi file bang ASCII de tranh lam hong them encoding.
+
+### 9. Ghi chu khong lam trong luot nay
+
+- Khong sua frontend.
+- Khong doi Tour payload.
+- Khong lam reorder vi chua co endpoint rieng ro rang cho Destination trong task nay.
+- Frontend van se can task rieng de chuyen tu client-side filter sang server-side paging sau.

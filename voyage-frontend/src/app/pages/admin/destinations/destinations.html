@@ -306,6 +306,9 @@
         <button type="button" *ngIf="isEditMode" [disabled]="updatingImage || saving" (click)="updateImageOnly()">
           {{ updatingImage ? 'Đang cập nhật ảnh...' : 'Cập nhật ảnh' }}
         </button>
+        <button type="button" *ngIf="!isEditMode" [disabled]="saving" (click)="submitCreateAndSend()">
+          {{ saving ? 'Đang lưu...' : 'Lưu và gửi duyệt' }}
+        </button>
         <button type="submit" [disabled]="saving">
           {{ saving ? 'Đang lưu...' : isEditMode ? 'Lưu thay đổi' : 'Tạo điểm đến' }}
         </button>
@@ -320,7 +323,7 @@
     [statusFilters]="statusFilters"
     [regionFilters]="regionFilters"
     [filteredCount]="filteredDestinations.length"
-    [totalCount]="destinations.length"
+    [totalCount]="totalElements"
     (keywordChange)="onFilterKeywordChange($event)"
     (statusFilterChange)="selectStatusFilter($event)"
     (regionFilterChange)="selectRegionFilter($event)"
@@ -408,6 +411,9 @@
 
       <div class="admin-destinations__row-actions" data-label="Hành động">
         <button type="button" *ngIf="canEditDestination(destination)" (click)="openEditForm(destination)">Sửa</button>
+        <button type="button" *ngIf="canCreateDestination()" [disabled]="copyingId === destination.id" (click)="copyDestination(destination)">
+          {{ copyingId === destination.id ? 'Đang sao chép...' : 'Sao chép' }}
+        </button>
         <button type="button" *ngIf="canSubmitDestination(destination)" [disabled]="updatingWorkflowId === destination.id" (click)="submitWorkflow(destination)">Gửi duyệt</button>
         <button type="button" *ngIf="canApproveDestination(destination)" [disabled]="updatingWorkflowId === destination.id" (click)="approveWorkflow(destination)">Duyệt</button>
         <button type="button" *ngIf="canRejectDestination(destination)" [disabled]="updatingWorkflowId === destination.id" (click)="openPendingReview(destination)">Từ chối</button>
@@ -419,6 +425,23 @@
         </button>
       </div>
     </article>
+  </section>
+
+  <section class="admin-destinations__pagination" *ngIf="!loading && totalElements">
+    <div>
+      <strong>{{ totalElements }} điểm đến</strong>
+      <span>Trang {{ page + 1 }} / {{ totalPages || 1 }}</span>
+    </div>
+    <div class="admin-destinations__pagination-actions">
+      <button type="button" [disabled]="first || loading" (click)="goToPreviousPage()">Trước</button>
+      <button type="button" [disabled]="last || loading" (click)="goToNextPage()">Sau</button>
+      <label>
+        Hiển thị
+        <select [value]="size" [disabled]="loading" (change)="changePageSize($any($event.target).value)">
+          <option *ngFor="let option of pageSizeOptions" [value]="option">{{ option }}</option>
+        </select>
+      </label>
+    </div>
   </section>
 
   <section class="admin-destinations__review" *ngIf="pendingReview">
