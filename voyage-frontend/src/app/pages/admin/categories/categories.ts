@@ -10,7 +10,7 @@ import {
   isDevMode,
 } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { ActivatedRoute, Router } from '@angular/router';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { take } from 'rxjs';
 
 import { AdminCategoryApiService } from '../../../core/api/admin-category-api.service';
@@ -47,6 +47,7 @@ interface StatusFilterOption {
   selector: 'app-admin-categories',
   imports: [
     NgIf,
+    RouterLink,
     AdminCategoryFilterComponent,
     AdminCategoryTableComponent,
     AdminCategoryFormComponent,

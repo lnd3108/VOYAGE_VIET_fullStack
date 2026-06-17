@@ -52,7 +52,8 @@
   select,
   textarea {
     width: 100%;
-    padding: 11px 12px;
+    min-height: 52px;
+    padding: 11px 14px;
     border: 1px solid var(--cat-border);
     border-radius: 12px;
     background: #fff;
@@ -67,9 +68,27 @@
   }
 
   small {
-    color: #64748b;
-    font-weight: 700;
+    color: var(--cat-danger);
+    font-weight: 800;
   }
+}
+
+.admin-category-form__field-label {
+  color: #334155;
+  font-size: 14px;
+  font-weight: 800;
+}
+
+.admin-category-form__field-label--required::after {
+  content: '*';
+  margin-left: 4px;
+  color: var(--cat-danger);
+}
+
+.admin-category-form__message-slot {
+  min-height: 18px;
+  display: flex;
+  align-items: flex-start;
 }
 
 .admin-category-form__field--wide {

@@ -2,9 +2,21 @@
   <header class="admin-categories__header">
     <div class="admin-categories__title-block">
       <nav class="admin-categories__breadcrumb" aria-label="Breadcrumb">
-        <span>Nội dung</span>
+        <a
+          class="admin-categories__breadcrumb-link"
+          routerLink="/admin"
+        >
+          Nội dung
+        </a>
         <span class="admin-categories__breadcrumb-separator">›</span>
-        <span *ngIf="isFormOpen">Danh mục</span>
+        <button
+          type="button"
+          class="admin-categories__breadcrumb-link"
+          *ngIf="isFormOpen"
+          (click)="closeForm()"
+        >
+          Danh mục
+        </button>
         <span class="admin-categories__breadcrumb-separator" *ngIf="isFormOpen">›</span>
         <strong>{{ pageTrailLabel }}</strong>
       </nav>

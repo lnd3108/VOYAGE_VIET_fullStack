@@ -16,48 +16,63 @@
 
   <form [formGroup]="form" (ngSubmit)="submitForm(false)">
     <div class="admin-category-form__grid">
-      <label class="admin-category-form__field">
-        Tên danh mục
+      <div class="admin-category-form__field">
+        <label class="admin-category-form__field-label admin-category-form__field-label--required" for="categoryName">
+          Tên danh mục
+        </label>
         <input
+          id="categoryName"
           type="text"
           formControlName="name"
           placeholder="Ví dụ: Tour trong nước"
           (input)="handleNameInput()"
         />
-        <small *ngIf="form.controls.name.touched && form.controls.name.invalid">
-          Tên danh mục là bắt buộc.
-        </small>
-      </label>
+        <div class="admin-category-form__message-slot">
+          <small *ngIf="form.controls.name.touched && form.controls.name.invalid">
+            Tên danh mục là bắt buộc.
+          </small>
+        </div>
+      </div>
 
-      <label class="admin-category-form__field">
-        Slug
+      <div class="admin-category-form__field">
+        <label class="admin-category-form__field-label admin-category-form__field-label--required" for="categorySlug">
+          Slug
+        </label>
         <input
+          id="categorySlug"
           type="text"
           formControlName="slug"
           placeholder="tour-trong-nuoc"
           (input)="markSlugEdited()"
         />
-        <small *ngIf="form.controls.slug.touched && form.controls.slug.invalid">
-          Slug là bắt buộc.
-        </small>
-      </label>
+        <div class="admin-category-form__message-slot">
+          <small *ngIf="form.controls.slug.touched && form.controls.slug.invalid">
+            Slug là bắt buộc.
+          </small>
+        </div>
+      </div>
 
-      <label class="admin-category-form__field admin-category-form__field--wide">
-        Mô tả
+      <div class="admin-category-form__field admin-category-form__field--wide">
+        <label class="admin-category-form__field-label" for="categoryDescription">
+          Mô tả
+        </label>
         <textarea
+          id="categoryDescription"
           rows="3"
           formControlName="description"
           placeholder="Mô tả ngắn về nhóm tour"
         ></textarea>
-      </label>
+      </div>
 
-      <label class="admin-category-form__field" *ngIf="showActiveField">
-        Trạng thái hoạt động
-        <select formControlName="isActive">
+      <div class="admin-category-form__field" *ngIf="showActiveField">
+        <label class="admin-category-form__field-label" for="categoryActiveStatus">
+          Trạng thái hoạt động
+        </label>
+        <select id="categoryActiveStatus" formControlName="isActive">
           <option [value]="1">1 - Hoạt động</option>
           <option [value]="0">0 - Không hoạt động</option>
         </select>
-      </label>
+      </div>
 
       <section class="admin-category-form__image-field admin-category-form__field--wide">
         <div class="admin-category-form__image-head">
