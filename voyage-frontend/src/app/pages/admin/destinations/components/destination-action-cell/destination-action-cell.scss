@@ -1,0 +1,51 @@
+:host {
+  display: block;
+  --dest-dark: #14534f;
+  --dest-danger: #da0808;
+}
+
+.admin-destinations__row-actions {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.admin-destinations__row-actions button {
+  min-height: 34px;
+  padding: 0 10px;
+  border: 1px solid rgba(31, 111, 104, 0.18);
+  border-radius: 12px;
+  background: #fff;
+  color: var(--dest-dark);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 800;
+  cursor: pointer;
+
+  &:hover:not(:disabled) {
+    background: #f1f8f6;
+  }
+
+  &:disabled {
+    cursor: not-allowed;
+    opacity: 0.55;
+  }
+}
+
+.admin-destinations__row-actions button:nth-child(2) {
+  border-color: rgba(245, 158, 11, 0.25);
+  background: #fff7ed;
+  color: #d97706;
+}
+
+.admin-destinations__danger {
+  border-color: rgba(218, 8, 8, 0.2) !important;
+  color: var(--dest-danger) !important;
+
+  &:hover:not(:disabled) {
+    background: rgba(218, 8, 8, 0.08) !important;
+  }
+}

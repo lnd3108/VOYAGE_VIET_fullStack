@@ -1,0 +1,98 @@
+:host {
+  display: block;
+  --dest-primary: #1f6f68;
+  --dest-dark: #14534f;
+  --dest-border: #e2e8f0;
+}
+
+.admin-destinations__batch {
+  padding: 16px;
+  display: grid;
+  gap: 12px;
+  border: 1px solid var(--dest-border);
+  border-radius: 16px;
+  background: #fff;
+  box-shadow: 0 10px 30px rgba(15, 23, 42, 0.06);
+}
+
+.admin-destinations__batch strong {
+  color: #143734;
+  font-weight: 900;
+}
+
+.admin-destinations__batch p {
+  margin: 6px 0 0;
+  color: #da0808;
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.admin-destinations__batch-actions,
+.admin-destinations__batch-reject {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.admin-destinations__batch button {
+  min-height: 40px;
+  padding: 0 14px;
+  border: 1px solid transparent;
+  border-radius: 12px;
+  background: var(--dest-primary);
+  color: #fff;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font: inherit;
+  font-weight: 800;
+  cursor: pointer;
+
+  &:hover:not(:disabled) {
+    background: var(--dest-dark);
+  }
+
+  &:disabled {
+    opacity: 0.55;
+    cursor: not-allowed;
+  }
+}
+
+.admin-destinations__batch-reject textarea {
+  min-width: min(420px, 100%);
+  min-height: 72px;
+  padding: 11px 12px;
+  border: 1px solid var(--dest-border);
+  border-radius: 12px;
+  background: #fff;
+  color: #475569;
+  font: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  resize: vertical;
+
+  &:focus {
+    outline: 0;
+    border-color: var(--dest-primary);
+    box-shadow: 0 0 0 3px rgba(31, 111, 104, 0.1);
+  }
+
+  &:disabled {
+    background: #f8fafc;
+    color: #94a3b8;
+    cursor: not-allowed;
+  }
+}
+
+@media (max-width: 760px) {
+  .admin-destinations__batch-actions,
+  .admin-destinations__batch-reject {
+    display: grid;
+    grid-template-columns: 1fr;
+  }
+
+  .admin-destinations__batch button,
+  .admin-destinations__batch-reject textarea {
+    width: 100%;
+  }
+}

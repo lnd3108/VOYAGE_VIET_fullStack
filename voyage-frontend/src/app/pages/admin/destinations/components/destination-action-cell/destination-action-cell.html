@@ -1,0 +1,15 @@
+<div class="admin-destinations__row-actions" (click)="stopActionEvent($event)" (mousedown)="stopActionEvent($event)">
+  <button type="button" *ngIf="canEdit()" (click)="edit($event)">Sửa</button>
+  <button type="button" *ngIf="canCopy()" [disabled]="actionLoading === 'copy'" (click)="copy($event)">
+    {{ actionLoading === 'copy' ? 'Đang sao chép...' : 'Sao chép' }}
+  </button>
+  <button type="button" *ngIf="canSubmit()" [disabled]="actionLoading === 'submit'" (click)="submit($event)">Gửi duyệt</button>
+  <button type="button" *ngIf="canApprove()" [disabled]="actionLoading === 'approve'" (click)="approve($event)">Duyệt</button>
+  <button type="button" *ngIf="canReject()" [disabled]="!!actionLoading" (click)="openReview($event)">Từ chối</button>
+  <button type="button" *ngIf="canCancelApprove()" [disabled]="actionLoading === 'cancelApprove'" (click)="cancelApprove($event)">Hủy trình duyệt</button>
+  <button type="button" *ngIf="canShow()" [disabled]="actionLoading === 'show'" (click)="show($event)">Hiển thị public</button>
+  <button type="button" *ngIf="canHide()" [disabled]="actionLoading === 'hide'" (click)="hide($event)">Ẩn public</button>
+  <button type="button" *ngIf="canDelete()" class="admin-destinations__danger" [disabled]="actionLoading === 'delete'" (click)="delete($event)">
+    {{ actionLoading === 'delete' ? 'Đang xóa...' : 'Xóa' }}
+  </button>
+</div>

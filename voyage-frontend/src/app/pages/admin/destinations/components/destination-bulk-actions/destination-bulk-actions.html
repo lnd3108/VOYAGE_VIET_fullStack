@@ -1,0 +1,20 @@
+<section class="admin-destinations__batch" *ngIf="shouldRender">
+  <div>
+    <strong>{{ selectedCount }} điểm đến đã chọn</strong>
+    <p *ngIf="batchErrorMessage">{{ batchErrorMessage }}</p>
+  </div>
+  <div class="admin-destinations__batch-actions">
+    <button type="button" [disabled]="!canRunBatchAction('submit')" (click)="runBatchAction('submit')">Gửi duyệt</button>
+    <button type="button" [disabled]="!canRunBatchAction('approve')" (click)="runBatchAction('approve')">Duyệt</button>
+    <button type="button" [disabled]="!canRunBatchAction('reject')" (click)="runBatchAction('reject')">Từ chối</button>
+    <button type="button" [disabled]="!canRunBatchAction('cancelApprove')" (click)="runBatchAction('cancelApprove')">Hủy trình duyệt</button>
+    <button type="button" [disabled]="!canRunBatchAction('show')" (click)="runBatchAction('show')">Hiển thị public</button>
+    <button type="button" [disabled]="!canRunBatchAction('hide')" (click)="runBatchAction('hide')">Ẩn public</button>
+    <button type="button" [disabled]="batchProcessing" (click)="requestClearSelection()">Bỏ chọn</button>
+  </div>
+  <div class="admin-destinations__batch-reject" *ngIf="batchRejectMode">
+    <textarea rows="2" maxlength="500" [value]="batchRejectReason" [disabled]="batchProcessing" placeholder="Lý do từ chối batch" (input)="updateBatchRejectReason($event)"></textarea>
+    <button type="button" [disabled]="batchProcessing" (click)="runBatchAction('reject')">Xác nhận từ chối</button>
+    <button type="button" [disabled]="batchProcessing" (click)="cancelBatchReject()">Hủy</button>
+  </div>
+</section>

@@ -3,10 +3,10 @@
     Tìm kiếm
     <input
       type="search"
-      [value]="keyword"
+      [value]="keywordDraft"
       placeholder="Tìm theo tên, slug, quốc gia, khu vực"
       (input)="updateKeyword($event)"
-      (keydown.enter)="requestSearch()"
+      (keydown.enter)="applyFilters()"
     />
   </label>
 
@@ -21,14 +21,14 @@
         class="admin-destinations__select-trigger"
         (click)="toggleSelect('statusFilter')"
       >
-        {{ statusFilterLabel(statusFilter) }}
+        {{ statusFilterLabel(statusDraft) }}
       </button>
       <tui-icon class="admin-destinations__chevron-icon admin-destinations__chevron-icon--select" icon="@tui.chevron-down" />
       <div class="admin-destinations__select-menu" *ngIf="focusedSelect === 'statusFilter'">
         <button
           type="button"
           class="admin-destinations__select-option"
-          [class.admin-destinations__select-option--selected]="statusFilter === option.value"
+          [class.admin-destinations__select-option--selected]="statusDraft === option.value"
           *ngFor="let option of statusFilters"
           (click)="selectStatusFilter(option.value)"
         >
@@ -49,14 +49,14 @@
         class="admin-destinations__select-trigger"
         (click)="toggleSelect('regionFilter')"
       >
-        {{ regionFilterLabel(regionFilter) }}
+        {{ regionFilterLabel(regionDraft) }}
       </button>
       <tui-icon class="admin-destinations__chevron-icon admin-destinations__chevron-icon--select" icon="@tui.chevron-down" />
       <div class="admin-destinations__select-menu" *ngIf="focusedSelect === 'regionFilter'">
         <button
           type="button"
           class="admin-destinations__select-option"
-          [class.admin-destinations__select-option--selected]="regionFilter === option.value"
+          [class.admin-destinations__select-option--selected]="regionDraft === option.value"
           *ngFor="let option of regionFilters"
           (click)="selectRegionFilter(option.value)"
         >
@@ -70,4 +70,6 @@
     <strong>{{ filteredCount }}</strong>
     <span>/ {{ totalCount }} điểm đến</span>
   </div>
+
+  <button type="button" class="admin-destinations__reset" (click)="resetFilters()">Đặt lại</button>
 </section>

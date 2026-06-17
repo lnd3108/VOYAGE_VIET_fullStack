@@ -1,5 +1,6 @@
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { inject, Injectable } from '@angular/core';
+import { map, Observable } from 'rxjs';
 
 import { environment } from '../../../environments/environment';
 import { ApiResponse } from '../models/api-response.model';
@@ -37,15 +38,17 @@ export class AdminDestinationApiService {
     return this.http.get<AdminDestinationListResponse>(`${this.apiUrl}/admin/destinations`);
   }
 
-  getDestinationsPage(params: DestinationPageParams) {
+  getDestinationsPage(params: DestinationPageParams): Observable<PageResponse<AdminDestination>> {
     return this.http.get<ApiResponse<PageResponse<AdminDestination>> | PageResponse<AdminDestination>>(
       `${this.apiUrl}/admin/destinations/page`,
       { params: this.buildDestinationPageParams(params) },
-    );
+    ).pipe(map((response) => this.unwrapData(response)));
   }
 
-  getDestinationById(id: number) {
-    return this.http.get<ApiResponse<AdminDestination> | AdminDestination>(`${this.apiUrl}/admin/destinations/${id}`);
+  getDestinationById(id: number): Observable<AdminDestination> {
+    return this.http.get<ApiResponse<AdminDestination> | AdminDestination>(
+      `${this.apiUrl}/admin/destinations/${id}`,
+    ).pipe(map((response) => this.unwrapData(response)));
   }
 
   getCountries() {
@@ -64,15 +67,18 @@ export class AdminDestinationApiService {
     return this.http.post<ApiResponse<AdminDestination> | AdminDestination>(`${this.apiUrl}/admin/destinations`, payload);
   }
 
-  createAndSubmitDestination(payload: AdminDestinationCreateRequest) {
+  createAndSubmitDestination(payload: AdminDestinationCreateRequest): Observable<AdminDestination> {
     return this.http.post<ApiResponse<AdminDestination> | AdminDestination>(
       `${this.apiUrl}/admin/destinations/submit-create`,
       payload,
-    );
+    ).pipe(map((response) => this.unwrapData(response)));
   }
 
-  copyDestination(id: number) {
-    return this.http.post<ApiResponse<AdminDestination> | AdminDestination>(`${this.apiUrl}/admin/destinations/${id}/copy`, {});
+  copyDestination(id: number): Observable<AdminDestination> {
+    return this.http.post<ApiResponse<AdminDestination> | AdminDestination>(
+      `${this.apiUrl}/admin/destinations/${id}/copy`,
+      {},
+    ).pipe(map((response) => this.unwrapData(response)));
   }
 
   updateDestination(id: number, payload: AdminDestinationUpdateRequest) {
@@ -174,5 +180,17 @@ export class AdminDestinationApiService {
     });
 
     return httpParams;
+  }
+
+  private unwrapData<T>(response: ApiResponse<T> | T): T {
+    if (this.isApiResponse(response)) {
+      return response.data;
+    }
+
+    return response;
+  }
+
+  private isApiResponse<T>(response: ApiResponse<T> | T): response is ApiResponse<T> {
+    return typeof response === 'object' && response !== null && 'data' in response;
   }
 }

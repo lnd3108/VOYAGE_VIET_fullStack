@@ -1,6 +1,7 @@
 :host {
   display: block;
   --dest-primary: #1f6f68;
+  --dest-dark: #14534f;
   --dest-border: #d8e5e2;
 }
 
@@ -10,6 +11,10 @@
   grid-template-columns: minmax(240px, 1fr) 190px 190px auto;
   gap: 14px;
   align-items: end;
+  border: 1px solid var(--dest-border);
+  border-radius: 16px;
+  background: #fff;
+  box-shadow: 0 10px 30px rgba(15, 23, 42, 0.06);
 
   label {
     display: grid;
@@ -40,6 +45,23 @@
 
   .admin-destinations__control-wrap {
     text-align: left;
+  }
+}
+
+.admin-destinations__reset {
+  min-height: 42px;
+  padding: 0 14px;
+  border: 1px solid #dde7e4;
+  border-radius: 12px;
+  background: #fff;
+  color: var(--dest-primary);
+  font: inherit;
+  font-weight: 800;
+  cursor: pointer;
+
+  &:hover {
+    background: #f1f8f6;
+    color: var(--dest-dark);
   }
 }
 

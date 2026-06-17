@@ -1,0 +1,89 @@
+<section class="admin-destinations__table" *ngIf="loading">
+  <div class="admin-destinations__row admin-destinations__row--skeleton" *ngFor="let item of skeletonRows"></div>
+</section>
+
+<section class="admin-destinations__table" *ngIf="!loading && destinations.length">
+  <div class="admin-destinations__table-head">
+    <span>Chọn</span>
+    <span>Ảnh</span>
+    <span>Tên điểm đến</span>
+    <span>Region</span>
+    <span>Country</span>
+    <span>Workflow</span>
+    <span>Hiển thị</span>
+    <span>Phê duyệt</span>
+    <span>Cập nhật</span>
+    <span>Hành động</span>
+  </div>
+
+  <article class="admin-destinations__row" *ngFor="let destination of destinations">
+    <div data-label="Chọn">
+      <input type="checkbox" [checked]="isDestinationSelected(destination)" (change)="toggleSelection(destination, $event)" />
+    </div>
+
+    <div class="admin-destinations__image" data-label="Ảnh">
+      <img [src]="getDestinationImage(destination)" [alt]="destination.name || 'Điểm đến'" (error)="handleImageError($event)" />
+    </div>
+
+    <div data-label="Tên điểm đến">
+      <strong>{{ destination.name || 'Chưa đặt tên' }}</strong>
+      <small>{{ destination.description || 'Chưa có mô tả' }}</small>
+      <code>{{ destination.slug || 'dang-cap-nhat' }}</code>
+    </div>
+
+    <div data-label="Region">{{ formatRegion(destination.region) }}</div>
+    <div data-label="Country">{{ destination.country || 'Đang cập nhật' }}</div>
+
+    <div data-label="Workflow">
+      <span class="admin-destinations__status" [ngClass]="statusClass(destination.status)">
+        {{ statusLabel(destination.status) }}
+      </span>
+    </div>
+
+    <div data-label="Hiển thị">
+      <span class="admin-destinations__display" [ngClass]="displayClass(destination)">
+        {{ displayLabel(destination) }}
+      </span>
+    </div>
+
+    <div data-label="Phê duyệt">
+      <button type="button" class="admin-destinations__pending" [ngClass]="pendingDataClass(destination)" (click)="reviewRequested.emit(destination)">
+        {{ pendingDataLabel(destination) }}
+      </button>
+      <small *ngIf="destination.rejectReason">Lý do: {{ destination.rejectReason }}</small>
+    </div>
+
+    <div data-label="Cập nhật">{{ formatDate(destination.updatedAt || destination.createdAt) }}</div>
+
+    <app-admin-destination-action-cell
+      data-label="Hành động"
+      [destination]="destination"
+      (editRequested)="editRequested.emit($event)"
+      (reviewRequested)="reviewRequested.emit($event)"
+      (completed)="completed.emit()"
+    />
+  </article>
+</section>
+
+<section class="admin-destinations__pagination" *ngIf="!loading && totalElements">
+  <div>
+    <strong>{{ totalElements }} điểm đến</strong>
+    <span>Trang {{ page + 1 }} / {{ totalPages || 1 }}</span>
+  </div>
+  <div class="admin-destinations__pagination-actions">
+    <button type="button" [disabled]="first || loading" (click)="previousPage.emit()">Trước</button>
+    <button type="button" [disabled]="last || loading" (click)="nextPage.emit()">Sau</button>
+    <label>
+      Hiển thị
+      <select [value]="size" [disabled]="loading" (change)="pageSizeChange.emit($any($event.target).value)">
+        <option *ngFor="let option of pageSizeOptions" [value]="option">{{ option }}</option>
+      </select>
+    </label>
+  </div>
+</section>
+
+<div class="admin-destinations__empty" *ngIf="showEmpty && !loading && !destinations.length">
+  <strong>Chưa có điểm đến nào</strong>
+  <p>Tạo điểm đến đầu tiên hoặc thay đổi bộ lọc để xem kết quả khác.</p>
+  <button type="button" (click)="create.emit()">Thêm điểm đến</button>
+</div>

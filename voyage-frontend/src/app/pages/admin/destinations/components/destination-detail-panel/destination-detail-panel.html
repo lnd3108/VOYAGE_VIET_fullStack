@@ -1,0 +1,53 @@
+<section class="admin-destinations__review" *ngIf="review as detail">
+  <div class="admin-destinations__review-card">
+    <header>
+      <div>
+        <span>Review thay đổi</span>
+        <h2>{{ detail.title }}</h2>
+        <code>{{ detail.slug }}</code>
+      </div>
+      <button type="button" [disabled]="submitting" (click)="close()">Đóng</button>
+    </header>
+
+    <div class="admin-destinations__review-badges">
+      <span class="admin-destinations__status" [ngClass]="detail.workflowClassName">{{ detail.workflowLabel }}</span>
+      <span class="admin-destinations__display" [ngClass]="detail.displayClassName">{{ detail.displayLabel }}</span>
+    </div>
+
+    <p class="admin-destinations__error" *ngIf="detail.parseError">{{ detail.parseError }}</p>
+    <p class="admin-destinations__error" *ngIf="errorMessage">{{ errorMessage }}</p>
+    <p *ngIf="!detail.hasPendingData && !detail.parseError">Không có dữ liệu thay đổi chờ duyệt.</p>
+
+    <div class="admin-destinations__review-table" *ngIf="detail.rows.length">
+      <div class="admin-destinations__review-row admin-destinations__review-row--head">
+        <span>Trường</span>
+        <span>Dữ liệu hiện tại</span>
+        <span>Dữ liệu chờ duyệt</span>
+      </div>
+      <div class="admin-destinations__review-row" [class.admin-destinations__review-row--changed]="row.changed" *ngFor="let row of detail.rows">
+        <strong>{{ row.label }}</strong>
+        <span>
+          <img *ngIf="row.type === 'image' && row.currentImageUrl" [src]="row.currentImageUrl" alt="Ảnh hiện tại" (error)="handleImageError($event)" />
+          {{ row.currentValue }}
+        </span>
+        <span>
+          <img *ngIf="row.type === 'image' && row.pendingImageUrl" [src]="row.pendingImageUrl" alt="Ảnh chờ duyệt" (error)="handleImageError($event)" />
+          {{ row.pendingValue }}
+        </span>
+      </div>
+    </div>
+
+    <div class="admin-destinations__reject-box" *ngIf="rejectMode">
+      <label>Lý do từ chối</label>
+      <textarea rows="3" maxlength="500" [value]="rejectReason" [disabled]="submitting" (input)="updateRejectReason($event)"></textarea>
+    </div>
+
+    <div class="admin-destinations__form-actions">
+      <button type="button" *ngIf="detail.canApproveReject" [disabled]="submitting" (click)="approve()">Duyệt</button>
+      <button type="button" *ngIf="detail.canApproveReject && !rejectMode" [disabled]="submitting" (click)="startReject()">Từ chối</button>
+      <button type="button" *ngIf="detail.canApproveReject && rejectMode" [disabled]="submitting" (click)="confirmReject()">Xác nhận từ chối</button>
+      <button type="button" *ngIf="rejectMode" [disabled]="submitting" (click)="cancelReject()">Hủy từ chối</button>
+      <button type="button" *ngIf="detail.canCancelApprove" [disabled]="submitting" (click)="cancelApprove()">Hủy trình duyệt</button>
+    </div>
+  </div>
+</section>

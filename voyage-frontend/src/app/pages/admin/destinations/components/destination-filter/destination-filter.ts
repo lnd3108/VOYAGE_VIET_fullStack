@@ -1,5 +1,5 @@
 import { NgFor, NgIf } from '@angular/common';
-import { Component, EventEmitter, HostListener, Input, Output } from '@angular/core';
+import { Component, EventEmitter, HostListener, Input, OnChanges, Output, SimpleChanges } from '@angular/core';
 import { TuiIcon } from '@taiga-ui/core';
 
 import {
@@ -15,6 +15,12 @@ export interface DestinationFilterOption<T> {
   value: T;
 }
 
+export interface DestinationFilterValue {
+  keyword: string;
+  status: DestinationStatusFilter;
+  region: DestinationRegionFilter;
+}
+
 @Component({
   selector: 'app-admin-destination-filter',
   standalone: true,
@@ -22,22 +28,39 @@ export interface DestinationFilterOption<T> {
   templateUrl: './destination-filter.html',
   styleUrl: './destination-filter.scss',
 })
-export class AdminDestinationFilterComponent {
-  @Input() keyword = '';
-  @Input() statusFilter: DestinationStatusFilter = 'ALL';
-  @Input() regionFilter: DestinationRegionFilter = 'ALL';
-  @Input() statusFilters: DestinationFilterOption<DestinationStatusFilter>[] = [];
-  @Input() regionFilters: DestinationFilterOption<DestinationRegionFilter>[] = [];
+export class AdminDestinationFilterComponent implements OnChanges {
+  @Input() value: DestinationFilterValue | null = null;
   @Input() totalCount = 0;
   @Input() filteredCount = 0;
 
-  @Output() keywordChange = new EventEmitter<string>();
-  @Output() statusFilterChange = new EventEmitter<DestinationStatusFilter>();
-  @Output() regionFilterChange = new EventEmitter<DestinationRegionFilter>();
-  @Output() search = new EventEmitter<void>();
-  @Output() reset = new EventEmitter<void>();
+  @Output() filterChange = new EventEmitter<DestinationFilterValue>();
 
   focusedSelect: 'statusFilter' | 'regionFilter' | null = null;
+  keywordDraft = '';
+  statusDraft: DestinationStatusFilter = 'ALL';
+  regionDraft: DestinationRegionFilter = 'ALL';
+
+  readonly statusFilters: DestinationFilterOption<DestinationStatusFilter>[] = [
+    { label: 'Tất cả', value: 'ALL' },
+    { label: 'Nháp', value: 'DRAFT' },
+    { label: 'Chờ duyệt', value: 'PENDING' },
+    { label: 'Đã duyệt', value: 'APPROVED' },
+    { label: 'Từ chối', value: 'REJECTED' },
+    { label: 'Hủy trình duyệt', value: 'CANCEL_APPROVE' },
+  ];
+  readonly regionFilters: DestinationFilterOption<DestinationRegionFilter>[] = [
+    { label: 'Tất cả khu vực', value: 'ALL' },
+    { label: 'Trong nước', value: 'DOMESTIC' },
+    { label: 'Quốc tế', value: 'INTERNATIONAL' },
+  ];
+
+  ngOnChanges(changes: SimpleChanges): void {
+    if (changes['value'] && this.value) {
+      this.keywordDraft = this.value.keyword || '';
+      this.statusDraft = this.value.status || 'ALL';
+      this.regionDraft = this.value.region || 'ALL';
+    }
+  }
 
   statusFilterLabel(status: DestinationStatusFilter): string {
     return this.statusFilters.find((option) => option.value === status)?.label || 'Tất cả';
@@ -48,7 +71,8 @@ export class AdminDestinationFilterComponent {
   }
 
   updateKeyword(event: Event): void {
-    this.keywordChange.emit((event.target as HTMLInputElement).value);
+    this.keywordDraft = (event.target as HTMLInputElement).value;
+    this.applyFilters();
   }
 
   toggleSelect(selectName: 'statusFilter' | 'regionFilter'): void {
@@ -56,23 +80,36 @@ export class AdminDestinationFilterComponent {
   }
 
   selectStatusFilter(status: DestinationStatusFilter): void {
-    this.statusFilterChange.emit(status);
+    this.statusDraft = status;
     this.focusedSelect = null;
+    this.applyFilters();
   }
 
   selectRegionFilter(region: DestinationRegionFilter): void {
-    this.regionFilterChange.emit(region);
+    this.regionDraft = region;
     this.focusedSelect = null;
+    this.applyFilters();
   }
 
-  requestSearch(): void {
+  applyFilters(): void {
     this.focusedSelect = null;
-    this.search.emit();
+    this.filterChange.emit({
+      keyword: this.keywordDraft.trim(),
+      status: this.statusDraft,
+      region: this.regionDraft,
+    });
   }
 
-  requestReset(): void {
+  resetFilters(): void {
+    this.keywordDraft = '';
+    this.statusDraft = 'ALL';
+    this.regionDraft = 'ALL';
     this.focusedSelect = null;
-    this.reset.emit();
+    this.filterChange.emit({
+      keyword: '',
+      status: 'ALL',
+      region: 'ALL',
+    });
   }
 
   @HostListener('document:mousedown', ['$event'])

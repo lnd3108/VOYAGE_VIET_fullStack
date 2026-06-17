@@ -1,0 +1,171 @@
+:host {
+  display: grid;
+  gap: 20px;
+  --dest-primary: #1f6f68;
+  --dest-dark: #14534f;
+  --dest-bg: #f8faf9;
+  --dest-border: #e2e8f0;
+}
+
+.admin-destinations__table,
+.admin-destinations__pagination,
+.admin-destinations__empty {
+  border: 1px solid var(--dest-border);
+  border-radius: 16px;
+  background: #fff;
+  box-shadow: 0 10px 30px rgba(15, 23, 42, 0.06);
+}
+
+.admin-destinations__table {
+  overflow: hidden;
+}
+
+.admin-destinations__table-head,
+.admin-destinations__row {
+  display: grid;
+  grid-template-columns: 44px 72px minmax(150px, 1.15fr) 90px 100px 118px 130px 150px 105px minmax(220px, 1fr);
+  gap: 10px;
+  align-items: center;
+}
+
+.admin-destinations__table-head {
+  padding: 14px 16px;
+  background: var(--dest-bg);
+  font-weight: 800;
+}
+
+.admin-destinations__row {
+  padding: 14px 16px;
+  border-top: 1px solid var(--dest-border);
+
+  strong,
+  small {
+    display: block;
+  }
+
+  small {
+    color: #64748b;
+  }
+
+  code {
+    padding: 5px 8px;
+    border-radius: 999px;
+    background: #eef7f5;
+    color: var(--dest-dark);
+  }
+}
+
+.admin-destinations__row--skeleton {
+  min-height: 86px;
+  background: linear-gradient(90deg, #f8fafc, #eef7f5, #f8fafc);
+  background-size: 220% 100%;
+  animation: destinationSkeleton 1.35s ease-in-out infinite;
+}
+
+.admin-destinations__image img {
+  width: 58px;
+  height: 58px;
+  display: block;
+  border-radius: 14px;
+  object-fit: cover;
+  background: var(--dest-bg);
+}
+
+.admin-destinations__status {
+  padding: 7px 10px;
+  display: inline-flex;
+  border-radius: 999px;
+  font-weight: 800;
+}
+
+.admin-destinations__pending,
+.admin-destinations__pagination button,
+.admin-destinations__empty button {
+  min-height: 40px;
+  padding: 0 14px;
+  border: 1px solid transparent;
+  border-radius: 12px;
+  background: var(--dest-primary);
+  color: #fff;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font: inherit;
+  font-weight: 800;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.admin-destinations__pending {
+  min-height: 34px;
+  padding: 0 10px;
+  background: #eef7f5;
+  color: var(--dest-dark);
+  font-size: 12px;
+}
+
+.admin-destinations__pagination {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+  padding: 14px 16px;
+}
+
+.admin-destinations__pagination-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.admin-destinations__pagination label {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: #475569;
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.admin-destinations__pagination select {
+  height: 40px;
+  padding: 0 12px;
+  border: 1px solid var(--dest-border);
+  border-radius: 12px;
+  background: #fff;
+  color: #143734;
+  font: inherit;
+}
+
+button:disabled,
+select:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+.admin-destinations__empty {
+  padding: 34px;
+}
+
+@keyframes destinationSkeleton {
+  0% {
+    background-position: 0 0;
+  }
+
+  100% {
+    background-position: -220% 0;
+  }
+}
+
+@media (max-width: 760px) {
+  .admin-destinations__row {
+    grid-template-columns: 1fr;
+  }
+
+  .admin-destinations__image img {
+    width: 100%;
+    height: 180px;
+  }
+}
